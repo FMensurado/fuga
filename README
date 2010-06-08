@@ -19,7 +19,7 @@ Fuga has the following top-level directory structure:
 ## Modules / Naming Conventions
 
 The Fuga source code follows a naming convention that makes use of the
-idea of "modules." A module is simply a header file connected to one or
+idea of modules. A module is simply a header file connected to one or
 more source files (that implement the functions specified in the
 header).
 
