@@ -1,0 +1,171 @@
+# Fuga
+
+This is the (main) interpreter for the programming language, Fuga. The
+interpreter is also known as Fuga. To learn more about the language,
+visit www.fugal.org. At this point, this README document is more aimed
+towards developers of Fuga. Over time, this document should become more
+useful to users.
+
+## Directory Structure
+
+Fuga has the following top-level directory structure:
+
+* `src/` - source files
+* `bin/` - binary files (object files)
+* `test/` - various test executables
+* `Makefile` - makefile
+* `fuga` - the fuga interpreter
+
+## Modules / Naming Conventions
+
+The Fuga source code follows a naming convention that makes use of the
+idea of "modules." A module is simply a header file connected to one or
+more source files (that implement the functions specified in the
+header).
+
+The naming convention establishes that, for the module `foo`, made up of
+`foo.h` and `foo.c`, we have:
+
+* All identifiers are either defined as `foo_xx` or `_foo_xx`.
+* The `_foo_xx` convention is intended for private data, and shall not
+be used outside of the `foo` module. Likewise, fields within structs
+that are prefixed with an underscore (`_`) are meant to be accessed only
+from within the struct's module.
+* All type identifiers shall be suffixed with `_t`.
+* Identifiers for pre-processor constants and macros may be uppercase,
+such as `FOO_XX`. They may also be normal: `foo_xx`.
+* Except for type-identifiers, there is a one-to-one correspondence
+between the underscores and the module structure. Please. Use camelCase
+for anything else: `foo_takeOverTheWorld`.
+
+## Packages
+
+We can often group independent functionality into standalone components.
+Such is the case of garbage collection, and of fuga interpretation in
+general. For this, a package system (or, abstraction) was developed on
+top of the module system. We can think of a package as a collection of
+modules. In terms of files, a package is a directory.
+
+For this reason, we have the following directories inside `src`:
+
+* `src/gc`: garbage collection package
+* `src/fuga`: fuga interpreter package
+
+For a package to use another package, a shortcut/soft link is created.
+Failing that, the package can be copied into the other. As a last
+resort, one can do `#include "../gc/xx.h"`, but referring to the
+outside of a package from inside is highly undesirable. Define
+PACKAGES_UP, in order to include packages in the parent directory
+(rather than the current directory).
+
+We consider packages to be part of the module structure, so identifiers
+within a package `bar` must be prefixed with `bar_`. In other words,
+every identifier in the `fuga` package starts with `fuga_`, and every
+identifier in the `gc` package starts with `gc_`.
+
+## Encapsulation
+
+In order to maintain as much flexibility as possible for implementation,
+all types should be as opaque as possible. In C, the best way to achieve
+this is to have a (public) struct that contains a pointer to a (private)
+struct. By (public), I mean that the definition is in the header file,
+and is thus visible to everyone. By (private), I mean that the
+definition is only in the source file, so only the module know what is
+contained within the struct. For example, in the header file we would
+have,
+
+    struct foo_bar_t { struct _foo_bar_t * _data; };
+
+And in the source file, we would have
+
+    struct _foo_bar_t { int x, y; };
+
+or something. The point is that the implementation of foo_bar_t is
+completely malleable.
+
+### Why not have a foo_bar_t be a pointer?
+
+We could always just pass pointers around, or we could
+
+    typedef struct _foo_bar_t* foo_bar_t;
+
+But this is less general than the solution above. Another problem with
+this is that pointers have operations which one wouldn't expect on
+foo_bar_t (such as, adding two pointers together, array indexing, etc).
+
+Pointers might be the ideal for some types, but we should standardize on
+our (public) structures.
+
+## Documentation
+
+Document, document! Heavily document! I haven't yet decided whether
+doxygen style commenting is preferrable to more freeform commenting (a
+la sqllite), but we'd like to have as much documentation as we can.
+
+Generally, we should document the interface in the header file, and we
+should document the implementation in the source file(s).
+
+## Testing
+
+The `test` package contains useful. Because of the generality of this package, and because it only exports a handful of symbols, and for historical reasons, identifiers aren't prefixed with `test_` or `TEST_`.
+
+### Assertions
+
+Like sqlite, we use
+
+    ALWAYS(x)
+
+and
+
+    NEVER(x)
+
+to build in assertions into the code. On release code (or, performance
+testing code) these are removed.
+
+### Test cases
+
+Similar to sqlite (where this macro is known as `testcase`), we use
+
+    TESTCASE(x)
+
+To specify a test case within the code. Thus, when we are testing for
+test coverage, these macros help to identify which cases are missing.
+Our goal is to test all branches, so we should use these before branches,
+to test every possible condition.
+
+### Unit tests
+
+To actually test code, we must develop test cases. Tests are organized
+into suites. The general syntax / schematic for a test suite is:
+
+    TESTSUITE(suite_name,
+        // set things up
+        int a = 10;
+        int b = a+10;
+        int c = b/2;
+        int *x = malloc(sizeof *x);
+        // run tests
+        TEST(a == c);
+        // perform clean up
+        free(x);
+    )
+
+Test suites are to be located within the implementation file. To declare
+a suite in a header file, use
+
+    TESTSUITE_H(suite_name);
+
+Most suites need not be declared in header files, however.
+
+To call a test suite from another suite, use:
+
+    TESTSUITE_CALL(suite_name);
+
+To call a test suite from outside, use:
+
+    TESTSUITE_RUN(suite_name);
+
+Finally, to build a program that merely runs a test suite, do (using gcc):
+
+    TESTSUITE_RUN(suite_name
+
