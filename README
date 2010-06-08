@@ -98,16 +98,47 @@ our (public) structures.
 
 ## Documentation
 
-Document, document! Heavily document! I haven't yet decided whether
-doxygen style commenting is preferrable to more freeform commenting (a
-la sqllite), but we'd like to have as much documentation as we can.
+Document, document! Heavily document! Documentation is to precede the
+code in question, and should take the form:
 
-Generally, we should document the interface in the header file, and we
-should document the implementation in the source file(s).
+    /*
+    ** documentation
+    ** goes
+    ** here
+    */
+
+Documentation is to be in Markdown format, where headers are prefixed
+with `#` or `##`, small code snippets are enclosed in backquotes (`\``),
+and large code snippets are set off and indented, as such:
+
+    /*
+    ** Here's some sample code:
+    **
+    **     int fact(x) {
+    **         if (x < 1) return 1;
+    **         return x * fact(x-1);
+    **     }
+    **
+    ** Isn't it pretty?
+    */
+
+For a primer on Markdown syntax, visit *TODO*, or search for "Markdown"
+using your favorite search engine.
+
+Generally, one should document the interface to a module in its header
+file, and document the implementation in the source file(s). This way,
+a developer who wishes to use a module need only look in one place, and a
+developer who wishes to modify a module can quickly get to grips with the
+existing code, and can tell what can and can't be modified without
+repercussions.
 
 ## Testing
 
-The `test` package contains useful. Because of the generality of this package, and because it only exports a handful of symbols, and for historical reasons, identifiers aren't prefixed with `test_` or `TEST_`.
+The `test` package contains useful. Because of the generality of this
+package, and because it only exports a handful of symbols, and for
+historical reasons, identifiers aren't prefixed with `test_` or `TEST_`.
+
+For more information about testing, look in `src/test/test.h`.
 
 ### Assertions
 
@@ -165,7 +196,8 @@ To call a test suite from outside, use:
 
     TESTSUITE_RUN(suite_name);
 
-Finally, to build a program that merely runs a test suite, do (using gcc):
+Finally, to build a program that merely runs a test suite, do (requires
+gcc):
 
-    TESTSUITE_RUN(suite_name
+    ./run_suite suite_name
 
