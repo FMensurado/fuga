@@ -1,0 +1,49 @@
+# Prototype
+
+Come up with something that interprets fuga, even if badly. Python, ruby,
+any language. Once something is working, other people can be brought in.
+
+# Better Testing
+
+Come up with a better form of automated testing. Ideally, we could do
+
+    $ tools/test function_name
+
+and it would automagically test that function. We could do
+
+    $ tools/test all
+
+and it would run all tests. We could do
+
+    $ tools/test coverage
+
+and it would run coverage tests on our testing.
+
+Apart from that last option, this doesn't seem so far out, if only we
+had...
+
+# Better "make"ing
+
+Come up with a tool that handles dependencies automatically. Due to our
+module/package system, this should be easier than with C in general.
+Ideally, we could do
+
+    $ tools/make module/name
+
+and that module would automatically compile, plus dependencies.
+
+    $ tools/make program
+
+could make the program and all of its dependencies. To save brainpower,
+this program could simply create a Makefile, and then invoke make
+(and then delete the Makefile, potentially).
+
+# Benchmarking
+
+Speed is important in programming langauge interpreters (which this is,
+ultimately). We need something to automate 
+
+    $ tools/time function_name
+
+
+
