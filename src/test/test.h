@@ -1,6 +1,9 @@
 #ifndef TEST_H
 #define TEST_H
 
+#include <stdlib.h>
+#include <stdio.h>
+
 /*
 ** This file can be invoked/compiled with the following pre-processor
 ** options pre-defined:
@@ -135,24 +138,14 @@
 **     )
 */
 
-#define TESTSUITE(suite_name, suite_body)                     \
-    size_t suite_name##_test(const char* _suite_name) {       \
-        size_t _tests_failed = 0;                             \
-        suite_body                                            \
-        if (_tests_failed) {                                  \
-            printf("[%s] Failed %lu tests.\n",                \
-                _suite_name,                                  \
-                _tests_failed);                               \
-        }                                                     \
-        return _tests_failed;                                 \
-    }
+#define TESTSUITE(suite_name)                     \
+    void suite_name##_test(const char* _suite_name)
 
 #define TESTSUITE_CALL(suite_name)                            \
-    _tests_failed += suite_name##_test(#suite_name)
+    suite_name##_test(#suite_name)
 
 #define TESTSUITE_RUN(suite_name)                             \
     suite_name##_test(#suite_name)
-
 
 /*
 ** ## `TEST`, `TEST1`, `TEST2`, `TEST3`, `TEST4`
@@ -192,31 +185,38 @@
 
 #elif defined(TESTING)
 
-# define TEST(assertion, message) \
-    if (!(assertion)) { _tests_failed++; puts(message); }
+# define TEST(assertion, message)     \
+    if (!(assertion)) {               \
+        printf("[%s] ", _suite_name); \
+        puts(message);                \
+    }
 
-# define TEST1(assertion, message, arg1)  \
-    if (!(assertion)) { _tests_failed++; \
+# define TEST1(assertion, message, arg1) \
+    if (!(assertion)) {                  \
+        printf("[%s] ", _suite_name);    \
         printf(message, arg1);           \
         puts("");                        \
     }
 
 # define TEST2(assertion, message, arg1, arg2) \
-    if (!(assertion)) { _tests_failed++;      \
-        printf(message, arg1, arg2);          \
-        puts("");                             \
+    if (!(assertion)) {                        \
+        printf("[%s] ", _suite_name);          \
+        printf(message, arg1, arg2);           \
+        puts("");                              \
     }
 
 # define TEST3(assertion, message, arg1, arg2, arg3) \
-    if (!(assertion)) { _tests_failed++;            \
-        printf(message, arg1, arg2, arg3);          \
-        puts("");                                   \
+    if (!(assertion)) {                              \
+        printf("[%s] ", _suite_name);                \
+        printf(message, arg1, arg2, arg3);           \
+        puts("");                                    \
     }
 
 # define TEST4(assertion, message, arg1, arg2, arg3, arg4) \
-    if (!(assertion)) { _tests_failed++;                  \
-        printf(message, arg1, arg2, arg3, arg4);          \
-        puts("");                                         \
+    if (!(assertion)) {                                    \
+        printf("[%s] ", _suite_name);                      \
+        printf(message, arg1, arg2, arg3, arg4);           \
+        puts("");                                          \
     }
 
 #endif

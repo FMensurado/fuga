@@ -4,7 +4,6 @@
 ** 
 */
 
-
 #ifndef GC_H
 #define GC_H
 
@@ -113,8 +112,8 @@ void gc_defaultFreeFn(gc_t gc, void* object);
 **
 ** `void gc_mark(void* parent, void* child)`:
 **
-** - `parent` is the object that holds a 
-** - `child` is the object that 
+** * declares that `parent` has a reference to `child`.
+** * can be used outside of a markFn.
 **
 ** Example:
 ** 
@@ -157,25 +156,32 @@ void gc_mark(gc_t, void* parent, void* child);
 **     }
 */
 struct gc_header_t {
+    _gc_list_t _refs;
+    struct gc_header_t *_parent, *_children;
     gc_freeFn_t freeFn;
     gc_markFn_t markFn;
 };
 
 /*
-**
+** Use `gc_register` to register an object with the garbage collector. An
+** object register for the first time is assumed to be in the current
+** stack frame (see below).
+** 
+** An object can be gc_register'ed again in order to flush its perceived
+** state. What this means is that the gc keeps track of an object's
+** references (through gc_mark, and through markFn), to speed things up.
+** However, if some references are removed, gc_t has no way of knowing
+** about it unless you do gc_register again.
 */
 void gc_register(gc_t gc, void* object);
 
 /*
-** 
+** ## Stack Frames
+**
+** TODO: explain.
 */
 void gc_enter(gc_t gc);
 void gc_leave(gc_t gc);
-
-/*
-** 
-*/
 void gc_return(gc_t gc, void* object);
 
 #endif
-
