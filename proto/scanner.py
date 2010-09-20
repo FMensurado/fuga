@@ -34,6 +34,16 @@ class scanner(object):
     [STRING('hi', column=1, line=1), SYMBOL('there', column=6, line=1), EOF]
     >>> list(scanner('"hi\\nyou" there'))
     [STRING('hi\\nyou', column=1, line=1), SYMBOL('there', column=6, line=2), EOF]
+    >>> list(scanner("foo=bar"))
+    [SYMBOL('foo', column=1, line=1), EQUALS(column=4, line=1), SYMBOL('bar', column=5, line=1), EOF]
+    >>> list(scanner("foo+>"))
+    [SYMBOL('foo', column=1, line=1), OPERATOR('+>', column=4, line=1), EOF]
+    >>> list(scanner("foor and or band"))
+    [SYMBOL('foor', column=1, line=1), OPERATOR('and', column=6, line=1), OPERATOR('or', column=10, line=1), SYMBOL('band', column=13, line=1), EOF]
+    >>> list(scanner("\\\\+"))
+    [SYMBOL('+', column=1, line=1), EOF]
+    >>> list(scanner('-10 +10 - 10 + 10'))
+    [NUMBER(-10, column=1, line=1), NUMBER(10, column=5, line=1), OPERATOR('-', column=9, line=1), NUMBER(10, column=11, line=1), OPERATOR('+', column=14, line=1) NUMBER(10, column=16, line=1)]
     """
     def __init__(self, text, **kwargs):
         self.lineno = 1
@@ -82,10 +92,8 @@ class scanner(object):
         # get an entire word before deciding what it is
         alphabet = ('abcdefghijklmnopqrstuvwxyz'
                    +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                   +'0123456789'
-                   +'+-*/%^'
-                   +'=><!'
-                   +'~@$&*_;:|.?')
+                   +'0123456789')
+        
         if self.text[0] in alphabet:
             symbol = ''
             column = self.column
@@ -94,10 +102,10 @@ class scanner(object):
                 self.move_text(self.text[1:])
             
             # slot ops
-            if symbol == '=':
-                return tokens.EQUALS(line=self.lineno, column=column)
-            if symbol == '=>':
-                return tokens.BECOMES(line=self.lineno, column=column)
+            if symbol == 'and':
+                return tokens.OPERATOR('and', line=self.lineno, column=column)
+            if symbol == 'or':
+                return tokens.OPERATOR('or',  line=self.lineno, column=column)
             
             # numbers
             try:
@@ -108,6 +116,35 @@ class scanner(object):
             
             # symbols
             return tokens.SYMBOL(symbol, line=self.lineno, column=column)
+
+        ###########
+        alphabet = ('+-*/%^'
+                   +'=><!'
+                   +'~@$&*_;:|.?')
+        if self.text[0] in alphabet:
+            symbol = ''
+            column = self.column
+            while self.text and self.text[0] in alphabet:
+                symbol += self.text[0]
+                self.move_text(self.text[1:])
+
+            # slot ops
+            if symbol == '=':
+                return tokens.EQUALS(line=self.lineno, column=column)
+            if symbol == '=>':
+                return tokens.BECOMES(line=self.lineno, column=column)
+
+            return tokens.OPERATOR(symbol,line=self.lineno, column=column)
+
+        if self.text[0] == '\\':
+            self.move_text(self.text[1:])
+            token = self.scan()
+            if token == tokens.OPERATOR:
+                return tokens.SYMBOL(token.value,
+                    column=token.kwargs['column']-1,
+                    line=token.kwargs['line'])
+            else:
+                raise SyntaxError, "expected an OPERATOR, got %s" % token
 
         # now try strings
         token = self.scan_string()

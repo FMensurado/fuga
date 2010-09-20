@@ -4,7 +4,6 @@ from scanner import scanner
 import tokens
 import ast
 
-
 def parse(code):
     """
     >>> parse('1000')
@@ -19,8 +18,10 @@ def parse(code):
     object(msg('foo'), msg('bar'))
     >>> parse('(foo = bar, baz)')
     object(slot(msg('foo'), '=', msg('bar')), msg('baz'))
-    >>> parse('fact(0) => 1, fact(n) => fact(n - 1) *(n)')
-    object(slot(msg('fact', object(number(0))), '=>', number(1)), slot(msg('fact', object(msg('n'))), '=>', exp(msg('fact', object(exp(msg('n'), msg('-', number(1))))), msg('*', object(msg('n'))))))
+    >>> parse('fact(0) => 1, fact(n) => fact(n-1)*n')
+    object(slot(msg('fact', object(number(0))), '=>', number(1)), slot(msg('fact', object(msg('n'))), '=>', opexp([msg('fact', object(opexp([msg('n'), number(1)], ['-']))), msg('n')], ['*'])))
+    >>> parse('a * b * c')
+    opexp([msg('a'), msg('b'), msg('c')], ['*', '*'])
     """
     return parse_tokens(scanner(code))
 
@@ -60,7 +61,19 @@ def parse_slot(toks):
         return exp1
 
 def parse_exp(toks):
-    """exp ::= root msg*"""
+    """exp ::= part (op part)*"""
+    parts = [parse_part(toks)]
+    ops   = []
+    while toks.peek() == tokens.OPERATOR:
+        ops.append(toks.next().value)
+        parts.append(parse_part(toks))
+    if ops:
+        return ast.opexp(parts, ops)
+    else:
+        return parts[0]
+
+def parse_part(toks):
+    """part ::= root msg*"""
     root = parse_root(toks)
     msgs = []
     while toks.peek() == tokens.SYMBOL:
@@ -113,5 +126,5 @@ def parse_object(toks):
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod()
+    success = doctest.testmod()
 

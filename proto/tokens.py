@@ -31,5 +31,6 @@ RPAREN    = token("RPAREN")
 EQUALS    = token("EQUALS")
 BECOMES   = token("BECOMES")
 SEPARATOR = token("SEPARATOR")
+OPERATOR  = token("OPERATOR")
 EOF       = token("EOF")
 
