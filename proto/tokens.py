@@ -33,4 +33,6 @@ BECOMES   = token("BECOMES")
 SEPARATOR = token("SEPARATOR")
 OPERATOR  = token("OPERATOR")
 EOF       = token("EOF")
+QUOTE     = token("QUOTE")
+ESCAPE    = token("ESCAPE")
 

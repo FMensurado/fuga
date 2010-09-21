@@ -43,7 +43,9 @@ class scanner(object):
     >>> list(scanner("\\\\+"))
     [SYMBOL('+', column=1, line=1), EOF]
     >>> list(scanner('-10 +10 - 10 + 10'))
-    [NUMBER(-10, column=1, line=1), NUMBER(10, column=5, line=1), OPERATOR('-', column=9, line=1), NUMBER(10, column=11, line=1), OPERATOR('+', column=14, line=1) NUMBER(10, column=16, line=1)]
+    [NUMBER(-10, column=1, line=1), NUMBER(10, column=5, line=1), OPERATOR('-', column=9, line=1), NUMBER(10, column=11, line=1), OPERATOR('+', column=14, line=1), NUMBER(10, column=16, line=1), EOF]
+    >>> list(scanner("'foo`"))
+    [QUOTE(column=1, line=1), SYMBOL('foo', column=2, line=1), ESCAPE(column=5, line=1), EOF]
     """
     def __init__(self, text, **kwargs):
         self.lineno = 1
@@ -73,7 +75,9 @@ class scanner(object):
         literal = {
             '(': tokens.LPAREN,
             ')': tokens.RPAREN,
-            ',': tokens.SEPARATOR
+            ',': tokens.SEPARATOR,
+            '`': tokens.ESCAPE,
+            "'": tokens.QUOTE
         }
         for key in literal:
             if self.text[:len(key)] == key:
@@ -133,6 +137,18 @@ class scanner(object):
                 return tokens.EQUALS(line=self.lineno, column=column)
             if symbol == '=>':
                 return tokens.BECOMES(line=self.lineno, column=column)
+
+            # potential numbers
+            if self.text and self.text[0] in '0123456789':
+                if symbol == '+' or symbol == '-':
+                    result = self.scan()
+                    if result == tokens.NUMBER:
+                        if symbol == '-':
+                            result.value = -result.value
+                        result.kwargs['column'] -= 1
+                        return result
+                    else:
+                        raise SyntaxError, "nearly-ambiguous at %s" % result
 
             return tokens.OPERATOR(symbol,line=self.lineno, column=column)
 

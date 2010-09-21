@@ -234,7 +234,8 @@ List.set('repr', fgmethod(List_repr))
 def Quote_repr(self, args, env):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
     if self is Quote: return fgstr('Quote')
-    return fgstr("'" + repr(self.get('left')))
+    return fgstr("'" + repr(self.get('value')))
+Quote.set('repr', fgmethod(Quote_repr))
 
 if __name__ == '__main__':
     import doctest

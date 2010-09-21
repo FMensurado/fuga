@@ -18,10 +18,14 @@ def parse(code):
     object(msg('foo'), msg('bar'))
     >>> parse('(foo = bar, baz)')
     object(slot(msg('foo'), '=', msg('bar')), msg('baz'))
-    >>> parse('fact(0) => 1, fact(n) => fact(n-1)*n')
+    >>> parse('fact(0) => 1, fact(n) => fact(n - 1)*n')
     object(slot(msg('fact', object(number(0))), '=>', number(1)), slot(msg('fact', object(msg('n'))), '=>', opexp([msg('fact', object(opexp([msg('n'), number(1)], ['-']))), msg('n')], ['*'])))
     >>> parse('a * b * c')
     opexp([msg('a'), msg('b'), msg('c')], ['*', '*'])
+    >>> parse("'a")
+    quote(msg('a'))
+    >>> parse("foo `bar")
+    exp(msg('foo'), msg('get', object(msg('bar'))))
     """
     return parse_tokens(scanner(code))
 
@@ -74,9 +78,12 @@ def parse_exp(toks):
 
 def parse_part(toks):
     """part ::= root msg*"""
+    if toks.peek() == tokens.QUOTE:
+        toks.next()
+        return ast.quote(parse_part(toks))
     root = parse_root(toks)
     msgs = []
-    while toks.peek() == tokens.SYMBOL:
+    while toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
         msgs.append(parse_msg(toks))
     if not msgs:
         return root
@@ -86,13 +93,16 @@ def parse_part(toks):
 
 def parse_root(toks):
     """roor ::= atom | msg"""
-    if toks.peek() == tokens.SYMBOL:
+    if toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
         return parse_msg(toks)
     else:
         return parse_atom(toks)
 
 def parse_msg(toks):
     """msg ::= symbol args"""
+    if toks.peek() == tokens.ESCAPE:
+        toks.next()
+        return ast.msg("get", ast.block([ast.quote(parse_msg(toks))]))
     if not toks.peek() == tokens.SYMBOL:
         raise SyntaxError, "expected SYMBOL, got %s" % toks.peek()
     name = toks.next()

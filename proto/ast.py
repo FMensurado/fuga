@@ -14,6 +14,8 @@
 (foo=method((x), 845))
 >>> parser.parse('x y = z').convert()
 (x set(y, z))
+>>> parser.parse("`bar baz('a b c)").convert()
+get('bar) baz('a b c)
 """
 import values
 
@@ -145,6 +147,15 @@ class number(ast):
         else:
             return values.fgreal(self.value)
 
+class quote(ast):
+    def cons(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return "quote(%r)" % self.value
+
+    def convert(self):
+        return values.fgquote(self.value.convert())
 
 if __name__ == '__main__':
     import doctest

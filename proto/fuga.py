@@ -6,11 +6,16 @@ def main():
     print "Fuga 0.0 parser. Type 'quit' to stop."
     print 
     while True:
-        expr = raw_input(">>> ")
+        try:
+            expr = raw_input(">>> ")
+        except EOFError:
+            print
+            break
         if expr == 'quit': break
         ast  = parser.parse(expr)
         value = ast.convert()
         print repr(value)
+    print
 
 if __name__ == '__main__':
     main()
