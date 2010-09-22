@@ -148,7 +148,11 @@ class scanner(object):
                         result.kwargs['column'] -= 1
                         return result
                     else:
-                        raise SyntaxError, "nearly-ambiguous at %s" % result
+                        raise SyntaxError, "ambiguous at %s, please add a space to differentiate between NUMBER SYMBOL and OPERATOR SYMBOL." % result
+
+            # if there is an LPAREN right after, this is really a symbol
+            if self.text and self.text[0] == '(':
+                return tokens.SYMBOL(symbol,line=self.lineno,column=column)
 
             return tokens.OPERATOR(symbol,line=self.lineno, column=column)
 

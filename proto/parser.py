@@ -25,7 +25,7 @@ def parse(code):
     >>> parse("'a")
     quote(msg('a'))
     >>> parse("foo `bar")
-    exp(msg('foo'), msg('get', object(msg('bar'))))
+    exp(msg('foo'), msg('get', object(quote(msg('bar')))))
     """
     return parse_tokens(scanner(code))
 
