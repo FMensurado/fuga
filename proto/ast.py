@@ -65,6 +65,8 @@ class slot(ast):
             else:
                 last_args = self.left.args
                 self.left.args = None
+            if not last_args:
+                last_args = block([])
             self.right = msg('method',
                 block([last_args, self.right])
             )

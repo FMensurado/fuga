@@ -192,10 +192,22 @@ Object.set('repr', fgmethod(Object_repr))
 
 def String_repr(self, args, env):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
-    if self is String: return fgstr('string')
-    prefix = "'" * len(self.value) + "'"
-    # VERY HACKY!!
-    return fgstr('"' + repr(prefix + self.value)[len(prefix)+1:])
+    if self is String: return fgstr('String')
+
+    escape = {
+        '\\': '\\\\',
+        '\n': '\\n',
+        '\r': '\\r',
+        '\t': '\\t',
+        '"': '\\"'
+    }
+    result = ''
+    for c in self.value:
+        if c in escape:
+            result += escape[c]
+        else:
+            result += c
+    return fgstr('"' + result + '"')
 String.set('str',  fgmethod(lambda self,args,env:
     self if self.value else fgstr('String')))
 String.set('repr', fgmethod(String_repr))
@@ -214,10 +226,16 @@ fgfalse.set('repr', fgstr('false'))
 def Message_repr(self, args, env):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
     if self is Message: return fgstr('Message')
-    if len(self.slots):
-        return fgstr(self.value + Object_repr(self, args, env).value)
+    if self.value[0] in ('abcdefghijklmnopqrstuvwxyz'
+                        +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                        +'0123456789'):
+        name = self.value
     else:
-        return fgstr(self.value)
+        name = '\\' + self.value
+    if len(self.slots):
+        return fgstr(name + Object_repr(self, args, env).value)
+    else:
+        return fgstr(name)
 Message.set('repr', fgmethod(Message_repr))
 
 def List_repr(self, args, env):
