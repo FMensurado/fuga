@@ -14,10 +14,19 @@
 (foo=method((x), 845))
 >>> parser.parse('x y = z').convert()
 (x set(y, z))
+>>> parser.parse("foo bar").convert()
+foo bar
 >>> parser.parse("`bar baz('a b c)").convert()
 get('bar) baz('a b c)
+>>> parser.parse("a + b").convert()
+a \+(b)
+>>> parser.parse("a + b - c").convert()
+a \+(b) \-(c)
+>>> parser.parse("a + b * c").convert()
+a \+(b \*(c))
 """
 import values
+import operators
 
 class ast(object):
     def __init__(self, *vargs, **kwargs):
@@ -95,6 +104,20 @@ class opexp(ast):
     
     def __repr__(self):
         return "opexp(%r, %r)" % (self.parts, self.ops)
+
+    def flatten(self, groups):
+        def combine(left, op, right):
+            newmsg = msg(op, block([right]))
+            if isinstance(left, exp):
+                left.msgs.append(newmsg)
+                return left
+            else:
+                return exp(left, [newmsg])
+        return operators.solve(groups, self.parts, self.ops, combine)
+
+    def convert(self, groups=None):
+        if not groups: groups = operators.std_groups
+        return self.flatten(groups).convert()
 
 class exp(ast):
     def cons(self, root, msgs):
