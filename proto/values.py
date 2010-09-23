@@ -18,6 +18,8 @@ class fgobject(object):
 
     def set(self, name, value):
         if isinstance(name, str) or name is None:
+            if name in self.byName:
+                raise KeyError, "Can't have two slots with name %s" % name
             if name is not None:
                 self.byName[name] = len(self.slots)
             self.slots.append((name, value))
@@ -81,7 +83,7 @@ class fgobject(object):
 
         if obj.isA(Int) or obj.isA(Real) or obj.isA(String):
             return obj
-        elif obj.isA('quote') and obj.has('value'):
+        elif obj.isA(Quote) and obj.has('value'):
             return obj.get('value')
         elif obj.isA(Message):
             val = env.get(obj.value)
@@ -254,6 +256,120 @@ def Quote_repr(self, args, env):
     if self is Quote: return fgstr('Quote')
     return fgstr("'" + repr(self.get('value')))
 Quote.set('repr', fgmethod(Quote_repr))
+
+def Method_repr(self, args, env):
+    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if self is Method: return fgstr('Method')
+    return fgstr('method(...)')
+Method.set('repr', fgmethod(Method_repr))
+    
+
+# Some global functions...
+
+
+def Object_get(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "get expects 1 argument"
+    args = env.eval(args)
+    name = args.slots[0][1]
+    if name.isA(String): name = name.value
+    elif name.isA(Message): name = name.value
+    else: raise TypeError, "unexpected type for argument to get"
+    return self.get(name)
+
+def Object_set(self, args, env):
+    if len(args.slots) != 1 and len(args.slots) != 2:
+        raise ValueError, "set expects 1 or 2 arguments"
+    args = env.eval(args)
+    if len(args.slots) == 1:
+        name = None
+        value = args.slots[0][1]
+    else:
+        name = args.slots[0][1]
+        value = args.slots[1][1]
+        if name.isA(String): name = name.value
+        elif name.isA(Message): name = name.value
+        else: raise TypeError, "unexpected type for first argument to set" 
+    self.set(name, value)
+    return self
+
+def Object_has(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "get expects 1 argument"
+    args = env.eval(args)
+    name = args.slots[0][1]
+    if name.isA(String): name = name.value
+    elif name.isA(Message): name = name.value
+    else: raise TypeError, "unexpected type for argument to get"
+    return fgtrue if self.has(name) else fgfalse
+
+def Object_self(self, args, env):
+    if len(args.slots) != 0:
+        raise ValueError, "self expects no arguments"
+    return self
+
+def Object_proto(self, args, env):
+    if len(args.slots) != 0:
+        raise ValueError, "proto expects no arguments"
+    return self.proto or Object
+
+def Object_scope(self, args, env):
+    if len(args.slots) != 0:
+        raise ValueError, "scope expects no arguments"
+    return env
+
+# Set up some globals
+
+Object.set('Object', Object)
+Object.set('Number', Number)
+Object.set('Int',    Int)
+Object.set('Real',   Real)
+Object.set('String', String)
+Object.set('Bool',   Bool)
+Object.set('true',   fgtrue)
+Object.set('false',  fgfalse)
+Object.set('get',    fgmethod(Object_get))
+Object.set('set',    fgmethod(Object_set))
+Object.set('has',    fgmethod(Object_has))
+Object.set('self',   fgmethod(Object_self))
+Object.set('proto',  fgmethod(Object_proto))
+Object.set('scope',  fgmethod(Object_scope))
+
+# Arithmetic would be nice
+
+def Number_add(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "+ expects an argument"
+    args = env.eval(args)
+    if not args.get(0).isA(Number):
+        raise TypeError, "Can not add non-numbers"
+    if self.value is None: 
+        raise ValueError, "Cannot add %r to a number." % self
+    if args.get(0).value is None:
+        raise ValueError, "Cannot add %r to a number." % args.get(0)
+    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
+        return fgint(self.value + args.get(0).value)
+    else:
+        return fgreal(self.value + args.get(0).value)
+
+def Number_sub(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "- expects an argument"
+    args = env.eval(args)
+    if not args.get(0).isA(Number):
+        raise TypeError, "Can not subtract non-numbers"
+    if self.value is None: 
+        raise ValueError, "Cannot subtract a number from %r." % self
+    if args.get(0).value is None:
+        raise ValueError, "Cannot subtract %r from a number." % args.get(0)
+    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
+        return fgint(self.value - args.get(0).value)
+    else:
+        return fgreal(self.value - args.get(0).value)
+
+Number.set('+', fgmethod(Number_add))
+Number.set('-', fgmethod(Number_sub))
+
 
 if __name__ == '__main__':
     import doctest

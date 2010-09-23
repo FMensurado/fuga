@@ -99,6 +99,7 @@ class scanner(object):
                    +'0123456789')
         
         if self.text[0] in alphabet:
+            alphabet += '?!'
             symbol = ''
             column = self.column
             while self.text and self.text[0] in alphabet:

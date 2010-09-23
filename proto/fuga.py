@@ -12,9 +12,14 @@ def main():
             print
             break
         if expr == 'quit': break
-        ast  = parser.parse(expr)
-        value = ast.convert()
-        print repr(value)
+        try:
+            ast  = parser.parse(expr)
+            value = ast.convert()
+            # print repr(value)
+            evalue = env.eval(value)
+            print repr(evalue)
+        except Exception, e:
+            print "ERROR:", e
     print
 
 if __name__ == '__main__':

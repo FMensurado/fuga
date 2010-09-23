@@ -13,7 +13,7 @@
 >>> parser.parse('foo(x) => 845').convert()
 (foo=method((x), 845))
 >>> parser.parse('x y = z').convert()
-(x set(y, z))
+x set('y, z)
 >>> parser.parse("foo bar").convert()
 foo bar
 >>> parser.parse("`bar baz('a b c)").convert()
@@ -46,8 +46,6 @@ class block(ast):
     def convert(self):
         result = values.Object.clone()
         for cur_slot in self.slots:
-            if isinstance(cur_slot, slot):
-                cur_slot = cur_slot.normalized()
             if isinstance(cur_slot, slot):
                 result.set(cur_slot.left.name, cur_slot.right.convert())
             else:
@@ -83,7 +81,7 @@ class slot(ast):
         if isinstance(self.left, exp):
             name = self.left.msgs[-1]
             return exp(self.left.root, self.left.msgs[:-1] +
-                [msg('set', block([name, self.right]))])
+                [msg('set', block([quote(name), self.right]))])
         else:
             return self
 

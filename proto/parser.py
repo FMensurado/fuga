@@ -60,7 +60,7 @@ def parse_slot(toks):
             slotopstr = '='
         else:   
             slotopstr = '=>'
-        return ast.slot(exp1, slotopstr, exp2)
+        return ast.slot(exp1, slotopstr, exp2).normalized()
     else:
         return exp1
 
