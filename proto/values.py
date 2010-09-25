@@ -215,11 +215,11 @@ String.set('str',  fgmethod(lambda self,args,env:
 String.set('repr', fgmethod(String_repr))
 
 Number.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value else 'Number')))
+    fgstr(repr(self.value) if self.value is not None else 'Number')))
 Int.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value else 'Int')))
+    fgstr(repr(self.value) if self.value is not None else 'Int')))
 Real.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value else 'Real')))
+    fgstr(repr(self.value) if self.value is not None else 'Real')))
 Bool.set('repr', fgstr('Bool'))
 fgtrue.set('repr', fgstr('true'))
 fgfalse.set('repr', fgstr('false'))
