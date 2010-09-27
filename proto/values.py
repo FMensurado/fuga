@@ -2,16 +2,24 @@
 class fgobject(object):
     def __init__(self, proto, *slots):
         if slots and not isinstance(slots[0], tuple):
-            self.value = slots[0]
+            self._value = slots[0]
             slots = slots[1:]
         else:
-            self.value = None
+            self._value = None
         self.proto = proto
         self.slots = list(slots)
         self.byName = {}
         for i,(k,v) in enumerate(slots):
             if k is not None:
                 self.byName[k] = i
+
+    def value(self):
+        if self._value:
+            return self._value
+        elif self.proto:
+            return self.proto.value()
+        else:
+            return None
 
     def clone(self, *slots):
         return fgobject(self, *slots)
@@ -86,7 +94,7 @@ class fgobject(object):
         elif obj.isA(Quote) and obj.has('value'):
             return obj.get('value')
         elif obj.isA(Message):
-            val = env.get(obj.value)
+            val = env.get(obj.value())
             if val.isCallable():
                 args = Object.clone(*obj.slots)
                 return val.call(env, args, callenv)
@@ -115,13 +123,31 @@ class fgobject(object):
         return self.isA(Method)
 
     def call(self, obj, args, argenv):
-        if hasattr(self, 'value'):
-            return self.value(obj, args, argenv)
+        if self.isA(Method):
+            if self.value():
+                return self.value()(obj, args, argenv)
+            else:
+                if len(self.slots) != 3: raise ValueError, "can only handle single methods at the moment."
+                if len(self.get(1).slots) != len(args.slots):
+                    raise ValueError, "method takes %s arguments, but %s given." % (len(self.get(0).slots), len(args.slots))
+
+                scope = self.get('scope').clone(('self', obj))
+                for i,(n,m) in enumerate(self.get(1).slots):
+                    if not m.isA(Message):
+                        raise ValueError, "can't handle non-msg parameters yet."
+                    elif m.slots:
+                        raise ValueError, "expected a msg with no args in formal parameter"
+                    elif n:
+                        raise ValueError, "can't handle named parameters yet."
+                    else:
+                        scope.set(m.value(), argenv.eval(args.get(i)))
+
+                return scope.eval(self.get(2))
         else:
-            raise AttributeError, "expected a 'value' in Method"
+            raise TypeError, "expected a Method -- can't call a non-method"
 
     def __repr__(self):
-        return self.eval(fgmsg('repr')).value
+        return self.eval(fgmsg('repr')).value()
 
 
 Object = fgobject(None)
@@ -178,15 +204,20 @@ def fgmethod(value): return Method.clone(value)
 
 
 
-def Object_repr(self, args, env):
+def Object_repr(self, args, env, depth=5):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
     if self is Object: return fgstr('Object')
+    if depth == 0: return fgstr("(...)")
     strs = []
     for (k,v) in self.slots:
-        if k is None:
-            strs.append(repr(v))
+        if v.get("repr").value() is Object_repr:
+            vrepr = Object_repr(v, args, env, depth-1).value()
         else:
-            strs.append(k + "=" + repr(v))
+            vrepr = repr(v)
+        if k is None:
+            strs.append(vrepr)
+        else:
+            strs.append(k + "=" + vrepr)
     return fgstr("(%s)" % ', '.join(strs))
 Object.set('str', fgmethod(lambda self,args,env:
     self.eval(fgmsg('repr'))))
@@ -194,7 +225,7 @@ Object.set('repr', fgmethod(Object_repr))
 
 def String_repr(self, args, env):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
-    if self is String: return fgstr('String')
+    if self.value() is None: return fgstr('String')
 
     escape = {
         '\\': '\\\\',
@@ -204,22 +235,22 @@ def String_repr(self, args, env):
         '"': '\\"'
     }
     result = ''
-    for c in self.value:
+    for c in self.value():
         if c in escape:
             result += escape[c]
         else:
             result += c
     return fgstr('"' + result + '"')
 String.set('str',  fgmethod(lambda self,args,env:
-    self if self.value else fgstr('String')))
+    self if self.value() else fgstr('String')))
 String.set('repr', fgmethod(String_repr))
 
 Number.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value is not None else 'Number')))
+    fgstr(repr(self.value()) if self.value() is not None else 'Number')))
 Int.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value is not None else 'Int')))
+    fgstr(repr(self.value()) if self.value() is not None else 'Int')))
 Real.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value) if self.value is not None else 'Real')))
+    fgstr(repr(self.value()) if self.value() is not None else 'Real')))
 Bool.set('repr', fgstr('Bool'))
 fgtrue.set('repr', fgstr('true'))
 fgfalse.set('repr', fgstr('false'))
@@ -227,15 +258,15 @@ fgfalse.set('repr', fgstr('false'))
 
 def Message_repr(self, args, env):
     if len(args.slots): raise ValueError, "repr expects 0 arguments"
-    if self is Message: return fgstr('Message')
-    if self.value[0] in ('abcdefghijklmnopqrstuvwxyz'
+    if self.value() is None: return fgstr('Message')
+    if self.value()[0] in ('abcdefghijklmnopqrstuvwxyz'
                         +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                         +'0123456789'):
-        name = self.value
+        name = self.value()
     else:
-        name = '\\' + self.value
+        name = '\\' + self.value()
     if len(self.slots):
-        return fgstr(name + Object_repr(self, args, env).value)
+        return fgstr(name + Object_repr(self, args, env).value())
     else:
         return fgstr(name)
 Message.set('repr', fgmethod(Message_repr))
@@ -272,9 +303,9 @@ def Object_get(self, args, env):
         raise ValueError, "get expects 1 argument"
     args = env.eval(args)
     name = args.slots[0][1]
-    if name.isA(String): name = name.value
-    elif name.isA(Message): name = name.value
-    elif name.isA(Int): name = name.value
+    if name.isA(String): name = name.value()
+    elif name.isA(Message): name = name.value()
+    elif name.isA(Int): name = name.value()
     else: raise TypeError, "unexpected type for argument to get"
     return self.get(name)
 
@@ -288,8 +319,8 @@ def Object_set(self, args, env):
     else:
         name = args.slots[0][1]
         value = args.slots[1][1]
-        if name.isA(String): name = name.value
-        elif name.isA(Message): name = name.value
+        if name.isA(String): name = name.value()
+        elif name.isA(Message): name = name.value()
         else: raise TypeError, "unexpected type for first argument to set" 
     self.set(name, value)
     return self
@@ -299,8 +330,8 @@ def Object_has(self, args, env):
         raise ValueError, "get expects 1 argument"
     args = env.eval(args)
     name = args.slots[0][1]
-    if name.isA(String): name = name.value
-    elif name.isA(Message): name = name.value
+    if name.isA(String): name = name.value()
+    elif name.isA(Message): name = name.value()
     else: raise TypeError, "unexpected type for argument to get"
     return fgtrue if self.has(name) else fgfalse
 
@@ -344,14 +375,14 @@ def Number_add(self, args, env):
     args = env.eval(args)
     if not args.get(0).isA(Number):
         raise TypeError, "Can not add non-numbers"
-    if self.value is None: 
+    if self.value() is None: 
         raise ValueError, "Cannot add %r to a number." % self
-    if args.get(0).value is None:
+    if args.get(0).value() is None:
         raise ValueError, "Cannot add %r to a number." % args.get(0)
-    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
-        return fgint(self.value + args.get(0).value)
+    if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
+        return fgint(self.value() + args.get(0).value())
     else:
-        return fgreal(self.value + args.get(0).value)
+        return fgreal(self.value() + args.get(0).value())
 
 def Number_sub(self, args, env):
     if len(args.slots) != 1:
@@ -359,14 +390,14 @@ def Number_sub(self, args, env):
     args = env.eval(args)
     if not args.get(0).isA(Number):
         raise TypeError, "Can not subtract non-numbers"
-    if self.value is None: 
+    if self.value() is None: 
         raise ValueError, "Cannot subtract a number from %r." % self
-    if args.get(0).value is None:
+    if args.get(0).value() is None:
         raise ValueError, "Cannot subtract %r from a number." % args.get(0)
-    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
-        return fgint(self.value - args.get(0).value)
+    if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
+        return fgint(self.value() - args.get(0).value())
     else:
-        return fgreal(self.value - args.get(0).value)
+        return fgreal(self.value() - args.get(0).value())
 
 def Number_mul(self, args, env):
     if len(args.slots) != 1:
@@ -374,14 +405,14 @@ def Number_mul(self, args, env):
     args = env.eval(args)
     if not args.get(0).isA(Number):
         raise TypeError, "Can not multiply non-numbers"
-    if self.value is None: 
+    if self.value() is None: 
         raise ValueError, "Cannot multiply %r." % self
-    if args.get(0).value is None:
+    if args.get(0).value() is None:
         raise ValueError, "Cannot multiply %r." % args.get(0)
-    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
-        return fgint(self.value * args.get(0).value)
+    if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
+        return fgint(self.value() * args.get(0).value())
     else:
-        return fgreal(self.value * args.get(0).value)
+        return fgreal(self.value() * args.get(0).value())
 
 def Number_div(self, args, env):
     if len(args.slots) != 1:
@@ -389,18 +420,18 @@ def Number_div(self, args, env):
     args = env.eval(args)
     if not args.get(0).isA(Number):
         raise TypeError, "Can not divide by a non-number."
-    if self.value is None: 
+    if self.value() is None: 
         raise ValueError, "Cannot divide %r." % self
-    if args.get(0).value is None:
+    if args.get(0).value() is None:
         raise ValueError, "Cannot divide by %r." % args.get(0)
-    return fgreal(float(self.value) / args.get(0).value)
+    return fgreal(float(self.value()) / args.get(0).value())
 
 def Number_fdiv(self, args, env):
     import math
     if len(args.slots) != 1:
         raise ValueError, "// expects an argument"
-    value = Number_div(self, args, env).value
-    return fgint(int(math.floor(value)))
+    value = Number_div(self, args, env).value()
+    return fgint(int(math.floor(value())))
 
 def Number_mod(self, args, env):
     if len(args.slots) != 1:
@@ -408,14 +439,14 @@ def Number_mod(self, args, env):
     args = env.eval(args)
     if not args.get(0).isA(Number):
         raise TypeError, "Can not modulo by a non-number."
-    if self.value is None: 
+    if self.value() is None: 
         raise ValueError, "Cannot modulo by %r." % self
-    if args.get(0).value is None:
+    if args.get(0).value() is None:
         raise ValueError, "Cannot module %r." % args.get(0)
-    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
-        return fgint(self.value % args.get(0).value)
+    if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
+        return fgint(self.value() % args.get(0).value())
     else:
-        return fgreal(self.value % args.get(0).value)
+        return fgreal(self.value() % args.get(0).value())
 
 
 Number.set('+', fgmethod(Number_add))
@@ -424,6 +455,19 @@ Number.set('*', fgmethod(Number_mul))
 Number.set('/', fgmethod(Number_div))
 Number.set('//', fgmethod(Number_fdiv))
 Number.set('%', fgmethod(Number_mod))
+
+# Methods!
+
+def Object_method(self, args, env):
+    if len(args.slots) != 2:
+        raise ValueError, "method can only support exactly 2 arguments at the moment"
+    return Method.clone(
+        ('scope', self),
+        (None, args.get(0)),
+        (None, args.get(1))
+    )
+
+Object.set("method", fgmethod(Object_method))
 
 if __name__ == '__main__':
     import doctest
