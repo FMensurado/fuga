@@ -19,7 +19,7 @@ def parse(code):
     >>> parse('(foo = bar, baz)')
     object(slot(msg('foo'), '=', msg('bar')), msg('baz'))
     >>> parse('fact(0) => 1, fact(n) => fact(n - 1)*n')
-    object(slot(msg('fact', object(number(0))), '=>', number(1)), slot(msg('fact', object(msg('n'))), '=>', opexp([msg('fact', object(opexp([msg('n'), number(1)], ['-']))), msg('n')], ['*'])))
+    object(slot(msg('fact'), '=', msg('method', object(object(number(0)), number(1)))), slot(msg('fact'), '=', msg('method', object(object(msg('n')), opexp([msg('fact', object(opexp([msg('n'), number(1)], ['-']))), msg('n')], ['*'])))))
     >>> parse('a * b * c')
     opexp([msg('a'), msg('b'), msg('c')], ['*', '*'])
     >>> parse("'a")
