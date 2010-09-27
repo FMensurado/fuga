@@ -48,6 +48,8 @@ def parse_block(toks):
         if toks.peek() == tokens.EOF or toks.peek() == tokens.RPAREN:
             break
         slots.append(parse_slot(toks))
+        if toks.peek() not in [tokens.SEPARATOR, tokens.EOF,tokens.RPAREN]:
+            raise SyntaxError, "expected SEPARATOR, got %s" % toks.peek()
     return ast.block(slots)
 
 def parse_slot(toks):
@@ -83,8 +85,8 @@ def parse_part(toks):
         return ast.quote(parse_part(toks))
     root = parse_root(toks)
     msgs = []
-    while toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
-        msgs.append(parse_msg(toks))
+    while toks.peek() not in [tokens.EOF, tokens.SEPARATOR, tokens.RPAREN, tokens.OPERATOR, tokens.EQUALS, tokens.BECOMES]:
+        msgs.append(parse_atom(toks))
     if not msgs:
         return root
     else:
@@ -93,8 +95,12 @@ def parse_part(toks):
 
 def parse_root(toks):
     """roor ::= atom | msg"""
-    if toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
-        return parse_msg(toks)
+    if toks.peek() == tokens.LPAREN:
+        atom = parse_object(toks)
+        if len(atom.slots) == 1 and isinstance(atom.slots[0], ast.opexp):
+            return atom.slots[0]
+        else:
+            return atom
     else:
         return parse_atom(toks)
 
@@ -106,8 +112,8 @@ def parse_msg(toks):
     if not toks.peek() == tokens.SYMBOL:
         raise SyntaxError, "expected SYMBOL, got %s" % toks.peek()
     name = toks.next()
-    if toks.peek() == tokens.LPAREN or toks.peek() == tokens.NUMBER or toks.peek() == tokens.STRING:
-        atom = parse_atom(toks)
+    if toks.peek() == tokens.LPAREN:
+        atom = parse_object(toks)
     else:
         atom = None
     return ast.msg(name.value, atom)
@@ -115,7 +121,9 @@ def parse_msg(toks):
 def parse_atom(toks):
     """atom ::= number | string | object
     """
-    if toks.peek() == tokens.LPAREN:
+    if toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
+        return parse_msg(toks)
+    elif toks.peek() == tokens.LPAREN:
         return parse_object(toks)
     elif toks.peek() == tokens.NUMBER:
         return ast.number(toks.next().value)
