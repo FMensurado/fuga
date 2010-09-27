@@ -274,6 +274,7 @@ def Object_get(self, args, env):
     name = args.slots[0][1]
     if name.isA(String): name = name.value
     elif name.isA(Message): name = name.value
+    elif name.isA(Int): name = name.value
     else: raise TypeError, "unexpected type for argument to get"
     return self.get(name)
 
@@ -367,9 +368,62 @@ def Number_sub(self, args, env):
     else:
         return fgreal(self.value - args.get(0).value)
 
+def Number_mul(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "* expects an argument"
+    args = env.eval(args)
+    if not args.get(0).isA(Number):
+        raise TypeError, "Can not multiply non-numbers"
+    if self.value is None: 
+        raise ValueError, "Cannot multiply %r." % self
+    if args.get(0).value is None:
+        raise ValueError, "Cannot multiply %r." % args.get(0)
+    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
+        return fgint(self.value * args.get(0).value)
+    else:
+        return fgreal(self.value * args.get(0).value)
+
+def Number_div(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "/ expects an argument"
+    args = env.eval(args)
+    if not args.get(0).isA(Number):
+        raise TypeError, "Can not divide by a non-number."
+    if self.value is None: 
+        raise ValueError, "Cannot divide %r." % self
+    if args.get(0).value is None:
+        raise ValueError, "Cannot divide by %r." % args.get(0)
+    return fgreal(float(self.value) / args.get(0).value)
+
+def Number_fdiv(self, args, env):
+    import math
+    if len(args.slots) != 1:
+        raise ValueError, "// expects an argument"
+    value = Number_div(self, args, env).value
+    return fgint(int(math.floor(value)))
+
+def Number_mod(self, args, env):
+    if len(args.slots) != 1:
+        raise ValueError, "% expects an argument"
+    args = env.eval(args)
+    if not args.get(0).isA(Number):
+        raise TypeError, "Can not modulo by a non-number."
+    if self.value is None: 
+        raise ValueError, "Cannot modulo by %r." % self
+    if args.get(0).value is None:
+        raise ValueError, "Cannot module %r." % args.get(0)
+    if isinstance(self.value, int) and isinstance(args.get(0).value, int):
+        return fgint(self.value % args.get(0).value)
+    else:
+        return fgreal(self.value % args.get(0).value)
+
+
 Number.set('+', fgmethod(Number_add))
 Number.set('-', fgmethod(Number_sub))
-
+Number.set('*', fgmethod(Number_mul))
+Number.set('/', fgmethod(Number_div))
+Number.set('//', fgmethod(Number_fdiv))
+Number.set('%', fgmethod(Number_mod))
 
 if __name__ == '__main__':
     import doctest
