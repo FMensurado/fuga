@@ -92,8 +92,10 @@ class slot(ast):
             return "slot(%r, %r, %r)" % (self.left, self.slotop, self.right)
 
     def convert(self):
-        return block([self]).convert()
-
+        # This will only happen at a top-level.Usually in the interpereter.
+        result = self.normalized()
+        if not isinstance(result, slot): return result
+        return msg('set', block([quote(self.left), self.right])).convert()
 
 class opexp(ast):
     def cons(self, parts, ops):
