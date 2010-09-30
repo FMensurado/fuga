@@ -3,7 +3,7 @@ import values
 
 def main():
     env = values.Object.clone()
-    print "Fuga 0.0 parser. Type 'quit' to stop."
+    print "Fuga prototypical parser. Type 'quit' to stop."
     print 
     while True:
         try:
@@ -15,10 +15,11 @@ def main():
         try:
             ast  = parser.parse(expr)
             value = ast.convert()
-            # print repr(value)
             evalue = env.eval(value)
             print repr(evalue)
-        except Exception, e:
+        except SyntaxError, e:
+            print "SYNTAX ERROR:", e
+        except values.FugaError, e:
             print "ERROR:", e
     print
 

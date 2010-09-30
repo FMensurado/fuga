@@ -9,9 +9,9 @@
 >>> parser.parse('(1, 2, 3)').convert()
 (1, 2, 3)
 >>> parser.parse('foo = 845').convert()
-(foo=845)
+set('foo, 845)
 >>> parser.parse('foo(x) => 845').convert()
-(foo=method((x), 845))
+set('foo, method((x), 845))
 >>> parser.parse('x y = z').convert()
 x set('y, z)
 >>> parser.parse("foo bar").convert()
@@ -89,7 +89,7 @@ class slot(ast):
         if self.slotop is None:
             return "slot(%r)" % self.right
         else:
-            return "slot(%r, %r, %r)" % (self.left, self.slotop, self.right)
+            return "slot(%r, %r, %r)"%(self.left, self.slotop, self.right)
 
     def convert(self):
         # This will only happen at a top-level.Usually in the interpereter.
@@ -108,6 +108,8 @@ class opexp(ast):
     def flatten(self, groups):
         def combine(left, op, right):
             newmsg = msg(op, block([right]))
+            while isinstance(left, opexp):
+                left = left.flatten(groups)
             if isinstance(left, exp):
                 left.msgs.append(newmsg)
                 return left

@@ -1,3 +1,5 @@
+class FugaError(Exception):
+    pass
 
 class fgobject(object):
     def __init__(self, proto, *slots):
@@ -14,7 +16,7 @@ class fgobject(object):
                 self.byName[k] = i
 
     def value(self):
-        if self._value:
+        if self._value is not None:
             return self._value
         elif self.proto:
             return self.proto.value()
@@ -27,7 +29,7 @@ class fgobject(object):
     def set(self, name, value):
         if isinstance(name, str) or name is None:
             if name in self.byName:
-                raise KeyError, "Can't have two slots with name %s" % name
+                raise FugaError, "Can't have two slots with name %s" % name
             if name is not None:
                 self.byName[name] = len(self.slots)
             self.slots.append((name, value))
@@ -47,7 +49,7 @@ class fgobject(object):
 
     def rawGet(self, name):
         if not self.rawHas(name):
-            raise KeyError, "No slot named %s in object." % name
+            raise FugaError, "No slot named %s in object." % name
         elif isinstance(name,str):
             return self.slots[self.byName[name]][1]
         elif isinstance(name,int):
@@ -59,7 +61,7 @@ class fgobject(object):
         elif self.proto and self.proto.has(name):
             return self.proto.get(name)
         else:
-            raise KeyError, "No slot named %s in object." % name
+            raise FugaError, "No slot named %s in object." % name
 
     def isA(self, proto):
         return self.proto and (self.proto is proto
@@ -100,11 +102,11 @@ class fgobject(object):
                 return val.call(env, args, callenv)
             else:
                 if len(obj.slots):
-                    raise ValueError, "can't pass arguments to non-method"
+                    raise FugaError, "can't pass arguments to non-method"
                 return val
         elif obj.isA(List):
             if obj.get('empty?') is fgtrue:
-                raise ValueError, "can't evaluate empty list"
+                raise FugaError, "can't evaluate empty list"
             elif obj.get('single?') is fgtrue:
                 return self.eval(obj.get('value'), env, callenv)
             else:
@@ -127,24 +129,25 @@ class fgobject(object):
             if self.value():
                 return self.value()(obj, args, argenv)
             else:
-                if len(self.slots) != 3: raise ValueError, "can only handle single methods at the moment."
+                if len(self.slots) != 3: raise FugaError, "can only handle single methods at the moment."
                 if len(self.get(1).slots) != len(args.slots):
-                    raise ValueError, "method takes %s arguments, but %s given." % (len(self.get(0).slots), len(args.slots))
+                    raise FugaError, "method takes %s arguments, but %s given." % (len(self.get(1).slots), len(args.slots))
 
                 scope = self.get('scope').clone(('self', obj))
+                args  = argenv.eval(args)
                 for i,(n,m) in enumerate(self.get(1).slots):
                     if not m.isA(Message):
-                        raise ValueError, "can't handle non-msg parameters yet."
+                        raise FugaError, "can't handle non-msg parameters yet."
                     elif m.slots:
-                        raise ValueError, "expected a msg with no args in formal parameter"
+                        raise FugaError, "expected a msg with no args in formal parameter"
                     elif n:
-                        raise ValueError, "can't handle named parameters yet."
+                        raise FugaError, "can't handle named parameters yet."
                     else:
-                        scope.set(m.value(), argenv.eval(args.get(i)))
+                        scope.set(m.value(), args.get(i))
 
                 return scope.eval(self.get(2))
         else:
-            raise TypeError, "expected a Method -- can't call a non-method"
+            raise FugaError, "expected a Method -- can't call a non-method"
 
     def __repr__(self):
         return self.eval(fgmsg('repr')).value()
@@ -205,7 +208,7 @@ def fgmethod(value): return Method.clone(value)
 
 
 def Object_repr(self, args, env, depth=5):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self is Object: return fgstr('Object')
     if depth == 0: return fgstr("(...)")
     strs = []
@@ -224,7 +227,7 @@ Object.set('str', fgmethod(lambda self,args,env:
 Object.set('repr', fgmethod(Object_repr))
 
 def String_repr(self, args, env):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self.value() is None: return fgstr('String')
 
     escape = {
@@ -257,7 +260,7 @@ fgfalse.set('repr', fgstr('false'))
 
 
 def Message_repr(self, args, env):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self.value() is None: return fgstr('Message')
     if self.value()[0] in ('abcdefghijklmnopqrstuvwxyz'
                         +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -272,7 +275,7 @@ def Message_repr(self, args, env):
 Message.set('repr', fgmethod(Message_repr))
 
 def List_repr(self, args, env):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self is List: return fgstr('List')
     if self.get('empty?') is fgtrue:
         return fgstr('')
@@ -283,13 +286,13 @@ def List_repr(self, args, env):
 List.set('repr', fgmethod(List_repr))
 
 def Quote_repr(self, args, env):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self is Quote: return fgstr('Quote')
     return fgstr("'" + repr(self.get('value')))
 Quote.set('repr', fgmethod(Quote_repr))
 
 def Method_repr(self, args, env):
-    if len(args.slots): raise ValueError, "repr expects 0 arguments"
+    if len(args.slots): raise FugaError, "repr expects 0 arguments"
     if self is Method: return fgstr('Method')
     return fgstr('method(...)')
 Method.set('repr', fgmethod(Method_repr))
@@ -300,18 +303,18 @@ Method.set('repr', fgmethod(Method_repr))
 
 def Object_get(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "get expects 1 argument"
+        raise FugaError, "get expects 1 argument"
     args = env.eval(args)
     name = args.slots[0][1]
     if name.isA(String): name = name.value()
     elif name.isA(Message): name = name.value()
     elif name.isA(Int): name = name.value()
-    else: raise TypeError, "unexpected type for argument to get"
+    else: raise FugaError, "unexpected type for argument to get"
     return self.get(name)
 
 def Object_set(self, args, env):
     if len(args.slots) != 1 and len(args.slots) != 2:
-        raise ValueError, "set expects 1 or 2 arguments"
+        raise FugaError, "set expects 1 or 2 arguments"
     args = env.eval(args)
     if len(args.slots) == 1:
         name = None
@@ -321,33 +324,28 @@ def Object_set(self, args, env):
         value = args.slots[1][1]
         if name.isA(String): name = name.value()
         elif name.isA(Message): name = name.value()
-        else: raise TypeError, "unexpected type for first argument to set" 
+        else: raise FugaError, "unexpected type for first argument to set" 
     self.set(name, value)
     return self
 
 def Object_has(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "get expects 1 argument"
+        raise FugaError, "get expects 1 argument"
     args = env.eval(args)
     name = args.slots[0][1]
     if name.isA(String): name = name.value()
     elif name.isA(Message): name = name.value()
-    else: raise TypeError, "unexpected type for argument to get"
+    else: raise FugaError, "unexpected type for argument to get"
     return fgtrue if self.has(name) else fgfalse
-
-def Object_self(self, args, env):
-    if len(args.slots) != 0:
-        raise ValueError, "self expects no arguments"
-    return self
 
 def Object_proto(self, args, env):
     if len(args.slots) != 0:
-        raise ValueError, "proto expects no arguments"
+        raise FugaError, "proto expects no arguments"
     return self.proto or Object
 
 def Object_scope(self, args, env):
     if len(args.slots) != 0:
-        raise ValueError, "scope expects no arguments"
+        raise FugaError, "scope expects no arguments"
     return env
 
 # Set up some globals
@@ -357,13 +355,13 @@ Object.set('Number', Number)
 Object.set('Int',    Int)
 Object.set('Real',   Real)
 Object.set('String', String)
+Object.set('List',   List)
 Object.set('Bool',   Bool)
 Object.set('true',   fgtrue)
 Object.set('false',  fgfalse)
 Object.set('get',    fgmethod(Object_get))
 Object.set('set',    fgmethod(Object_set))
 Object.set('has',    fgmethod(Object_has))
-Object.set('self',   fgmethod(Object_self))
 Object.set('proto',  fgmethod(Object_proto))
 Object.set('scope',  fgmethod(Object_scope))
 
@@ -371,14 +369,14 @@ Object.set('scope',  fgmethod(Object_scope))
 
 def Number_add(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "+ expects an argument"
+        raise FugaError, "+ expects an argument"
     args = env.eval(args)
     if not args.get(0).isA(Number):
-        raise TypeError, "Can not add non-numbers"
+        raise FugaError, "Can not add non-numbers"
     if self.value() is None: 
-        raise ValueError, "Cannot add %r to a number." % self
+        raise FugaError, "Cannot add %r to a number." % self
     if args.get(0).value() is None:
-        raise ValueError, "Cannot add %r to a number." % args.get(0)
+        raise FugaError, "Cannot add %r to a number." % args.get(0)
     if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
         return fgint(self.value() + args.get(0).value())
     else:
@@ -386,14 +384,14 @@ def Number_add(self, args, env):
 
 def Number_sub(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "- expects an argument"
+        raise FugaError, "- expects an argument"
     args = env.eval(args)
     if not args.get(0).isA(Number):
-        raise TypeError, "Can not subtract non-numbers"
+        raise FugaError, "Can not subtract non-numbers"
     if self.value() is None: 
-        raise ValueError, "Cannot subtract a number from %r." % self
+        raise FugaError, "Cannot subtract a number from %r." % self
     if args.get(0).value() is None:
-        raise ValueError, "Cannot subtract %r from a number." % args.get(0)
+        raise FugaError, "Cannot subtract %r from a number." % args.get(0)
     if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
         return fgint(self.value() - args.get(0).value())
     else:
@@ -401,14 +399,14 @@ def Number_sub(self, args, env):
 
 def Number_mul(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "* expects an argument"
+        raise FugaError, "* expects an argument"
     args = env.eval(args)
     if not args.get(0).isA(Number):
-        raise TypeError, "Can not multiply non-numbers"
+        raise FugaError, "Can not multiply non-numbers"
     if self.value() is None: 
-        raise ValueError, "Cannot multiply %r." % self
+        raise FugaError, "Cannot multiply %r." % self
     if args.get(0).value() is None:
-        raise ValueError, "Cannot multiply %r." % args.get(0)
+        raise FugaError, "Cannot multiply %r." % args.get(0)
     if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
         return fgint(self.value() * args.get(0).value())
     else:
@@ -416,38 +414,37 @@ def Number_mul(self, args, env):
 
 def Number_div(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "/ expects an argument"
+        raise FugaError, "/ expects an argument"
     args = env.eval(args)
     if not args.get(0).isA(Number):
-        raise TypeError, "Can not divide by a non-number."
+        raise FugaError, "Can not divide by a non-number."
     if self.value() is None: 
-        raise ValueError, "Cannot divide %r." % self
+        raise FugaError, "Cannot divide %r." % self
     if args.get(0).value() is None:
-        raise ValueError, "Cannot divide by %r." % args.get(0)
+        raise FugaError, "Cannot divide by %r." % args.get(0)
     return fgreal(float(self.value()) / args.get(0).value())
 
 def Number_fdiv(self, args, env):
     import math
     if len(args.slots) != 1:
-        raise ValueError, "// expects an argument"
+        raise FugaError, "// expects an argument"
     value = Number_div(self, args, env).value()
-    return fgint(int(math.floor(value())))
+    return fgint(int(math.floor(value)))
 
 def Number_mod(self, args, env):
     if len(args.slots) != 1:
-        raise ValueError, "% expects an argument"
+        raise FugaError, "% expects an argument"
     args = env.eval(args)
     if not args.get(0).isA(Number):
-        raise TypeError, "Can not modulo by a non-number."
+        raise FugaError, "Can not modulo by a non-number."
     if self.value() is None: 
-        raise ValueError, "Cannot modulo by %r." % self
+        raise FugaError, "Cannot modulo by %r." % self
     if args.get(0).value() is None:
-        raise ValueError, "Cannot module %r." % args.get(0)
+        raise FugaError, "Cannot module %r." % args.get(0)
     if isinstance(self.value(), int) and isinstance(args.get(0).value(), int):
         return fgint(self.value() % args.get(0).value())
     else:
         return fgreal(self.value() % args.get(0).value())
-
 
 Number.set('+', fgmethod(Number_add))
 Number.set('-', fgmethod(Number_sub))
@@ -456,18 +453,154 @@ Number.set('/', fgmethod(Number_div))
 Number.set('//', fgmethod(Number_fdiv))
 Number.set('%', fgmethod(Number_mod))
 
-# Methods!
+# Comparison Operators
+
+def mkcomparer(name, fn):
+    def comparer(self, args, env):
+        if len(args.slots) != 1:
+            raise FugaError, "%s expects 1 argument (%d given)" % (
+                name,
+                len(args.slots)
+            )
+        args = env.eval(args)
+        if not args.get(0).isA(Number):
+            raise FugaError, "can't compare number with non-number."
+        if self.value() is None:
+            raise FugaError, "can't compare %r with a number" % self
+        if args.get(0).value() is None:
+            raise FugaError, "can't compare %r with a number" %args.get(0)
+        if fn(self.value(), args.get(0).value()):
+            return fgtrue
+        else:
+            return fgfalse
+    Number.set(name, fgmethod(comparer))
+
+
+mkcomparer('<',  lambda x,y: x <  y)
+mkcomparer('<=', lambda x,y: x <= y)
+mkcomparer('>',  lambda x,y: x >  y)
+mkcomparer('>=', lambda x,y: x >= y)
+mkcomparer('==', lambda x,y: x == y)
+mkcomparer('!=', lambda x,y: x != y)
+
+# Boolean operators
+
+def fgtrue_and(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "'and' can only support exactly 1 argument"
+    result = env.eval(args.get(0))
+    if result.isA(Bool):
+        return result
+    else:
+        raise FugaError, "argument to 'and' must evaluate to a Bool"
+
+def fgfalse_and(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "'and' can only support exactly 1 argument"
+    return fgfalse
+
+def fgtrue_or(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "'or' can only support exactly 1 argument"
+    return fgtrue
+        
+def fgfalse_or(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "'or' can only support exactly 1 argument"
+    result = env.eval(args.get(0))
+    if result.isA(Bool):
+        return result
+    else:
+        raise FugaError, "argument to 'or' must evaluate to a Bool"
+
+fgtrue .set('and', fgmethod(fgtrue_and))
+fgtrue .set('or',  fgmethod(fgtrue_or))
+fgfalse.set('and', fgmethod(fgfalse_and))
+fgfalse.set('or',  fgmethod(fgfalse_or))
+
+# Some Important Methods!
 
 def Object_method(self, args, env):
     if len(args.slots) != 2:
-        raise ValueError, "method can only support exactly 2 arguments at the moment"
+        raise FugaError, "method can only support exactly 2 arguments at the moment"
     return Method.clone(
         ('scope', self),
         (None, args.get(0)),
         (None, args.get(1))
     )
-
 Object.set("method", fgmethod(Object_method))
+
+def Object_clone(self, args, env):
+    return self.clone(*env.eval(args).slots)
+Object.set("clone", fgmethod(Object_clone))
+
+# Some Control Flow
+
+def Object_if(self, args, env):
+    if len(args.slots) !=  3:
+        raise FugaError, "if expects 3 arguments exactly"
+    value = env.eval(args.get(0))
+    if value is fgtrue:
+        return env.eval(args.get(1))
+    elif value is fgfalse:
+        return env.eval(args.get(2))
+    else:
+        raise FugaError, "if expects a Bool, not %s" % value
+Object.set("if", fgmethod(Object_if))
+
+# List functions
+
+def Object_list(self, args, env):
+    args = env.eval(args)
+    args = [args.get(i) for i in range(len(args.slots))]
+    return fglist(*args)
+Object.set("list", fgmethod(Object_list))
+
+def List_map(self, args, env):
+    if len(args.slots) > 2 or len(args.slots) == 0:
+        raise FugaError, "`List map` expects 1 or 2 arguments."
+    if len(args.slots) == 2:
+        args = Object.clone((None,
+            Method.clone(
+                ('scope', env),
+                (None, Object.clone((None, args.get(0)))),
+                (None, args.get(1))
+            )
+        ))
+    else:
+        args = env.eval(args)
+
+    if self.get('empty?') is fgtrue:
+        return fglist()
+    elif self.get('single?') is fgtrue:
+        return fglist(
+            args.get(0).call(self, 
+                Object.clone((None, fgquote(self.get('value'))))
+            , env)
+        )
+    elif self.get('conc?') is fgtrue:
+        new_args = Object.clone((None, fgquote(args.get(0))))
+        return List.clone(
+            ('conc?', fgtrue),
+            ('left',  List_map(self.get('left'),  new_args, env)),
+            ('right', List_map(self.get('right'), new_args, env))
+        )
+    else:
+        raise FugaError, "List map needs list instance."
+
+List.set("map", fgmethod(List_map))
+
+def List_conc(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "`List \++` requires 1 argument."
+    args = env.eval(args)
+    return List.clone(
+        ('conc?', fgtrue),
+        ('left',  self),
+        ('right', args.get(0))
+    )
+
+List.set('++', fgmethod(List_conc))
 
 if __name__ == '__main__':
     import doctest
