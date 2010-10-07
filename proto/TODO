@@ -1,6 +1,4 @@
 [Oct 6 2010] FM: Add var() / Var.
-[Oct 5 2010] FM: Quotes should only capture the atom (i.e. "'a b" should
- send the message b to the object 'a), not the expression.
 [Oct 5 2010] FM: Stop representing exprs as lists. Lists are a little
  heavy for this task -- either simplify the lists, or make expr its
  own kind of object.

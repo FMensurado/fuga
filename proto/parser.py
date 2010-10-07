@@ -77,13 +77,10 @@ def parse_exp(toks):
 
 def parse_part(toks):
     """part ::= root msg*"""
-    if toks.peek() == tokens.QUOTE:
-        toks.next()
-        return ast.quote(parse_part(toks))
     root = parse_root(toks)
     msgs = []
     while toks.peek() not in [tokens.EOF, tokens.SEPARATOR, tokens.RPAREN, tokens.OPERATOR, tokens.EQUALS, tokens.BECOMES]:
-        msgs.append(parse_atom(toks))
+        msgs.append(parse_msg(toks))
     if not msgs:
         return root
     else:
@@ -107,7 +104,7 @@ def parse_msg(toks):
         toks.next()
         return ast.msg("get", ast.block([ast.quote(parse_msg(toks))]))
     if not toks.peek() == tokens.SYMBOL:
-        raise SyntaxError, "expected SYMBOL, got %s" % toks.peek()
+        raise SyntaxError, "expected message, got %s" % toks.peek()
     name = toks.next()
     if toks.peek() == tokens.LPAREN:
         atom = parse_object(toks)
@@ -117,7 +114,10 @@ def parse_msg(toks):
 
 def parse_atom(toks):
     """atom ::= number | string | object"""
-    if toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
+    if toks.peek() == tokens.QUOTE:
+        toks.next()
+        return ast.quote(parse_msg(toks))
+    elif toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
         return parse_msg(toks)
     elif toks.peek() == tokens.LPAREN:
         return parse_object(toks)
