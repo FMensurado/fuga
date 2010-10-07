@@ -1,0 +1,7 @@
+# File: hello.fg
+# Date: Oct 5, 2010
+#
+# Prints "Hello, world!" to the screen
+
+print("Hello, world!")
+

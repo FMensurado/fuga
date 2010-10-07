@@ -62,9 +62,15 @@ class scanner(object):
         self.column += len(self.text) - len(text)
         self.text    = text 
     
-    def scan(self):
-        # strip leading whitespace
+    def strip(self):
         self.move_text(self.text.lstrip(' \t'))
+        if self.text[:1] == '#':
+            index = self.text.find('\n')
+            self.move_text(self.text[index:])
+
+    def scan(self):
+        # strip leading whitespace and/or comment
+        self.strip()
 
         # if we're done, we're done
         if not self.text:

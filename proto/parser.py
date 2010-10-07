@@ -119,8 +119,7 @@ def parse_msg(toks):
     return ast.msg(name.value, atom)
 
 def parse_atom(toks):
-    """atom ::= number | string | object
-    """
+    """atom ::= number | string | object"""
     if toks.peek() == tokens.SYMBOL or toks.peek() == tokens.ESCAPE:
         return parse_msg(toks)
     elif toks.peek() == tokens.LPAREN:

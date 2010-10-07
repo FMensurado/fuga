@@ -1,0 +1,26 @@
+# File: fibonacci-fast.fg
+# Date: Oct 5, 2010
+# 
+#
+
+fib(n) => fibAux(n, 0, 1)
+
+fibAux(n, a,b) => if(
+    n == 0
+    a
+    fibAux(n - 1, b, a + b)
+)
+
+Int to(b) => if(
+    self == b
+    list(self)
+    self to(self + (b - self) // 2) ++ (self + (b - self) // 2 + 1) to(b)
+)
+
+start = 0
+end   = 40 
+
+start to(end) map(
+    (n) => print(n, fib(n))
+)
+

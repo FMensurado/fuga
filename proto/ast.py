@@ -69,6 +69,8 @@ class slot(ast):
             if isinstance(self.left, exp):
                 last_args = self.left.msgs[-1].args
                 self.left.msgs[-1].args = None
+            elif isinstance(self.left, block):
+                return msg('method', block([self.left, self.right]))
             else:
                 last_args = self.left.args
                 self.left.args = None

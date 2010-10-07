@@ -1,0 +1,176 @@
+|----------|
+| TUTORIAL |
+|----------|------------------|
+| Introductory Fuga tutorial. |
+| Author: Francisco Mota.     |
+| Date:   October 6, 2010     |
+|-----------------------------|
+
+# Preliminaries
+
+To run fuga, open a command-line/terminal and do
+
+    $ python fuga.py
+
+This opens up a REPL (Read Eval Print loop)-style interpreter.
+
+To run a specific fuga module, do
+
+    $ python fuga.py filename
+
+There are some examples in the `examples` folder. So, to run `hello.fg` in
+the `examples` folder, type
+
+    $ python fuga.py examples/hello.fg
+
+And it should print "Hello, world!" to the screen. 
+
+# Basics
+
+## Primitive Objects
+
+Fuga is an object-oriented programming language. As a result, all values
+are objects. Some values are built-in to the language (although they are
+still objects) and we call those primitives. Primitives can be numbers,
+strings, and messages. For example, `123` is a number primitive, `"Hello,
+world!"` is a string primitive, and `foo` is a message primitive.
+
+When evaluated, strings and numbers evaluate to themselves. Open the fuga
+interpreter, and once the prefix (`>>>`) shows up, type
+
+    >>> 123
+    123
+    >>> "Hello, world!"
+    "Hello, world!"
+    >>>
+
+You can type quit or press Ctrl-D to end the session.
+
+    >>> quit
+    Goodbye.
+
+## Messages
+
+Messages are sent to objects in order to inspect or direct objects. For
+example, we can find out the length of a string by sending it the `len`
+message.
+
+    >>> "Hello, world!" len
+    13
+
+Messages can contain arguments. For example, `find` lets you find the
+first occurence of a substring within a string. If it finds the string,
+it will return the index. If it can't find the substring, it returns -1.
+
+    >>> "Hello, world!" find("world")
+    7
+    >>> "Hello, world!" find("Goodbye")
+    -1
+
+Some messages can have a variable number of arguments. For example,
+`slice` can have one or two arguments. `slice` returns a substring (or a
+slice) of the original string. If the second argument is omitted, the
+substring goes to the end of the string.
+
+    >>> "Hello!" slice(1)
+    "ello!"
+    >>> "Hello!" slice(1,4)
+    "ell"
+
+You can send multiple messages, in sequence. For example,
+
+    >>> "Hello!" slice(1) find("!")
+    4
+    >>> "Hello!" slice(1) slice(1,4) len
+    3
+
+Some messages are operators, which can pass their arguments without
+enclosing them in parentheses.
+
+    >>> 2 + 2
+    4
+    >>> 1 - 2
+    -1
+    >>> 1 * 2 + 3
+    5
+    >>> 1 + 2 * 3
+    7
+
+You can choose to use operators like any other message, however, by
+either following them directly with parentheses, or by escaping the
+operator with a backslash (\)
+
+    >>> 1 +(2) *(3)
+    9
+    >>> 1 \+(2) \*(3)
+    9
+
+Here, the object `1` is sent the message `+(2)`, and the result is sent
+the message `*(3)`.
+
+## Objects and Object Literals
+
+Objects are a sequence of slots. Slots have values, and some slots have
+names. You can create your own objects by using object literals. Object literals are enclosed in parentheses (`()`).
+
+This is an empty object:
+
+    >>> ()
+    ()
+
+This object contains one slot, with the value `10`:
+
+    >>> (10)
+    (10)
+
+This object contains two slots, with the values `10` and `20`:
+
+    >>> (10, 20)
+    (10, 20)
+
+Note that a comma is used to separate slots. Outside of the interpreter,
+(i.e., in a Fuga module) newlines are also used to separate slots.
+
+This object contains one slot, with the value `10`, and the name `foo`:
+
+    >>> (foo=10)
+    (foo=10)
+
+Slot values can be arbitrary expressions.
+
+    >>> (foo = 10 + 500 - 493, 100+1)
+    (foo=17, 101)
+
+When you send a message to an object, Fuga looks for the slot with the
+name that corresponds to the message.
+
+    >>> (foo=10) foo
+    10
+
+For that reason, you can't have two slots with the same name
+
+    >>> (foo=10, foo=20)
+    ERROR: Can't have two slots with name foo
+    >>> (foo=10, foo=10)
+    ERROR: Can't have two slots with name foo
+
+# Methods
+
+You can create your own methods by using the "becomes" operator.
+For example, here we create a method the prints "Hello." We then
+proceed to use it. Multiple times.
+
+    >>> foo => print("Hello.")
+    (foo=method(...))
+    >>> foo
+    Hello.
+    Object
+    >>> (foo, foo)
+    Hello.
+    Hello.
+    (Object, Object)
+
+(Object is just what print("Hello.") returns, so foo returns that as well.)
+
+
+
