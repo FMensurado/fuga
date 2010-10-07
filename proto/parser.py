@@ -33,10 +33,7 @@ def parse_tokens(toks):
     """program ::= block* eof"""
     block = parse_block(toks)
     if toks.peek() == tokens.EOF:
-        if len(block.slots) == 1:
-            return block.slots[0]
-        else:
-            return block
+        return block
     raise SyntaxError, "Expected EOF, got %s" % toks.peek()
 
 def parse_block(toks):
