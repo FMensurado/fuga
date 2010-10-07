@@ -23,9 +23,9 @@ def read(pre_expr=''):
     # Read in the code
     try:
         if pre_expr:
-            expr = pre_expr + raw_input(". ")
+            expr = pre_expr + raw_input("... ")
         else:
-            expr = raw_input("> ")
+            expr = raw_input(">>> ")
     except EOFError:
         if pre_expr:
             print

@@ -82,7 +82,9 @@ class slot(ast):
 
         if isinstance(self.left, exp):
             name = self.left.msgs[-1]
-            return exp(self.left.root, self.left.msgs[:-1] +
+            msgs = [msg('get', block([quote(m)]))
+                for m in [self.left.root] + self.left.msgs[:-1]]
+            return exp(msgs[0], msgs[1:] +
                 [msg('set', block([quote(name), self.right]))])
         else:
             return self
@@ -92,12 +94,6 @@ class slot(ast):
             return "slot(%r)" % self.right
         else:
             return "slot(%r, %r, %r)"%(self.left, self.slotop, self.right)
-
-    def convert(self):
-        # This will only happen at a top-level.Usually in the interpereter.
-        result = self.normalized()
-        if not isinstance(result, slot): return result
-        return msg('set', block([quote(self.left), self.right])).convert()
 
 class opexp(ast):
     def cons(self, parts, ops):

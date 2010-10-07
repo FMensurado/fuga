@@ -82,6 +82,12 @@ Object.set("clone", fgmethod(Object_clone))
 
 # Some Control Flow
 
+def Object_do(self, args, env):
+    if len(args.slots) == 0:
+        raise FugaError, "do expects at least 1 argument"
+    args = env.eval(args)
+    return args.get(len(args.slots)-1)
+
 def Object_if(self, args, env):
     if len(args.slots) !=  3:
         raise FugaError, "if expects 3 arguments exactly"
@@ -92,12 +98,19 @@ def Object_if(self, args, env):
         return env.eval(args.get(2))
     else:
         raise FugaError, "if expects a Bool, not %s" % value
+
+Object.set("do", fgmethod(Object_do))
 Object.set("if", fgmethod(Object_if))
 
 # IO
 def Object_print(self, args, env):
+    def _str(v):
+        if v.isA(String):
+            return v.value()
+        else:
+            return repr(v)
     args = env.eval(args)
-    print ' '.join(str(val) for (n, val) in args.slots)
+    print ' '.join(_str(val) for (n, val) in args.slots)
     return Object
 Object.set('print', fgmethod(Object_print))
 

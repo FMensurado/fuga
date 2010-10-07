@@ -50,7 +50,7 @@ class fgobject(object):
 
     def rawGet(self, name):
         if not self.rawHas(name):
-            raise FugaError, "No slot named %s." % name
+            raise FugaError, "No slot named %s" % name
         elif isinstance(name,str):
             return self.slots[self.byName[name]][1]
         elif isinstance(name,int):
@@ -62,7 +62,7 @@ class fgobject(object):
         elif self.proto and self.proto.has(name):
             return self.proto.get(name)
         else:
-            raise FugaError, "No slot named %s." % name
+            raise FugaError, "No slot named %s" % name
 
     def isA(self, proto):
         return self.proto and (self.proto is proto
@@ -151,9 +151,6 @@ class fgobject(object):
             raise FugaError, "expected a Method -- can't call a non-method"
 
     def __repr__(self):
-        return self.eval(fgmsg('repr')).value()
-
-    def __str__(self):
         return self.eval(fgmsg('str')).value()
 
 
@@ -211,27 +208,25 @@ def fgmethod(value): return Method.clone(value)
 
 
 
-def Object_repr(self, args, env, depth=5):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
+def Object_str(self, args, env, depth=5):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self is Object: return fgstr('Object')
     if depth == 0: return fgstr("(...)")
     strs = []
     for (k,v) in self.slots:
-        if v.get("repr").value() is Object_repr:
-            vrepr = Object_repr(v, args, env, depth-1).value()
+        if v.get("str").value() is Object_str:
+            vstr = Object_str(v, args, env, depth-1).value()
         else:
-            vrepr = repr(v)
+            vstr = str(v)
         if k is None:
-            strs.append(vrepr)
+            strs.append(vstr)
         else:
-            strs.append(k + "=" + vrepr)
+            strs.append(k + "=" + vstr)
     return fgstr("(%s)" % ', '.join(strs))
-Object.set('str', fgmethod(lambda self,args,env:
-    self.eval(fgmsg('repr'))))
-Object.set('repr', fgmethod(Object_repr))
+Object.set('str', fgmethod(Object_str))
 
-def String_repr(self, args, env):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
+def String_str(self, args, env):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self.value() is None: return fgstr('String')
 
     escape = {
@@ -248,23 +243,21 @@ def String_repr(self, args, env):
         else:
             result += c
     return fgstr('"' + result + '"')
-String.set('str',  fgmethod(lambda self,args,env:
-    self if self.value() else fgstr('String')))
-String.set('repr', fgmethod(String_repr))
+String.set('str', fgmethod(String_str))
 
-Number.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value()) if self.value() is not None else 'Number')))
-Int.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value()) if self.value() is not None else 'Int')))
-Real.set('repr', fgmethod(lambda self,args,env:
-    fgstr(repr(self.value()) if self.value() is not None else 'Real')))
-Bool.set('repr', fgstr('Bool'))
-fgtrue.set('repr', fgstr('true'))
-fgfalse.set('repr', fgstr('false'))
+Number.set('str', fgmethod(lambda self,args,env:
+    fgstr(str(self.value()) if self.value() is not None else 'Number')))
+Int.set('str', fgmethod(lambda self,args,env:
+    fgstr(str(self.value()) if self.value() is not None else 'Int')))
+Real.set('str', fgmethod(lambda self,args,env:
+    fgstr(str(self.value()) if self.value() is not None else 'Real')))
+Bool.set('str', fgstr('Bool'))
+fgtrue.set('str', fgstr('true'))
+fgfalse.set('str', fgstr('false'))
 
 
-def Message_repr(self, args, env):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
+def Message_str(self, args, env):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self.value() is None: return fgstr('Message')
     if self.value()[0] in ('abcdefghijklmnopqrstuvwxyz'
                         +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -273,32 +266,41 @@ def Message_repr(self, args, env):
     else:
         name = '\\' + self.value()
     if len(self.slots):
-        return fgstr(name + Object_repr(self, args, env).value())
+        return fgstr(name + Object_str(self, args, env).value())
     else:
         return fgstr(name)
-Message.set('repr', fgmethod(Message_repr))
+Message.set('str', fgmethod(Message_str))
 
-def List_repr(self, args, env):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
-    if self is List: return fgstr('List')
+def List_str_aux(self):
+    if not self.isA(List):
+        raise FugaError, "list instance not composed of list instances!"
     if self.get('empty?') is fgtrue:
-        return fgstr('')
+        return ''
     elif self.get('single?') is fgtrue:
-        return fgstr(repr(self.get('value')))
+        return str(self.get('value'))
     else:
-        return fgstr(repr(self.get('left'))+' '+repr(self.get('right')))
-List.set('repr', fgmethod(List_repr))
+        left  = List_str_aux(self.get('left'))
+        right = List_str_aux(self.get('right'))
+        if left and right:
+            return left + ", " + right
+        else:
+            return left + right
+def List_str(self, args, env):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
+    if self is List: return fgstr('List')
+    return fgstr("list(" + List_str_aux(self) + ")")
+List.set('str', fgmethod(List_str))
 
-def Quote_repr(self, args, env):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
+def Quote_str(self, args, env):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self is Quote: return fgstr('Quote')
-    return fgstr("'" + repr(self.get('value')))
-Quote.set('repr', fgmethod(Quote_repr))
+    return fgstr("'" + str(self.get('value')))
+Quote.set('str', fgmethod(Quote_str))
 
-def Method_repr(self, args, env):
-    if len(args.slots): raise FugaError, "repr expects 0 arguments"
+def Method_str(self, args, env):
+    if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self is Method: return fgstr('Method')
     return fgstr('method(...)')
-Method.set('repr', fgmethod(Method_repr))
+Method.set('str', fgmethod(Method_str))
     
 
