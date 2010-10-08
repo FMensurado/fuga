@@ -125,34 +125,66 @@ class fgobject(object):
     def isCallable(self):
         return self.isA(Method)
 
-    def call(self, obj, args, argenv):
-        if self.isA(Method):
-            if self.value():
-                return self.value()(obj, args, argenv)
-            else:
-                if len(self.slots) != 3: raise FugaError, "can only handle single methods at the moment."
-                if len(self.get(1).slots) != len(args.slots):
-                    raise FugaError, "method takes %s arguments, but %s given." % (len(self.get(1).slots), len(args.slots))
-
-                scope = self.get('scope').clone(('self', obj))
-                args  = argenv.eval(args)
-                for i,(n,m) in enumerate(self.get(1).slots):
-                    if not m.isA(Message):
-                        raise FugaError, "can't handle non-msg parameters yet."
-                    elif m.slots:
-                        raise FugaError, "expected a msg with no args in formal parameter"
-                    elif n:
-                        raise FugaError, "can't handle named parameters yet."
+    def call(method, self, actuals, env, guard=False):
+        if method.isA(Method):
+            if method.value():
+                return method.value()(self, actuals, env)
+           
+            index = 1
+            scope   = method.get('scope')
+            while index < len(method.slots):
+                if method.slots[index][0] is not None:
+                    continue
+                try:
+                    if method.get(index).isA(Method):
+                        m = method.get(index)
+                        index += 1
+                        return m.call(self, actuals, env, True)
                     else:
-                        scope.set(m.value(), args.get(i))
-
-                return scope.eval(self.get(2))
+                        formals = method.get(index)
+                        body    = method.get(index+1)
+                        index += 2
+                        if len(formals.slots) == len(actuals.slots):
+                            actuals = env.eval(actuals)
+                            return handle_call(
+                                formals,
+                                actuals,
+                                body,
+                                scope,
+                                self
+                            )
+                except FugaError, e:
+                    if 'GUARD' in str(e):
+                        pass
+                    else:
+                        raise e
+            
+            if guard:
+                raise FugaError, "GUARD"
+            else:
+                raise FugaError, "No pattern matches arguments to method."
         else:
             raise FugaError, "expected a Method -- can't call a non-method"
 
     def __repr__(self):
         return self.eval(fgmsg('str')).value()
 
+def handle_call(formals, actuals, body, scope, self):
+    scope = scope.clone(('self', self))
+    for i,(n,m) in enumerate(formals.slots):
+        if not m.isA(Message):
+            if m.eval(fgmsg(
+                '==',
+                (None, fgquote(actuals.get(i)))
+            )) is not fgtrue:
+                raise FugaError, "GUARD"
+        elif m.slots:
+            raise FugaError, "in formal parameter, expected just a name"
+        elif n:
+            raise FugaError, "can't handle named parameters yet."
+        else:
+            scope.set(m.value(), actuals.get(i))
+    return scope.eval(body)
 
 Object = fgobject(None)
 
@@ -199,14 +231,11 @@ Real = Number.clone()
 def fgint(value): return Int.clone(value)
 def fgreal(value): return Real.clone(value)
 
-
 Message = Object.clone()
 def fgmsg(value, *args): return Message.clone(value, *args)
 
 Method = Object.clone()
 def fgmethod(value): return Method.clone(value)
-
-
 
 def Object_str(self, args, env, depth=5):
     if len(args.slots): raise FugaError, "str expects 0 arguments"
@@ -254,7 +283,6 @@ Real.set('str', fgmethod(lambda self,args,env:
 Bool.set('str', fgstr('Bool'))
 fgtrue.set('str', fgstr('true'))
 fgfalse.set('str', fgstr('false'))
-
 
 def Message_str(self, args, env):
     if len(args.slots): raise FugaError, "str expects 0 arguments"

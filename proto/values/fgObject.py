@@ -67,13 +67,22 @@ Object.set('scope',  fgmethod(Object_scope))
 # Some Important Methods!
 
 def Object_method(self, args, env):
-    if len(args.slots) != 2:
-        raise FugaError, "method can only support exactly 2 arguments at the moment"
-    return Method.clone(
-        ('scope', self),
-        (None, args.get(0)),
-        (None, args.get(1))
-    )
+    result = Method.clone(('scope', self))
+    index = 0
+    while index < len(args.slots):
+        name  = args.slots[index][0]
+        value = args.slots[index][1]
+        if name:
+            result.set(name, env.eval(value))
+            index += 1
+        elif value.isA(Message) and value.value() == 'method':
+            result.set(None, self.eval(value))
+            index += 1
+        else:
+            result.set(None, value)
+            result.set(None, args.slots[index+1][1])
+            index += 2
+    return result
 Object.set("method", fgmethod(Object_method))
 
 def Object_clone(self, args, env):
