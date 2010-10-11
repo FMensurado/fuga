@@ -145,7 +145,7 @@ class fgobject(object):
                         body    = method.get(index+1)
                         index += 2
                         if len(formals.slots) == len(actuals.slots):
-                            actuals = env.eval(actuals)
+                            actuals = lazy_eval_actuals(actuals, env)
                             return handle_call(
                                 formals,
                                 actuals,
@@ -169,13 +169,38 @@ class fgobject(object):
     def __repr__(self):
         return self.eval(fgmsg('str')).value()
 
+class lazy_eval_actuals(object):
+    """Ensure that actuals are evaluated only if value needs to bound,
+    while also ensuring that actuals are only evaluated once."""
+    def __init__(self, actuals, env):
+        self.values  = {}
+        self.actuals = actuals
+        self.env     = env
+
+    def get_value(self, name):
+        if name not in self.values:
+            value = self.env.eval(self.actuals.get(name))
+            self.values[name] = value
+            if isinstance(name, int):
+                if self.actuals.slots[name][0]:
+                    self.values[self.actuals.slots[name][0]] = value
+            else:
+                self.value[self.actuals.byName[name]] = value
+        return self.values[name]
+
+    def get_code(self, name):
+        return self.actuals.get(name)
+
 def handle_call(formals, actuals, body, scope, self):
     scope = scope.clone(('self', self))
     for i,(n,m) in enumerate(formals.slots):
-        if not m.isA(Message):
+        if m.isA(Quote):
+            scope.set('caller', actuals.env)
+            scope.set(m.get('value').value(), actuals.get_code(i))
+        elif not m.isA(Message):
             if m.eval(fgmsg(
                 '==',
-                (None, fgquote(actuals.get(i)))
+                (None, fgquote(actuals.get_value(i)))
             )) is not fgtrue:
                 raise FugaError, "GUARD"
         elif m.slots:
@@ -183,7 +208,7 @@ def handle_call(formals, actuals, body, scope, self):
         elif n:
             raise FugaError, "can't handle named parameters yet."
         else:
-            scope.set(m.value(), actuals.get(i))
+            scope.set(m.value(), actuals.get_value(i))
     return scope.eval(body)
 
 Object = fgobject(None)
@@ -288,8 +313,8 @@ def Message_str(self, args, env):
     if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self.value() is None: return fgstr('Message')
     if self.value()[0] in ('abcdefghijklmnopqrstuvwxyz'
-                        +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                        +'0123456789'):
+                          +'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                          +'0123456789'):
         name = self.value()
     else:
         name = '\\' + self.value()

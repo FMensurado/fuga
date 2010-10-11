@@ -89,6 +89,16 @@ def Object_clone(self, args, env):
     return self.clone(*env.eval(args).slots)
 Object.set("clone", fgmethod(Object_clone))
 
+def Object_eval(self, args, env):
+    if len(args.slots) < 1 or len(args.slots) > 2:
+        raise FugaError, "eval expects 1 or 2 arguments"
+    args = env.eval(args)
+    if len(args.slots) == 1:
+        return self.eval(args.get(0))
+    else:
+        return self.eval(args.get(0), self, args.get(1))
+Object.set("eval", fgmethod(Object_eval))
+
 # Some Control Flow
 
 def Object_do(self, args, env):
