@@ -3,7 +3,7 @@
 |----------|------------------|
 | Introductory Fuga tutorial. |
 | Author: Francisco Mota.     |
-| Date:   October 6, 2010     |
+| Date:   October 10, 2010    |
 |-----------------------------|
 
 # Preliminaries
@@ -111,7 +111,8 @@ the message `*(3)`.
 ## Objects and Object Literals
 
 Objects are a sequence of slots. Slots have values, and some slots have
-names. You can create your own objects by using object literals. Object literals are enclosed in parentheses (`()`).
+names. You can create your own objects by using object literals. Object
+literals are enclosed in parentheses (`()`).
 
 This is an empty object:
 
@@ -128,8 +129,8 @@ This object contains two slots, with the values `10` and `20`:
     >>> (10, 20)
     (10, 20)
 
-Note that a comma is used to separate slots. Outside of the interpreter,
-(i.e., in a Fuga module) newlines are also used to separate slots.
+Note that a comma is used to separate slots. Newlines can also be used
+to separate slots.
 
 This object contains one slot, with the value `10`, and the name `foo`:
 
@@ -161,7 +162,7 @@ For example, here we create a method the prints "Hello." We then
 proceed to use it. Multiple times.
 
     >>> foo => print("Hello.")
-    (foo=method(...))
+    method(...)
     >>> foo
     Hello.
     Object
@@ -172,5 +173,242 @@ proceed to use it. Multiple times.
 
 (Object is just what print("Hello.") returns, so foo returns that as well.)
 
+Arguments to the method can be specified after the slot name:
 
+    >>> square(a) => a * a
+    method(...)
+    >>> square(10)
+    100
+    >>> fact(n) => if(n == 0, 1, n * fact(n - 1))
+    method(...)
+    >>> fact(3)
+    6
+    >>> fact(5)
+    120
 
+## Desugaring "becomes"
+
+The becomes slot operator is syntactic sugar designed to make method
+definition look closer to normal slot definitions. One can always use
+`method` to create methods, without using "becomes":
+
+    >>> fact = method(
+    ...     (n), if(n == 0, 1, n * fact(n - 1))
+    ... )
+    method(...)
+    >>> square = method((n), n * n)
+    method(...)
+
+"Becomes" can also be used on a slot without a name. This way, it really
+is just a cover for method. The following two lines mean the same thing:
+
+    >>> (a,b) => a + b
+    >>> method((a,b), a + b)
+
+## Pattern matching
+
+When we write methods out the long way (without using "becomes"), we can
+specify several possible argument lists, and fuga automatically tries
+each argument list until it finds one that fits. For example, here is a
+method that does something different based on whether one or two arguments
+were given:
+
+    >>> foo = method(
+    ...     (a), print("one argument")
+    ...     (a,b), print("two arguments")
+    ... )
+    method(...)
+    >>> foo(10)
+    one argument
+    Object
+    >>> foo(10,20)
+    two arguments
+    Object
+
+We can use number and string literals in argument lists to match those
+specific numbers / strings:
+
+    >>> fact = method(
+    ...     (0), 1
+    ...     (n), fact(n - 1) * n
+    ... )
+    method(...)
+
+To make such method definitions look nicer, we allow becomes to be used
+inside "method":
+
+    >>> fact = method(
+    ...     (0) => 1
+    ...     (n) => fact(n - 1) * n
+    ... )
+    method(...)
+    >>> fib = method(
+    ...     (0) => 0
+    ...     (1) => 1
+    ...     (n) => fib(n - 1) + fib(n - 2)
+    ... )
+    method(...)
+
+## Call-by-name
+
+We can prevent specific arguments from being evaluated altogether by
+preceding the argument name with a quote. For example, the following
+function works just like a quote:
+
+    >>> quote('x) => x
+    method(...)
+    >>> quote(20)
+    20
+    >>> quote(print("Hello world!"))
+    print("Hello world!")
+
+Notice that the argument wasn't evaluated -- it was passed in as is.
+
+We could use this to simulate conditional statements, loops, and other
+things. For example, here is an if-like construct that will evaluate 
+the second argument only if the first is 0, and will otherwise evaluate
+the third argument.
+
+    >>> myIf = method(
+    ...     (0,  a, 'b) => a
+    ...     (n, 'a,  b) => b
+    ... )
+    method(...)
+    >>> myIf(1, print("left"), print("right"))
+    right
+    Object
+    >>> myIf(2 - 2, print("left"), print("right))
+    left
+    Object
+
+If we want to evaluate the arguments at a later point, we need the calling
+environment. For this reason, methods that use call-by-name have access
+to the calling environment through the "caller" message.
+
+    >>> caller
+    ERROR: no slot named caller
+    >>> foo(a) => caller, foo(10)
+    method(...)
+    ERROR: no slot named caller
+    >>> bar('a) => caller, bar(10)
+    method(...)
+    (foo=method(...), bar=method(...))
+
+Access to `caller` allows us to create sophisticated looping mechanisms.
+Here is an example of a non-sophisticated looping mechanism:
+
+    >>> twice('a) => do(
+    ...     caller eval(a)
+    ...     caller eval(a)
+    ... )
+    method(...)
+    >>> twice(10)
+    10
+    >>> twice(print("Hi!"))
+    Hi!
+    Hi!
+    Object
+
+Here, `twice` evaluates its argument twice.
+
+## Self
+
+When we use methods, we have access to the object that the method was
+a part of. This is called `self`, and it is instrumental in allowing
+us to use the object-oriented paradigm.
+
+    >>> obj = (a = 10, foo => self)
+    (a=10, foo=method(...))
+    >>> obj a
+    10
+    >>> obj foo
+    (a=10, foo=method(...))
+
+# Prototyping
+
+Fuga is a prototyping object-oriented programming language. In other
+words, the vast majority of objects are created from another similar
+object (called the prototype). In Fuga, if an objects slots don't
+contain a certain name that we're looking for, we search its 
+prototype, and so forth all the way down to Object.
+
+Practically, this means that we can create new kinds of objects without
+much work. If we wanted to make various kinds of cars, we'd just create
+a Car object that will be used as a prototype for many cars. Alternatively,
+we might decide to use a specific car, such as FordT, be a prototype for
+many other cars, since they are all similar, rather than have all cars
+be built upon a generic Car.
+
+The first approach would go something like:
+
+    >>> Car = (car? = true)
+    ()
+    >>> Ford = Car clone(make = "ford")
+    (make="ford")
+    >>> MercedesBenz = Car clone(make = "mercedes benz")
+    (make="mercedes benz")
+    >>> FordT = Ford clone(model = "ford T", color = "black")
+    (color="black")
+
+Here, clone is used to create a new object based on a prototype. Although
+FordT only contains two slots (for "color" and "make"), we can still get
+its `make`, because `Ford` is its prototype. We can also send `FordT` the
+`car?` message, because `Ford`'s prototype is `Car`.
+
+    >>> FordT color
+    "black"
+    >>> FordT make
+    "ford"
+    >>> FordT car?
+    true
+
+The second approach would be something like
+
+    >>> FordT = (car? = true, make = "ford", model = "ford T", color = "black")
+    >>> FordPanda = FordT clone(model = "ford panda")
+
+The advantage of the second approach is that it leaves less generic objects
+lying around (which could potentially be misused if they were treated as
+non-generic objects). The second approach suffers from a lack of
+hierarchy, however, and makes it difficult to make changes that affect
+all cars. Most of the time, we'll use the first approach.
+
+Here's another example of those two approachs. Natural numbers, and a 
+possible way of doing the first approach:
+
+    Nat = (
+        zero? = false
+        succ? = false
+        succ  => Succ clone(pred = self)
+    )
+
+    zero = Nat clone(
+        zero? = true
+        +(b) => b
+    )
+
+    Succ = Nat clone(
+        succ? = true
+        +(b) => self pred +(b succ)
+    )
+
+Nat and Succ aren't generally useful in computations, but they let us
+categorize the kinds of objects we're using, and they let us make changes
+that will affect all natural numbers (for example).
+
+The second approach:
+
+    zero = (
+        zero? = true
+        succ? = false
+        +(b) => b
+        succ => zero clone(
+            zero? = false
+            succ? = true
+            pred  = self
+            +(b) => self pred +(b succ)
+        )
+    )
+
+Here there aren't generic objects such as Nat and Succ floating around,
+but in general you can't do quite as much as with the approach used above.

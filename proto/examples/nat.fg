@@ -1,0 +1,60 @@
+# File: nat.fg
+# Date: Oct 10, 2010
+# 
+# Natural numbers.
+
+Nat = Number clone(
+    zero? = false
+    succ? = false
+)
+
+Nat zero =  Nat clone(zero? = true)
+Nat succ => Nat clone(succ? = true, pred = self)
+
+Nat +(other) => if(other zero?, self, self succ +(other pred))
+Nat -(other) => if(other zero?, self, self pred -(other pred))
+Nat *(other) => if(other zero?, 0, self *(other pred) +(self))
+Nat /(other) => if(self < other, 0, self -(other) /(other) succ)
+Nat %(other) => if(self < other, self, self -(other) /(other))
+
+Nat  <(other) => other succ? and (self zero? or self pred < other pred)
+Nat  >(other) => other <(self)
+Nat <=(other) => other <(self) not
+Nat >=(other) => self <(other) not
+Nat ==(other) => self zero? and(other zero?) or(
+                 self succ? and(other succ?) and(self pred == other pred))
+
+Nat int => if(self zero?, 0, self pred int + 1)
+Nat str => self int str
+
+Nat times('body) => self timesHelper(body, caller)
+Nat timesHelper(body, caller) => if(
+    self zero?
+    Object
+    do(
+        caller eval(body)
+        self pred timesHelper(body, caller)
+    )
+)
+
+Nat one   = Nat zero  succ
+Nat two   = Nat one   succ
+Nat three = Nat two   succ
+Nat four  = Nat three succ
+Nat five  = Nat four  succ
+Nat six   = Nat five  succ
+
+# Should print "Hello, world!" six times
+Nat six times(
+    print("Hello, world!")
+)
+
+
+print("zero",  Nat zero)
+print("one",   Nat one)
+print("two",   Nat two)
+print("three", Nat three)
+print("four",  Nat four)
+print("five",  Nat five)
+print("six",   Nat six)
+
