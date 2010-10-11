@@ -131,8 +131,8 @@ and large code snippets are set off and indented, as such:
     ** Isn't it pretty?
     */
 
-For a primer on Markdown syntax, visit *TODO*, or search for "Markdown"
-using your favorite search engine.
+For a primer on Markdown syntax search for "Markdown" using your favorite
+search engine.
 
 Generally, one should document the interface to a module in its header
 file, and document the implementation in the source file(s). This way,
@@ -143,9 +143,10 @@ repercussions.
 
 ## Testing
 
-The `test` package contains useful. Because of the generality of this
-package, and because it only exports a handful of symbols, and for
-historical reasons, identifiers aren't prefixed with `test_` or `TEST_`.
+The `test` package contains useful macros and functions for unit testing.
+Because of the generality of this package, and because it only exports a
+handful of symbols, and for historical reasons, identifiers aren't
+prefixed with `test_` or `TEST_`.
 
 For more information about testing, look in `src/test/test.h`.
 
