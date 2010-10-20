@@ -1,49 +1,36 @@
-# Prototype
 
-Come up with something that interprets fuga, even if badly. Python, ruby,
-any language. Once something is working, other people can be brought in.
+# Coverage Testing
 
-# Better Testing
+Right now, unit testing is complete (afaik). However, although test.h
+contains things that will be useful for test-coverage testing, we still
+don't have a tool to do so. It would be convenient to modify tools/test
+to enable something like
 
-Come up with a better form of automated testing. Ideally, we could do
+    $ tools/test --coverage module_name
 
-    $ tools/test function_name
+# Additional flags for tools/make
 
-and it would automagically test that function. We could do
+Some flags would make tools/make even more useful than it is now.
 
-    $ tools/test all
+    $ tools/make --rebuild ...
 
-and it would run all tests. We could do
+Would rebuild a module and all of its dependencies, even if they didn't
+need to be built normally.
 
-    $ tools/test coverage
+    $ tools/make -DFOOBAR ...
 
-and it would run coverage tests on our testing.
-
-Apart from that last option, this doesn't seem so far out, if only we
-had...
-
-# Better "make"ing
-
-Come up with a tool that handles dependencies automatically. Due to our
-module/package system, this should be easier than with C in general.
-Ideally, we could do
-
-    $ tools/make module/name
-
-and that module would automatically compile, plus dependencies.
-
-    $ tools/make program
-
-could make the program and all of its dependencies. To save brainpower,
-this program could simply create a Makefile, and then invoke make
-(and then delete the Makefile, potentially).
+Sets a macro/flag and rebuilds all dependencies using that macro. Note
+that when using this option, all of the binary files need to be kept
+separate from the original binaries. The result of -DFOOBAR will be
+universally different (potentially), so mixing -DRELEASE with -DTESTING
+is a bad idea.
 
 # Benchmarking
 
 Speed is important in programming langauge interpreters (which this is,
-ultimately). We need something to automate 
+ultimately). If we want to compete in the area of speed (IF!), we need
+something to automate benchmarking, such as
 
     $ tools/time function_name
-
 
 
