@@ -61,6 +61,8 @@ void gc_list_pushFront(gc_list_t* list, gc_list_t* item) {
 }
 
 void gc_list_unlink(gc_list_t* item) {
+    NEVER(item == NULL);
+    NEVER(item->next == item);
     item->prev->next = item->next;
     item->next->prev = item->prev;
 } TESTSUITE(gc_list_unlink) {
@@ -79,6 +81,8 @@ void gc_list_unlink(gc_list_t* item) {
 }
 
 gc_list_t* gc_list_popFront(gc_list_t* list) {
+    NEVER(list == NULL);
+    NEVER(list->next == list);
     gc_list_t* item = list->next;
     gc_list_unlink(item);
     return item;
@@ -100,6 +104,8 @@ gc_list_t* gc_list_popFront(gc_list_t* list) {
 }
 
 gc_list_t* gc_list_popBack(gc_list_t* list) {
+    NEVER(list == NULL);
+    NEVER(list->next == list);
     gc_list_t* item = list->prev;
     gc_list_unlink(item);
     return item;
@@ -121,8 +127,94 @@ gc_list_t* gc_list_popBack(gc_list_t* list) {
 }
 
 void gc_list_appendFront (gc_list_t* dest, gc_list_t* src) {
+    NEVER(dest == NULL);
+    NEVER(src == NULL);
+    NEVER(dest == src);
+    src->next->prev = dest;
+    src->prev->next = dest->next;
+    dest->next->prev = src->prev;
+    dest->next = src->next->next->prev;
+    gc_list_init(src);
+} TESTSUITE(gc_list_appendFront) {
+    gc_list_t d1, d2, i1, i2, i3;
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushBack(&d2, &i1);
+    gc_list_pushBack(&d2, &i2);
+    gc_list_pushBack(&d1, &i3);
+    gc_list_appendFront(&d1, &d2);
+    TEST(d2.next == &d2, "src list not re-initialized correctly.");
+    TEST(d2.prev == &d2, "src list not re-initialized correctly.");
+    TEST(d1.next == &i1, "d1.next != &i1 -- but it should!");
+    TEST(i1.next == &i2, "i1.next != &i2 -- but it should!");
+    TEST(i2.next == &i3, "i2.next != &i3 -- but it should!");
+    TEST(i3.next == &d1, "i3.next != &d1 -- but it should!");
+    TEST(d1.prev == &i3, "d1.prev != &i3 -- but it should!");
+    TEST(i3.prev == &i2, "i3.prev != &i2 -- but it should!");
+    TEST(i2.prev == &i1, "i2.prev != &i1 -- but it should!");
+    TEST(i1.prev == &d1, "i1.prev != &d1 -- but it should!");
+
+    // now with empty lists
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_appendFront(&d1, &d2);
+    TEST(d1.next == &d1, "appending two empty lists - d.next should == d")
+    TEST(d1.prev == &d1, "appending two empty lists - d.prev should == d")
+
+    // now with a single list.
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d2, &i1);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d1.next == &i1, "for single list, d.next != i -- but it should")
+    TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
+    TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
+    TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
 }
 
 void gc_list_appendBack  (gc_list_t* dest, gc_list_t* src) {
+    NEVER(dest == NULL);
+    NEVER(src == NULL);
+    NEVER(dest == src);
+    src->prev->next = dest;
+    src->next->prev = dest->prev;
+    dest->prev->next = src->next;
+    dest->prev = src->prev->prev->next;
+    gc_list_init(src);
+} TESTSUITE(gc_list_appendBack) {
+    gc_list_t d1, d2, i1, i2, i3;
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushBack(&d1, &i1);
+    gc_list_pushBack(&d2, &i2);
+    gc_list_pushBack(&d2, &i3);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d2.next == &d2, "src list not re-initialized correctly.");
+    TEST(d2.prev == &d2, "src list not re-initialized correctly.");
+    TEST(d1.next == &i1, "d1.next != &i1 -- but it should!");
+    TEST(i1.next == &i2, "i1.next != &i2 -- but it should!");
+    TEST(i2.next == &i3, "i2.next != &i3 -- but it should!");
+    TEST(i3.next == &d1, "i3.next != &d1 -- but it should!");
+    TEST(d1.prev == &i3, "d1.prev != &i3 -- but it should!");
+    TEST(i3.prev == &i2, "i3.prev != &i2 -- but it should!");
+    TEST(i2.prev == &i1, "i2.prev != &i1 -- but it should!");
+    TEST(i1.prev == &d1, "i1.prev != &d1 -- but it should!");
+
+    // now with empty lists
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d1.next == &d1, "appending two empty lists - d.next should == d")
+    TEST(d1.prev == &d1, "appending two empty lists - d.prev should == d")
+
+    // now with a single list.
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d2, &i1);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d1.next == &i1, "for single list, d.next != i -- but it should")
+    TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
+    TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
+    TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
 }
 

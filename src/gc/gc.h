@@ -1,6 +1,9 @@
 /*
-** # Garbage Collection: The `gc` module.
+** # gc/gc: Garbage Collection
 **
+** Header file: gc/gc.h
+** Source file: gc/gc.c
+** Prefix: gc
 ** 
 */
 
@@ -16,7 +19,7 @@
 **
 ** (`struct _gc_t` is defined in `gc.c`)
 */
-struct gc_t { struct _gc_t *_data; };
+typedef struct _gc_t *gc_t;
 
 /*
 ** ## Constructors, Destructors
@@ -27,7 +30,7 @@ struct gc_t { struct _gc_t *_data; };
 ** without locks and without race conditions.
 **
 ** Use one `gc_fork` per thread. If you only have one thread, `gc_init`
-*** is all you need (since no race conditions will arise anyway).
+** is all you need (since no race conditions will arise anyway).
 **
 ** Use `gc_free` to free a garbage collector and all associated data. If
 ** you use `gc_free` on a master `gc_t`, all of its slaves will be
@@ -41,21 +44,21 @@ struct gc_t { struct _gc_t *_data; };
 **         if (nthreads <= 0) return EXIT_FAILURE;
 **         if (nthreads == 1) {
 **             gc_t gc = gc_init();
-**             doSomething(&gc);
+**             doSomething(gc);
 **             gc_free(gc);
 **             return EXIT_SUCCESS;
 **         } else {
 **             gc_t gc_master = gc_init();
-**             gc_t *gc_slaves = malloc(nthreads * sizeof(gc_t));
 **             thread_t *threads = malloc(nthreads * sizeof(gc_t));
 **             for (int i = 0; i < nthreads; i++) {
-**                 gc_slaves[i] = gc_fork(gc_master);
-**                 threads[i] = thread_new(doSomething, &gc_slaves[i]);
+**                 gc_t gc_slave = gc_fork(gc_master);
+**                 threads[i] = thread_new(doSomething, gc_slave);
 **             }
 **             for (int i = 0; i < nthreads; i++)
 **                 thread_start(threads[i]);
 **             for (int i = 0; i < nthreads; i++)
 **                 thread_waitForExit(threads[i]);
+**             free(threads);
 **             gc_free(gc_master);
 **             return EXIT_SUCCESS;
 **         }
@@ -85,10 +88,10 @@ void gc_free(gc_t);
 **
 ** Example:
 **
-**     void foo_freeFn(gc_t gc, void* _data) {
-**         foo_t foo = {_data};
-**         free(foo._data->str);
-**         free(foo._data);
+**     void foo_freeFn(gc_t gc, void* data) {
+**         foo_T foo = data;
+**         free(foo->str);
+**         free(foo);
 **     }
 */
 typedef void gc_freeFn_t(gc_t gc, void* object);
@@ -117,9 +120,9 @@ void gc_defaultFreeFn(gc_t gc, void* object);
 **
 ** Example:
 ** 
-**    void foo_markFn(gc_t gc, void* _data) {
-**       foo_t foo = {_data};
-**       gc_mark(gc, foo._data, foo._data->bar._data);
+**    void foo_markFn(gc_t gc, void* data) {
+**       foo_t foo = data;
+**       gc_mark(gc, foo, foo->bar);
 **    }
 */
 typedef void gc_markFn_t(gc_t gc, void* object);
@@ -138,25 +141,25 @@ void gc_mark(gc_t, void* parent, void* child);
 **
 ** Example:
 **
-**     struct foo_t { struct _foo_t* _data; }
+**     typedef struct _foo_t *foo_t;
 **     struct _foo_t {
-**         gc_header_t _gcHeader;
+**         gc_header_t gcHeader;
 **         char* str;
 **         bar_t bar;
 **     }
 **     
 **     foo_t foo_new(gc_t gc) {
-**         foo_t foo = {malloc(sizeof(_foo_t))};
-**         foo._data->_gcHeader.freeFn = foo_freeFn;
-**         foo._data->_gcHeader.markFn = foo_markFn;
+**         foo_t foo = malloc(sizeof *foo);
+**         foo->gcHeader.freeFn = foo_freeFn;
+**         foo->gcHeader.markFn = foo_markFn;
 **         
-**         foo._data->str = strdup("John Smith");
-**         foo._data->bar = bar_new();
-**         gc_register(gc, foo._data); // Look below for docs.
+**         foo->str = strdup("John Smith");
+**         foo->bar = bar_new(gc);
+**         gc_register(gc, foo); // Look below for docs.
 **     }
 */
 struct gc_header_t {
-    _gc_list_t _refs;
+    gc_list_t _refs;
     struct gc_header_t *_parent, *_children;
     gc_freeFn_t freeFn;
     gc_markFn_t markFn;

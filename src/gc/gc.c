@@ -13,7 +13,7 @@
 struct _gc_t {
     gc_t master;
     void *black;
-    void *grey;
+    void *gray;
     void *white;
     void *stacks[STACK_FRAMES];
     size_t stack_index;
@@ -22,15 +22,15 @@ struct _gc_t {
 };
 
 gc_t gc_init() {
-   gc_t gc = {malloc(sizeof(_gc_t))};
-   gc._data->master = {NULL};
-   gc._data->black = NULL;
-   gc._data->gray  = NULL;
-   gc._data->white = NULL;
+   gc_t gc = malloc(sizeof *gc);
+   gc->master = {NULL};
+   gc->black = NULL;
+   gc->gray  = NULL;
+   gc->white = NULL;
    for (int i; i < STACK_FRAMES; i++)
-       gc._data->stacks[i] = NULL;
-   gc._data->stack_index = 0;
-   gc._data->num_objects = 0;
+       gc->stacks[i] = NULL;
+   gc->stack_index = 0;
+   gc->num_objects = 0;
    // TODO: Initialize children element.
    return gc;
 }
@@ -54,6 +54,8 @@ void gc_register(gc_t gc, void* object) {
     gc_header_t *header = object;
     header->
     LINK(gc->white, object);
+
+
 }
 
 void gc_enter(gc_t gc);

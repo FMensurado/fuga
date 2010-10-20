@@ -22,13 +22,11 @@ struct gc_list_t {
     gc_list_t *prev;
 };
 
-
 /*
 ** `gc_list_init` initializes (or reinitializes) a list. This involves
 ** making the list a list of one. I.e., the dummy points only to itself.
 */
 void gc_list_init (gc_list_t* list);
-
 
 /*
 ** `gc_list_pushBack` places an item at the back of the list. Likewise,
