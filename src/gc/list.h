@@ -3,7 +3,7 @@
 
 /*
 ** # GC Lists
-**
+** 
 ** `gc_list_t` is a doubly linked list. You'll notice that there are
 ** no values other than the links forward and backward. This is because,
 ** for the most part, the `gc_list_t*` is assumed to be the pointer to
@@ -64,4 +64,18 @@ gc_list_t* gc_list_popBack  (gc_list_t* list);
 void gc_list_appendFront (gc_list_t* dest, gc_list_t* src);
 void gc_list_appendBack  (gc_list_t* dest, gc_list_t* src);
 
+
+/*
+** ## Properties
+**
+** `gc_list_empty` determines whether a list is empty.
+** returns TRUE (non-0) if it is, and FALSE(0) otherwise
+**
+** `gc_list_contains` determines whether data is a member of the list.
+** returns TRUE (non-0) if it is, and FALSE (0) otherwise.
+*/
+int gc_list_empty   (gc_list_t* list);
+int gc_list_contains(gc_list_t* list, void* data);
+
 #endif
+

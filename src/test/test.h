@@ -24,7 +24,10 @@
 #  error "Cannot test code (`TESTING`) and tests (`TESTING_COVERAGE`)"\
          ## "simultaneously."
 # endif
+#endif
 
+
+#ifndef RELEASE
 # ifndef DEBUGGING
 #  define DEBUGGING
 # endif
@@ -139,13 +142,13 @@
 */
 
 #define TESTSUITE(suite_name)                     \
-    void suite_name##_test(const char* _suite_name)
+    void TESTSUITE_##suite_name(const char* _suite_name)
 
 #define TESTSUITE_CALL(suite_name)                            \
-    suite_name##_test(#suite_name)
+    TESTSUITE_##suite_name(#suite_name)
 
 #define TESTSUITE_RUN(suite_name)                             \
-    suite_name##_test(#suite_name)
+    TESTSUITE_##suite_name(#suite_name)
 
 /*
 ** ## `TEST`, `TEST1`, `TEST2`, `TEST3`, `TEST4`
@@ -178,45 +181,16 @@
 #ifdef TESTING_COVERAGE
 
 # define TEST(assertion, message)                  (assertion)
-# define TEST1(assertion, message, a1)             (assertion)
-# define TEST2(assertion, message, a1, a2)         (assertion)
-# define TEST3(assertion, message, a1, a2, a3)     (assertion)
-# define TEST4(assertion, message, a1, a2, a3, a4) (assertion)
 
-#elif defined(TESTING)
+#else
 
-# define TEST(assertion, message)     \
-    if (!(assertion)) {               \
-        printf("[%s] ", _suite_name); \
-        puts(message);                \
-    }
-
-# define TEST1(assertion, message, arg1) \
-    if (!(assertion)) {                  \
-        printf("[%s] ", _suite_name);    \
-        printf(message, arg1);           \
-        puts("");                        \
-    }
-
-# define TEST2(assertion, message, arg1, arg2) \
-    if (!(assertion)) {                        \
-        printf("[%s] ", _suite_name);          \
-        printf(message, arg1, arg2);           \
-        puts("");                              \
-    }
-
-# define TEST3(assertion, message, arg1, arg2, arg3) \
-    if (!(assertion)) {                              \
-        printf("[%s] ", _suite_name);                \
-        printf(message, arg1, arg2, arg3);           \
-        puts("");                                    \
-    }
-
-# define TEST4(assertion, message, arg1, arg2, arg3, arg4) \
-    if (!(assertion)) {                                    \
-        printf("[%s] ", _suite_name);                      \
-        printf(message, arg1, arg2, arg3, arg4);           \
-        puts("");                                          \
+# define TEST(assertion, message)             \
+    if (!(assertion)) {                       \
+        printf("--------------------------------------"); \
+        printf("--------------------------------------\n"); \
+        printf("[%s] in %s, line %d\n", _suite_name, __FILE__, __LINE__); \
+        printf("    Test: %s\n", #assertion); \
+        printf("    Msg:  %s\n", message); \
     }
 
 #endif

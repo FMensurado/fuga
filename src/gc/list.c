@@ -130,10 +130,12 @@ void gc_list_appendFront (gc_list_t* dest, gc_list_t* src) {
     NEVER(dest == NULL);
     NEVER(src == NULL);
     NEVER(dest == src);
+    if (src->next == src)
+        return;
     src->next->prev = dest;
     src->prev->next = dest->next;
     dest->next->prev = src->prev;
-    dest->next = src->next->next->prev;
+    dest->next = src->next;
     gc_list_init(src);
 } TESTSUITE(gc_list_appendFront) {
     gc_list_t d1, d2, i1, i2, i3;
@@ -165,21 +167,49 @@ void gc_list_appendFront (gc_list_t* dest, gc_list_t* src) {
     gc_list_init(&d1);
     gc_list_init(&d2);
     gc_list_pushFront(&d2, &i1);
-    gc_list_appendBack(&d1, &d2);
+    gc_list_appendFront(&d1, &d2);
     TEST(d1.next == &i1, "for single list, d.next != i -- but it should")
     TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
     TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
     TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
+
+    // now with an empty list on the right
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d1, &i2);
+    gc_list_pushFront(&d1, &i1);
+    gc_list_appendFront(&d1, &d2);
+    TEST(d1.next == &i1, "failed at appending empty list on the right")
+    TEST(d1.prev == &i2, "failed at appending empty list on the right")
+    TEST(i1.next == &i2, "failed at appending empty list on the right")
+    TEST(i1.prev == &d1, "failed at appending empty list on the right")
+    TEST(i2.next == &d1, "failed at appending empty list on the right")
+    TEST(i2.prev == &i1, "failed at appending empty list on the right")
+
+    // now with an empty list on the left
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d2, &i2);
+    gc_list_pushFront(&d2, &i1);
+    gc_list_appendFront(&d1, &d2);
+    TEST(d1.next == &i1, "failed at appending empty list on the left")
+    TEST(d1.prev == &i2, "failed at appending empty list on the left")
+    TEST(i1.next == &i2, "failed at appending empty list on the left")
+    TEST(i1.prev == &d1, "failed at appending empty list on the left")
+    TEST(i2.next == &d1, "failed at appending empty list on the left")
+    TEST(i2.prev == &i1, "failed at appending empty list on the lef")
 }
 
 void gc_list_appendBack  (gc_list_t* dest, gc_list_t* src) {
     NEVER(dest == NULL);
     NEVER(src == NULL);
     NEVER(dest == src);
+    if (src->next == src)
+        return;
     src->prev->next = dest;
     src->next->prev = dest->prev;
     dest->prev->next = src->next;
-    dest->prev = src->prev->prev->next;
+    dest->prev = src->prev;
     gc_list_init(src);
 } TESTSUITE(gc_list_appendBack) {
     gc_list_t d1, d2, i1, i2, i3;
@@ -216,5 +246,73 @@ void gc_list_appendBack  (gc_list_t* dest, gc_list_t* src) {
     TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
     TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
     TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
+
+    // now with an empty list on the right
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d1, &i2);
+    gc_list_pushFront(&d1, &i1);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d1.next == &i1, "failed at appending empty list on the right")
+    TEST(d1.prev == &i2, "failed at appending empty list on the right")
+    TEST(i1.next == &i2, "failed at appending empty list on the right")
+    TEST(i1.prev == &d1, "failed at appending empty list on the right")
+    TEST(i2.next == &d1, "failed at appending empty list on the right")
+    TEST(i2.prev == &i1, "failed at appending empty list on the right")
+
+    // now with an empty list on the left
+    gc_list_init(&d1);
+    gc_list_init(&d2);
+    gc_list_pushFront(&d2, &i2);
+    gc_list_pushFront(&d2, &i1);
+    gc_list_appendBack(&d1, &d2);
+    TEST(d1.next == &i1, "failed at appending empty list on the left")
+    TEST(d1.prev == &i2, "failed at appending empty list on the left")
+    TEST(i1.next == &i2, "failed at appending empty list on the left")
+    TEST(i1.prev == &d1, "failed at appending empty list on the left")
+    TEST(i2.next == &d1, "failed at appending empty list on the left")
+    TEST(i2.prev == &i1, "failed at appending empty list on the lef")
+}
+
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
+
+int gc_list_empty(gc_list_t *list) {
+    NEVER((list->next == list) ^ (list->prev == list));
+    return list->next == list;
+} TESTSUITE(gc_list_empty) {
+    gc_list_t d1, i1;
+    gc_list_init(&d1);
+    TEST( gc_list_empty(&d1), "empty list should be empty!");
+    gc_list_pushBack(&d1, &i1);
+    TEST(!gc_list_empty(&d1), "single list shouldn't be empty...");
+}
+
+int gc_list_contains(gc_list_t *list, void* data) {
+    gc_list_t *link;
+    for(link = list->next; link != list; link = link->next) {
+        if (link == data)
+            return TRUE;
+    }
+    return FALSE;
+} TESTSUITE(gc_list_contains) {
+    gc_list_t d1, i1, i2;
+    gc_list_init(&d1);
+
+    TEST(!gc_list_contains(&d1, &i1), "empty list should be empty!");
+    TEST(!gc_list_contains(&d1, &i2), "empty list should be empty!");
+    TEST(!gc_list_contains(&d1, &d1),
+         "empty list shouldn't contain itself!");
+    gc_list_pushBack(&d1, &i1);
+    TEST( gc_list_contains(&d1, &i1), "faulty contains for single list");
+    TEST(!gc_list_contains(&d1, &i2), "faulty contains for single list");
+    TEST(!gc_list_contains(&d1, &d1),
+         "single list shouldn't contain itself!");
+    gc_list_pushBack(&d1, &i2);
+    TEST( gc_list_contains(&d1, &i1), "faulty contains for 2-list");
+    TEST( gc_list_contains(&d1, &i2), "faulty contains for 2-list");
+    TEST(!gc_list_contains(&d1, &d1), "list shouldn't contain itself!");
 }
 

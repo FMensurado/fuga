@@ -179,7 +179,7 @@ to test every possible condition.
 To actually test code, we must develop test cases. Tests are organized
 into suites. The general syntax / schematic for a test suite is:
 
-    TESTSUITE(suite_name,
+    TESTSUITE(suite_name) {
         // set things up
         int a = 10;
         int b = a+10;
@@ -189,12 +189,12 @@ into suites. The general syntax / schematic for a test suite is:
         TEST(a == c);
         // perform clean up
         free(x);
-    )
+    }
 
 Test suites are to be located within the implementation file. To declare
 a suite in a header file, use
 
-    TESTSUITE_H(suite_name);
+    TESTSUITE(suite_name);
 
 Most suites need not be declared in header files, however.
 
@@ -206,8 +206,14 @@ To call a test suite from outside, use:
 
     TESTSUITE_RUN(suite_name);
 
-Finally, to build a program that merely runs a test suite, do (requires
-gcc):
+To run a test suite, use the hand tools/test:
 
-    ./run_suite suite_name
+    $ tools/test suite_name
+
+You can run all test suites in a module or in a package by passing those
+to tools/test instead, or you can run all test suites.
+
+    $ tools/test module
+    $ tools/test package
+    $ tools/test --all
 

@@ -10,6 +10,9 @@
 #ifndef GC_H
 #define GC_H
 
+#include "list.h"
+#include <stdlib.h>
+
 /*
 ** `gc_t` is the main garbage collection structure. Pass a `gc_t` around
 ** to any function that needs garbage collection. We unfortunately can't
@@ -19,7 +22,7 @@
 **
 ** (`struct _gc_t` is defined in `gc.c`)
 */
-typedef struct _gc_t *gc_t;
+typedef struct _gc_t* gc_t;
 
 /*
 ** ## Constructors, Destructors
@@ -94,7 +97,7 @@ void gc_free(gc_t);
 **         free(foo);
 **     }
 */
-typedef void gc_freeFn_t(gc_t gc, void* object);
+typedef void (*gc_freeFn_t)(gc_t gc, void* object);
 void gc_defaultFreeFn(gc_t gc, void* object);
 
 /*
@@ -125,66 +128,25 @@ void gc_defaultFreeFn(gc_t gc, void* object);
 **       gc_mark(gc, foo, foo->bar);
 **    }
 */
-typedef void gc_markFn_t(gc_t gc, void* object);
+typedef void (*gc_markFn_t)(gc_t gc, void* object);
 void gc_defaultMarkFn(gc_t gc, void* object);
 void gc_mark(gc_t, void* parent, void* child);
 
 /*
-** ## The GC Header
-** 
-** As was said above, each object needs to carry around with it a
-** `freeFn`, and a `markFn`. To do this, every GC'ed object must begin
-** with a GC header (`gc_header_t`).
-** 
-** If your data type is relatively simple, you can use
-** `gc_defaultHeader`, rather than rolling your own.
+** ## Allocation
 **
-** Example:
+** Creates a 
 **
-**     typedef struct _foo_t *foo_t;
-**     struct _foo_t {
-**         gc_header_t gcHeader;
-**         char* str;
-**         bar_t bar;
-**     }
-**     
-**     foo_t foo_new(gc_t gc) {
-**         foo_t foo = malloc(sizeof *foo);
-**         foo->gcHeader.freeFn = foo_freeFn;
-**         foo->gcHeader.markFn = foo_markFn;
-**         
-**         foo->str = strdup("John Smith");
-**         foo->bar = bar_new(gc);
-**         gc_register(gc, foo); // Look below for docs.
-**     }
 */
-struct gc_header_t {
-    gc_list_t _refs;
-    struct gc_header_t *_parent, *_children;
-    gc_freeFn_t freeFn;
-    gc_markFn_t markFn;
-};
+void* gc_alloc  (gc_t gc, size_t size, gc_freeFn_t, gc_markFn_t);
+void  gc_root   (gc_t gc, void*);
+void  gc_unroot (gc_t gc, void*);
 
 /*
-** Use `gc_register` to register an object with the garbage collector. An
-** object register for the first time is assumed to be in the current
-** stack frame (see below).
-** 
-** An object can be gc_register'ed again in order to flush its perceived
-** state. What this means is that the gc keeps track of an object's
-** references (through gc_mark, and through markFn), to speed things up.
-** However, if some references are removed, gc_t has no way of knowing
-** about it unless you do gc_register again.
-*/
-void gc_register(gc_t gc, void* object);
-
-/*
-** ## Stack Frames
+** ## Collection
 **
-** TODO: explain.
+** Trigger a collection step.
 */
-void gc_enter(gc_t gc);
-void gc_leave(gc_t gc);
-void gc_return(gc_t gc, void* object);
+void gc_collect(gc_t gc);
 
 #endif
