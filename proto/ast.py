@@ -103,21 +103,43 @@ class opexp(ast):
     def __repr__(self):
         return "opexp(%r, %r)" % (self.parts, self.ops)
 
-    def flatten(self, groups):
-        def combine(left, op, right):
+    def flatten(self, groups, combines):
+        def left_combine(left, op, right):
             newmsg = msg(op, block([right]))
             while isinstance(left, opexp):
-                left = left.flatten(groups)
+                left = left.flatten(groups, combines)
             if isinstance(left, exp):
                 left.msgs.append(newmsg)
                 return left
             else:
                 return exp(left, [newmsg])
+
+        def right_combine(left, op, right):
+            newmsg = msg(op, block([left]))
+            while isinstance(right, opexp):
+                right = right.flatten(groups, combines)
+            if isinstance(right, exp):
+                right.msgs.append(newmsg)
+                return right
+            else:
+                return exp(right, [newmsg])
+
+        def both_combine(left, op, right):
+            return msg(op, block([left, right]))
+
+        def combine(left, op, right):
+            fns = {'left':  left_combine,
+                   'right': right_combine,
+                   'both':  both_combine}
+            return fns[combines.get(op, 'left')](left, op, right)
+
+
         return operators.solve(groups, self.parts, self.ops, combine)
 
-    def convert(self, groups=None):
+    def convert(self, groups=None, combines=None):
         if not groups: groups = operators.std_groups
-        return self.flatten(groups).convert()
+        if not combines: combines = operators.std_combines
+        return self.flatten(groups, combines).convert()
 
 class exp(ast):
     def cons(self, root, msgs):

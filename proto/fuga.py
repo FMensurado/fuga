@@ -60,7 +60,8 @@ def repl():
                 evalue = env.eval(value)
                 if name:
                     env.set(name, evalue)
-                print repr(evalue)
+                if evalue is not values.fgvoid:
+                    print repr(evalue)
             except values.FugaError, e:
                 print "ERROR:", e
                 break

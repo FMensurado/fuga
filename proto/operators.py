@@ -19,6 +19,11 @@ std_groups = {
     # by default, operators are at 100
 }
 
+std_combines = {
+    ':=': 'both',
+    '+>': 'right',
+}
+
 def reverse(groups):
     """
     >>> reverse({})

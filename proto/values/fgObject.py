@@ -40,12 +40,7 @@ def Object_has(self, args, env):
 def Object_proto(self, args, env):
     if len(args.slots) != 0:
         raise FugaError, "proto expects no arguments"
-    return self.proto or Object
-
-def Object_scope(self, args, env):
-    if len(args.slots) != 0:
-        raise FugaError, "scope expects no arguments"
-    return env
+    return self.proto or fgnull
 
 # Set up some globals
 
@@ -62,7 +57,6 @@ Object.set('get',    fgmethod(Object_get))
 Object.set('set',    fgmethod(Object_set))
 Object.set('has',    fgmethod(Object_has))
 Object.set('proto',  fgmethod(Object_proto))
-Object.set('scope',  fgmethod(Object_scope))
 
 # Some Important Methods!
 
@@ -130,6 +124,6 @@ def Object_print(self, args, env):
             return repr(v)
     args = env.eval(args)
     print ' '.join(_str(val) for (n, val) in args.slots)
-    return Object
+    return fgvoid
 Object.set('print', fgmethod(Object_print))
 

@@ -6,6 +6,9 @@
 Nat = Number clone(
     zero? = false
     succ? = false
+
+    zero =>       clone(zero? = true)
+    succ => proto clone(zero? = false, pred = self)
 )
 
 Nat zero =  Nat clone(zero? = true)

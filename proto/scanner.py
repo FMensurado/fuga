@@ -81,6 +81,8 @@ class scanner(object):
         literal = {
             '(': tokens.LPAREN,
             ')': tokens.RPAREN,
+            '[': tokens.LBRACKET,
+            ']': tokens.RBRACKET,
             ',': tokens.SEPARATOR,
             '`': tokens.ESCAPE,
             "'": tokens.QUOTE

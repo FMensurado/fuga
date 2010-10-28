@@ -11,10 +11,20 @@ fibAux(n, a,b) => if(
     fibAux(n - 1, b, a + b)
 )
 
+do = method(
+    (a) => a
+    (a,b) => b
+    (a,b,c) => c
+    (a,b,c,d) => d
+    (a,b,c,d,e) => e
+    (a,b,c,d,e,f) => f
+)
+
 Int to(b) => if(
     self == b
     list(self)
-    self to(self + (b - self) // 2) ++ (self + (b - self) // 2 + 1) to(b)
+    do(mid = self + [b - self]//2,
+       self to(mid) ++ [mid + 1] to(self))
 )
 
 start = 0

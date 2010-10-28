@@ -123,7 +123,7 @@ class fgobject(object):
             return newObj
 
     def isCallable(self):
-        return self.isA(Method)
+        return self.isA(Method) or self.isA(Var)
 
     def call(method, self, actuals, env, guard=False):
         if method.isA(Method):
@@ -131,7 +131,7 @@ class fgobject(object):
                 return method.value()(self, actuals, env)
            
             index = 1
-            scope   = method.get('scope')
+            scope = method.get('scope')
             while index < len(method.slots):
                 if method.slots[index][0] is not None:
                     continue
@@ -163,6 +163,10 @@ class fgobject(object):
                 raise FugaError, "GUARD"
             else:
                 raise FugaError, "No pattern matches arguments to method."
+        elif method.isA(Var):
+            if actuals.slots:
+                raise FugaError, "Var expects no arguments."
+            return method.get('value')
         else:
             raise FugaError, "expected a Method -- can't call a non-method"
 
@@ -179,20 +183,30 @@ class lazy_eval_actuals(object):
 
     def get_value(self, name):
         if name not in self.values:
-            value = self.env.eval(self.actuals.get(name))
+
+            if not isinstance(name, int):
+                name = slef.actuals.byName[name]
+            
+            env = self.env.clone()
+            for i in range(name):
+                k,v = self.actuals.slots[i]
+                if k: env.set(k, self.get_value(i))
+
+            value = env.eval(self.actuals.get(name))
             self.values[name] = value
-            if isinstance(name, int):
-                if self.actuals.slots[name][0]:
-                    self.values[self.actuals.slots[name][0]] = value
-            else:
-                self.value[self.actuals.byName[name]] = value
+            if self.actuals.slots[name][0]:
+                self.values[self.actuals.slots[name][0]] = value
         return self.values[name]
 
     def get_code(self, name):
         return self.actuals.get(name)
 
-def handle_call(formals, actuals, body, scope, self):
-    scope = scope.clone(('self', self))
+def handle_call(formals, actuals, body, oscope, self):
+    scope = oscope.clone(
+        ('self',  self),
+        ('scope', oscope),
+    )
+
     for i,(n,m) in enumerate(formals.slots):
         if m.isA(Quote):
             scope.set('caller', actuals.env)
@@ -215,6 +229,7 @@ Object = fgobject(None)
 
 String = Object.clone()
 def fgstr(value): return String.clone(value)
+
 
 Bool    = Object.clone()
 fgtrue  = Bool.clone()
@@ -353,7 +368,118 @@ Quote.set('str', fgmethod(Quote_str))
 def Method_str(self, args, env):
     if len(args.slots): raise FugaError, "str expects 0 arguments"
     if self is Method: return fgstr('Method')
+    scopeless = Object.clone(*self.slots[1:])
     return fgstr('method(...)')
 Method.set('str', fgmethod(Method_str))
-    
+Object.set('Method', Method)
+
+# Join -- for (simulated) multiple inheritance.
+
+class fgjoin(fgobject):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+        super(fgjoin, self).__init__(self, left)
+
+    def doneWithFeeler(self, feelers):
+        for feeler in feelers[1:]:
+            if feeler is feelers[0] or feeler.isA(feelers[0]):
+                return True
+        return False
+
+    def get(self, name):
+        if self.rawHas(name):
+            return self.rawGet(name)
+        if not self.has(name):
+            return self.left.get(name) # raises error
+        feelers = [self.left, self.right]
+        while feelers:
+            if isinstance(feelers[0], fgjoin):
+                feelers = [feelers[0].left, feelers[0].right] + feelers[1:]
+            elif self.doneWithFeeler(feelers):
+                del feelers[0]
+            elif feelers[0].rawHas(name):
+                return feelers[0].rawGet(name)
+            elif feelers[0] is Object:
+                break
+            else:
+                feelers[0] = feelers[0].proto
+        raise ValueError, "logic error: expected slot by now!"
+
+    def has(self, name):
+        return (self.rawHas(name) or self.left.has(name)
+                                  or self.right.has(name))
+
+    def isA(self, obj):
+        if obj is self.left or obj is self.right:
+            return True
+        return obj.isA(self.left) or obj.isA(self.right)
+
+def Object_join(self, args, env):
+    if len(args.slots) != 2:
+        raise FugaError, "join expects exactly 2 arguments (for now)"
+    args = env.eval(args)
+    return fgjoin(args.get(0), args.get(1))
+
+Object.set("join", fgmethod(Object_join))
+
+# coid and null
+
+fgvoid = Object.clone()
+Object.set("void",  fgvoid)
+Object.set("void?", fgfalse)
+fgvoid.set("void?", fgtrue)
+fgvoid.set("str", fgstr("void"))
+ 
+fgnull = Object.clone()
+Object.set("null",  fgnull)
+Object.set("null?", fgfalse)
+fgnull.set("null?", fgtrue)
+fgnull.set("str", fgstr("null"))
+fgnull.set("proto", fgnull)
+
+# Variables
+
+Var = Object.clone()
+def fgvar(value):
+    return Var.clone(('value', value))
+
+def Object_var(self, args, env):
+    if len(args.slots)>1:
+        raise FugaError, "var expects 0 or 1 arguments"
+    if args.slots:
+        args = env.eval(args)
+        return fgvar(args.get(0))
+    else:
+        return fgvar(fgnull)
+
+def Var_set(self, args, env):
+    if len(args.slots) != 1:
+        raise FugaError, "Var set! expects 1 argument."
+    if not self.isA(Var):
+        raise FugaError, "can't use Var set! on Var, only on instances"
+    args = env.eval(args)
+
+    self.slots[0] = ('value', args.get(0))
+    return fgvoid
+
+def Object_varset(self, args, env):
+    if len(args.slots) != 2:
+        raise FugaError, ":= expects 2 arguments."
+    left = args.get(0)
+    if left.isA(Message):
+        name = left.value()
+        left = env.eval(fgmsg("get", (None, fgstr(name))))
+    else:
+        raise FugaError, ":= doesn't support non-msg left argument yet"
+    return Var_set(left, Object.clone((None, args.get(1))), env)
+
+Var.set("set!", fgmethod(Var_set))
+
+Object.set("Var", Var)
+Object.set("var", fgmethod(Object_var))
+Object.set(":=", fgmethod(Object_varset))
+
+
+
 
