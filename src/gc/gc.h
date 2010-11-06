@@ -6,8 +6,8 @@
 ** Prefix: gc
 */
 
-#ifndef GC_H
-#define GC_H
+#ifndef FUGAGC_H
+#define FUGAGC_H
 
 #include "list.h"
 #include <stdlib.h>
@@ -21,7 +21,7 @@
 **
 ** (`struct _gc_t` is defined in `gc.c`)
 */
-typedef struct _gc_t* gc_t;
+typedef struct FugaGC FugaGC;
 
 /*
 ** ## Constructors, Destructors
@@ -66,8 +66,8 @@ typedef struct _gc_t* gc_t;
 **         }
 **     }
 */
-gc_t gc_start();
-void gc_end(gc_t);
+FugaGC* FugaGC_start();
+void    FugaGC_end(FugaGC*);
 
 /*
 ** ## Freeing Objects
@@ -98,9 +98,10 @@ void gc_end(gc_t);
 **         gc_free(foo);
 **     }
 */
-typedef void (*gc_freeFn_t)(void* object);
-void gc_defaultFreeFn(void* object);
-void gc_free(void* object);
+
+typedef void (*FugaGCFreeFn)(void* object);
+void FugaGCFreeFn_default(void* object);
+void FugaGC_free(void* object);
 
 /*
 ** ## Marking
@@ -130,9 +131,9 @@ void gc_free(void* object);
 **       gc_mark(gc, foo, foo->bar);
 **    }
 */
-typedef void (*gc_markFn_t)(void* object, gc_t gc);
-void gc_defaultMarkFn(void* object, gc_t gc);
-void gc_mark(gc_t, void* parent, void* child);
+typedef void (*FugaGCMarkFn)(void*, FugaGC*);
+void FugaGCMarkFn_default(void* object, FugaGC* gc);
+void FugaGC_mark(FugaGC* gc, void* parent, void* child);
 
 /*
 ** ## Allocation
@@ -140,15 +141,15 @@ void gc_mark(gc_t, void* parent, void* child);
 ** Creates a 
 **
 */
-void* gc_alloc  (gc_t gc, size_t size, gc_freeFn_t, gc_markFn_t);
-void  gc_root   (gc_t gc, void*);
-void  gc_unroot (gc_t gc, void*);
+void* FugaGC_alloc  (FugaGC* gc, size_t size, FugaGCFreeFn, FugaGCMarkFn);
+void  FugaGC_root   (FugaGC* gc, void* object);
+void  FugaGC_unroot (FugaGC* gc, void* object);
 
 /*
 ** ## Collection
 **
 ** Trigger a collection step.
 */
-void gc_collect(gc_t gc);
+void FugaGC_collect(FugaGC *gc);
 
 #endif

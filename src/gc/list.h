@@ -4,9 +4,9 @@
 /*
 ** # GC Lists
 ** 
-** `gc_list_t` is a doubly linked list. You'll notice that there are
+** `FugaGCList` is a doubly linked list. You'll notice that there are
 ** no values other than the links forward and backward. This is because,
-** for the most part, the `gc_list_t*` is assumed to be the pointer to
+** for the most part, the `FugaGCList*` is assumed to be the pointer to
 ** the object itself.
 **
 ** We actually use doubly linked lists with a dummy. This makes
@@ -16,66 +16,66 @@
 ** piece of the list as an "item", despite both being (pointers to) the
 ** same structure.
 */
-typedef struct gc_list_t gc_list_t;
-struct gc_list_t {
-    gc_list_t *next;
-    gc_list_t *prev;
+typedef struct FugaGCList FugaGCList;
+struct FugaGCList {
+    FugaGCList *next;
+    FugaGCList *prev;
 };
 
 /*
-** `gc_list_init` initializes (or reinitializes) a list. This involves
+** `FugaGCList_init` initializes (or reinitializes) a list. This involves
 ** making the list a list of one. I.e., the dummy points only to itself.
 */
-void gc_list_init (gc_list_t* list);
+void FugaGCList_init (FugaGCList* list);
 
 /*
-** `gc_list_pushBack` places an item at the back of the list. Likewise,
-** `gc_list_pushFront` places an item at the front of the list.
+** `FugaGCList_pushBack` places an item at the back of the list. Likewise,
+** `FugaGCList_pushFront` places an item at the front of the list.
 */
-void gc_list_pushBack  (gc_list_t* list, gc_list_t* item);
-void gc_list_pushFront (gc_list_t* list, gc_list_t* item);
+void FugaGCList_pushBack  (FugaGCList* list, FugaGCList* item);
+void FugaGCList_pushFront (FugaGCList* list, FugaGCList* item);
 
 /*
-** `gc_list_unlink` removes an item from its surrounding list. The item's
+** `FugaGCList_unlink` removes an item from its surrounding list. The item's
 ** links are unchanged, so know that `item->prev` and `item->next` are
 ** consequently wrong.
 */
-void gc_list_unlink (gc_list_t* item);
+void FugaGCList_unlink (FugaGCList* item);
 
 /*
-** `gc_list_popFront` removes an item from the front of the list, and
-** returns it. `gc_list_popBack` does the same, but to the back of the
+** `FugaGCList_popFront` removes an item from the front of the list, and
+** returns it. `FugaGCList_popBack` does the same, but to the back of the
 ** list instead.
 **
 ** The returned item's links are not modified, so `item->prev` and
 ** `item->next` are both wrong.
 */
-gc_list_t* gc_list_popFront (gc_list_t* list);
-gc_list_t* gc_list_popBack  (gc_list_t* list);
+FugaGCList* FugaGCList_popFront (FugaGCList* list);
+FugaGCList* FugaGCList_popBack  (FugaGCList* list);
 
 /*
-** `gc_list_appendFront` takes an existing list and appends it to the
-** front of another list. `gc_list_appendBack` does the same, but to
+** `FugaGCList_appendFront` takes an existing list and appends it to the
+** front of another list. `FugaGCList_appendBack` does the same, but to
 ** the back.
 **
 ** The `dest` list is the one that grows. The `src` list is reinitialized
 ** in order to maintain sanity.
 */
-void gc_list_appendFront (gc_list_t* dest, gc_list_t* src);
-void gc_list_appendBack  (gc_list_t* dest, gc_list_t* src);
+void FugaGCList_appendFront (FugaGCList* dest, FugaGCList* src);
+void FugaGCList_appendBack  (FugaGCList* dest, FugaGCList* src);
 
 
 /*
 ** ## Properties
 **
-** `gc_list_empty` determines whether a list is empty.
+** `FugaGCList_empty` determines whether a list is empty.
 ** returns TRUE (non-0) if it is, and FALSE(0) otherwise
 **
-** `gc_list_contains` determines whether data is a member of the list.
+** `FugaGCList_contains` determines whether data is a member of the list.
 ** returns TRUE (non-0) if it is, and FALSE (0) otherwise.
 */
-int gc_list_empty   (gc_list_t* list);
-int gc_list_contains(gc_list_t* list, void* data);
+int FugaGCList_empty   (FugaGCList* list);
+int FugaGCList_contains(FugaGCList* list, void* data);
 
 #endif
 
