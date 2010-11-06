@@ -1,8 +1,0 @@
-[Oct 6 2010] FM: Add var() / Var.
-[Oct 5 2010] FM: List mapReduce, List reduce, List filter...
-[Oct 5 2010] FM: Number to would be nice.
-[Oct 5 2010] FM: There should be some way of specifying right-sending
- operators, and operators that send to scope.
-[Oct 5 2010] FM: Do I need right-associative operators? Yes. For example,
- a +> b (List cons_left).
-

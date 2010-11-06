@@ -31,7 +31,6 @@ Fuga has the following top-level directory structure:
 * `bin/` - binary files (object files)
 * `test/` - various test executables
 * `tools/` - tools for building and testing Fuga
-* `proto/` - A prototypical Fuga interpreter, written in Python
 
 ## Building
 
