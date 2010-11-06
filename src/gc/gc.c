@@ -36,7 +36,7 @@ typedef struct gc_header_t {
 
 #define _GC_HEADER(obj) ((gc_header_t*)((char*)(obj)-sizeof(gc_header_t)))
 
-gc_t gc_init() {
+gc_t gc_start() {
     gc_t gc = malloc(sizeof *gc);
     ALWAYS(gc);
     gc_list_init(&gc->root);
@@ -47,29 +47,29 @@ gc_t gc_init() {
     gc->size = sizeof *gc;
     gc->pass = 0;
     return gc;
-} TESTSUITE(gc_init) {
-    gc_t gc = gc_init();
+} TESTSUITE(gc_start) {
+    gc_t gc = gc_start();
 
-    TEST(gc_list_empty(&gc->root), "gc_init should initialize root list");
-    TEST(gc_list_empty(&gc->black),"gc_init should initialize black list");
-    TEST(gc_list_empty(&gc->root), "gc_init should initialize gray list");
-    TEST(gc_list_empty(&gc->white),"gc_init should initialize white list");
+    TEST(gc_list_empty(&gc->root), "gc_start should initialize root list");
+    TEST(gc_list_empty(&gc->black),"gc_start should initialize black list");
+    TEST(gc_list_empty(&gc->root), "gc_start should initialize gray list");
+    TEST(gc_list_empty(&gc->white),"gc_start should initialize white list");
 
     TEST(gc->num_objects == 0, "gc should start without any objects");
     TEST(gc->size == sizeof(struct _gc_t),
         "gc->size should start out as the size of the gc structure");
     TEST(gc->pass == 0, "gc->pass should be initialized");
 
-    gc_free(gc);
+    gc_end(gc);
 }
 
-void _gc_countFreeFn(gc_t gc, void* data) {
+void _gc_countFreeFn(void* data) {
     // for testing purposes
     (**(int**)data)++;
-    gc_defaultFreeFn(gc, data);
+    gc_defaultFreeFn(data);
 }
 
-void gc_free(gc_t gc) {
+void gc_end(gc_t gc) {
     ALWAYS(gc);
     gc_list_t *link;
 
@@ -79,50 +79,42 @@ void gc_free(gc_t gc) {
 
     for(link = gc->white.next; link != &gc->white; link = gc->white.next) {
         gc_list_unlink(link);
-        ((gc_header_t*)link)->freeFn(gc, ((gc_header_t*)link)->data);
+        ((gc_header_t*)link)->freeFn(((gc_header_t*)link)->data);
     }
 
     free(gc);
-} TESTSUITE(gc_free) {
+} TESTSUITE(gc_end) {
     int freed = 0;
 
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
     *((int**)gc_alloc(gc, sizeof(int**), _gc_countFreeFn, NULL)) = &freed;
     *((int**)gc_alloc(gc, sizeof(int**), _gc_countFreeFn, NULL)) = &freed;
     *((int**)gc_alloc(gc, sizeof(int**), _gc_countFreeFn, NULL)) = &freed;
-    gc_free(gc);
+    gc_end(gc);
     TEST(freed == 3, "I've freed 3 objects so far... I hope.");
 
-    gc = gc_init();
+    gc = gc_start();
     *((int**)gc_alloc(gc, sizeof(int**), _gc_countFreeFn, NULL)) = &freed;
     *((int**)gc_alloc(gc, sizeof(int**), _gc_countFreeFn, NULL)) = &freed;
-    gc_free(gc);
+    gc_end(gc);
     TEST(freed == 5, "I've freed 5 objects so far... I hope.");
 }
 
 
 
-void gc_defaultFreeFn(gc_t gc, void* object) {
-    ALWAYS(gc);
+void gc_defaultFreeFn(void* object) {
     ALWAYS(object);
     free(_GC_HEADER(object));
 } TESTSUITE(gc_default_freeFn) {
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
     gc_alloc(gc, 16, NULL, NULL);
-    gc_free(gc);
+    gc_end(gc);
 }
 
-void gc_defaultMarkFn(gc_t gc, void* parent) {
+void gc_defaultMarkFn(void* parent, gc_t gc) {
     ALWAYS(gc);
     ALWAYS(parent);
-    // very conservative garbage collection, very slow
-    // please override this always, unless you want the system to
-    // grind to a halt with the increased complexity of GC. Basically,
-    // if you're using this, GC becomes a O(n**2) affair. If you roll
-    // your own for every structure, GC becomes a O(n) affair.
-    // Still, this is provided for the sake of convenience.
-
-    // TODO
+    // Not doing anything is the right default action.
 }
 
 
@@ -141,7 +133,7 @@ void gc_mark(gc_t gc, void* parent, void* child) {
     }
 } TESTSUITE(gc_mark) {
 
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
     void* root = gc_alloc(gc, 16, NULL, NULL);
     void* item = gc_alloc(gc, 16, NULL, NULL);
 
@@ -172,7 +164,7 @@ void gc_mark(gc_t gc, void* parent, void* child) {
     // Try marking NULL -- should handle it gracefully, not crash.
     gc_mark(gc, root, NULL);
 
-    gc_free(gc);
+    gc_end(gc);
 }
 
 void* gc_alloc(
@@ -193,7 +185,7 @@ void* gc_alloc(
     gc->size += sizeof *header + size;
     return header->data;
 } TESTSUITE(gc_alloc) {
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
     size_t size = gc->size;
     
     gc_alloc(gc, 16, NULL, NULL);
@@ -206,7 +198,7 @@ void* gc_alloc(
          "gc->size calculation if faulty");
     size = gc->size;
 
-    gc_free(gc);
+    gc_end(gc);
 }
 
 
@@ -218,7 +210,7 @@ void gc_root(gc_t gc, void* data) {
     gc_list_unlink(&header->list);
     gc_list_pushBack(&gc->root, &header->list);
 } TESTSUITE(gc_root) {
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
 
     void* item = gc_alloc(gc, 8, NULL, NULL);
 
@@ -228,7 +220,7 @@ void gc_root(gc_t gc, void* data) {
     TEST(gc_list_contains(&gc->root, _GC_HEADER(item)),
         "gc_root failed to move object to root list.");
 
-    gc_free(gc);
+    gc_end(gc);
 }
 
 void gc_unroot(gc_t gc, void* data) {
@@ -239,7 +231,7 @@ void gc_unroot(gc_t gc, void* data) {
     gc_list_unlink(&header->list);
     gc_list_pushBack(&gc->white, &header->list);
 } TESTSUITE(gc_unroot) {
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
 
     void* item = gc_alloc(gc, 8, NULL, NULL);
     gc_root(gc, item);
@@ -247,7 +239,7 @@ void gc_unroot(gc_t gc, void* data) {
     TEST(!gc_list_contains(&gc->root, _GC_HEADER(item)),
         "gc_unroot failed to move object back from root list.");
 
-    gc_free(gc);
+    gc_end(gc);
 }
 
 // For testing purposes.
@@ -256,12 +248,12 @@ typedef struct __gc_dummy_t {
     size_t* freecount;
     size_t  markcount;
 } *_gc_dummy_t;
-void _gc_dummyFreeFn(gc_t gc, void* data) {
+void _gc_dummyFreeFn(void* data) {
     _gc_dummy_t dummy = data;
     (*dummy->freecount)++;
-    gc_defaultFreeFn(gc, data);
+    gc_defaultFreeFn(data);
 }
-void _gc_dummyMarkFn(gc_t gc, void* data) {
+void _gc_dummyMarkFn(void* data, gc_t gc) {
     _gc_dummy_t dummy = data;
     dummy->markcount++;
     gc_mark(gc, data, dummy->other);
@@ -289,14 +281,14 @@ void gc_collect(gc_t gc) {
 
     for(link = gc->root.next; link != &gc->root; link = link->next) {
         ((gc_header_t*)link)->pass = gc->pass;
-        ((gc_header_t*)link)->markFn(gc, ((gc_header_t*)link)->data);
+        ((gc_header_t*)link)->markFn(((gc_header_t*)link)->data, gc);
     }
 
     for(link = gc->gray.next; link != &gc->gray; link = gc->gray.next) {
         ((gc_header_t*)link)->pass = gc->pass;
         gc_list_unlink(link);
         gc_list_pushBack(&gc->black, link);
-        ((gc_header_t*)link)->markFn(gc, ((gc_header_t*)link)->data);
+        ((gc_header_t*)link)->markFn(((gc_header_t*)link)->data, gc);
     }
 
     for(link = gc->white.next; link != &gc->white; link = gc->white.next) {
@@ -305,10 +297,10 @@ void gc_collect(gc_t gc) {
         gc->size -= ((gc_header_t*)link)->size + sizeof(gc_header_t);
         // remove object
         gc_list_unlink(link);
-        ((gc_header_t*)link)->freeFn(gc, ((gc_header_t*)link)->data);
+        ((gc_header_t*)link)->freeFn(((gc_header_t*)link)->data);
     }
 } TESTSUITE(gc_collect) {
-    gc_t gc = gc_init();
+    gc_t gc = gc_start();
 
     size_t freecount;
     _gc_dummy_t dummy1, dummy2, dummy3, dummy4;
@@ -423,6 +415,6 @@ void gc_collect(gc_t gc) {
     TEST(gc->size == sizeof *gc,
         "failed at keeping track of object size statistics");
 
-    gc_free(gc);
+    gc_end(gc);
 }
 

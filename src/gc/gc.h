@@ -4,7 +4,6 @@
 ** Header file: gc/gc.h
 ** Source file: gc/gc.c
 ** Prefix: gc
-** 
 */
 
 #ifndef GC_H
@@ -18,7 +17,7 @@
 ** to any function that needs garbage collection. We unfortunately can't
 ** keep a global `gc_t`, but this actually has its own set of advantages.
 **
-** To get a copy of `gc_t`, look below at `gc_init` and at `gc_fork`.
+** To get a copy of `gc_t`, look below at `gc_start` and at `gc_fork`.
 **
 ** (`struct _gc_t` is defined in `gc.c`)
 */
@@ -27,16 +26,16 @@ typedef struct _gc_t* gc_t;
 /*
 ** ## Constructors, Destructors
 **
-** `gc_init` creates the master-level garbage collector, while `gc_fork`
+** `gc_start` creates the master-level garbage collector, while `gc_fork`
 ** creates a thread-specific `gc_t`, that dumps its contents to the
 ** master, once it's full. This way, `gc_register` can be implemented
 ** without locks and without race conditions.
 **
-** Use one `gc_fork` per thread. If you only have one thread, `gc_init`
+** Use one `gc_fork` per thread. If you only have one thread, `gc_start`
 ** is all you need (since no race conditions will arise anyway).
 **
-** Use `gc_free` to free a garbage collector and all associated data. If
-** you use `gc_free` on a master `gc_t`, all of its slaves will be
+** Use `gc_end` to free a garbage collector and all associated data. If
+** you use `gc_end` on a master `gc_t`, all of its slaves will be
 ** automatically freed.
 **
 ** Example:
@@ -46,12 +45,12 @@ typedef struct _gc_t* gc_t;
 **         int nthreads = atoi(argv[1]);
 **         if (nthreads <= 0) return EXIT_FAILURE;
 **         if (nthreads == 1) {
-**             gc_t gc = gc_init();
+**             gc_t gc = gc_start();
 **             doSomething(gc);
 **             gc_free(gc);
 **             return EXIT_SUCCESS;
 **         } else {
-**             gc_t gc_master = gc_init();
+**             gc_t gc_master = gc_start();
 **             thread_t *threads = malloc(nthreads * sizeof(gc_t));
 **             for (int i = 0; i < nthreads; i++) {
 **                 gc_t gc_slave = gc_fork(gc_master);
@@ -67,9 +66,8 @@ typedef struct _gc_t* gc_t;
 **         }
 **     }
 */
-gc_t gc_init();
-gc_t gc_fork(gc_t);
-void gc_free(gc_t);
+gc_t gc_start();
+void gc_end(gc_t);
 
 /*
 ** ## Freeing Objects
@@ -80,25 +78,29 @@ void gc_free(gc_t);
 ** -- a function that destructs the object safely.
 **
 ** The default behavior, as can be seen in gc_defaultFreeFn, is to simply
-** deallocate the object pointer, without regard to whatever un-GCed
-** pointers may be contained in the object. This behavior should work
-** for the vast majority of objects.
+** deallocate the object, without regard to whatever un-GCed pointers may
+** be contained in the object. This behavior should work for the vast
+** majority of objects.
 **
 ** Note that one does not need to (and should not) free pointer to other
 ** objects that are being kept track by the garbage collector. In other
 ** words, only free that which won't be freed already, lest ye risk a
 ** segmentation fault.
 **
+** DO NOT CALL free() DIRECTLY WITH THE DATA. Use gc_free() instead.
+** Doing otherwise will cause a memory dump or segmentation fault.
+**
 ** Example:
 **
-**     void foo_freeFn(gc_t gc, void* data) {
+**     void foo_freeFn(void* data) {
 **         foo_T foo = data;
 **         free(foo->str);
-**         free(foo);
+**         gc_free(foo);
 **     }
 */
-typedef void (*gc_freeFn_t)(gc_t gc, void* object);
-void gc_defaultFreeFn(gc_t gc, void* object);
+typedef void (*gc_freeFn_t)(void* object);
+void gc_defaultFreeFn(void* object);
+void gc_free(void* object);
 
 /*
 ** ## Marking
@@ -123,13 +125,13 @@ void gc_defaultFreeFn(gc_t gc, void* object);
 **
 ** Example:
 ** 
-**    void foo_markFn(gc_t gc, void* data) {
+**    void foo_markFn(void* data, gc_t gc) {
 **       foo_t foo = data;
 **       gc_mark(gc, foo, foo->bar);
 **    }
 */
-typedef void (*gc_markFn_t)(gc_t gc, void* object);
-void gc_defaultMarkFn(gc_t gc, void* object);
+typedef void (*gc_markFn_t)(void* object, gc_t gc);
+void gc_defaultMarkFn(void* object, gc_t gc);
 void gc_mark(gc_t, void* parent, void* child);
 
 /*
