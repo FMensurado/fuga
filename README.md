@@ -27,10 +27,11 @@ interpreter, whose core can be taken and used as in an embedded way.
 Fuga has the following top-level directory structure:
 
 * `src/` - source files
-* `src/fuga/` - the embeddable interpreter's source/header files
+    * `src/fuga/` - the embeddable interpreter's source/header files
 * `bin/` - binary files (object files)
 * `test/` - various test executables
 * `tools/` - tools for building and testing Fuga
+* `proto/` - A prototypical Fuga interpreter, written in Python
 
 ## Building
 
