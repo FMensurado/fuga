@@ -89,7 +89,7 @@ code in question, and should take the form:
     **/
 
 Documentation is to be in Markdown format, where headers are prefixed
-with `#` or `##`, small code snippets are enclosed in backquotes (`\``),
+with `#` or `##`, small code snippets are enclosed in backquotes (\`),
 and large code snippets are set off and indented, as such:
 
     /**
