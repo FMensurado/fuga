@@ -1,0 +1,3 @@
+bin/*.o
+proto/*.pyc
+proto/values/*.pyc
