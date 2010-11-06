@@ -2,134 +2,106 @@
 
 This is the (main) interpreter for the programming language, Fuga. The
 interpreter is also known as Fuga. To learn more about the language,
-visit www.fugal.org. At this point, this README document is more aimed
-towards developers of Fuga. Over time, this document should become more
-useful to users.
+visit www.fugal.org.
+
+Fuga (the interpreter) has three goals:
+
+* *Expressivity*: Code should flow naturally. The language should not
+constrain the programmer. This means we can't compromise expressiveness for
+ease of implementation and whatnot.
+
+* *Embeddability*: Other projects should find it easy embed Fuga into their
+applications, and to use Fuga as a scripting language. This means that the
+interpreter must have a simple and well defined C API, and that it should be
+fairly portable.
+
+* *Extensibility*: It should be easy for programmers to add their own
+extensions to the language, both from inside (i.e. in Fuga code) and outside
+(i.e. using the C API).
+
+In spite of the embeddability requirement, this project is a standalone
+interpreter, whose core can be taken and used as in an embedded way.
 
 ## Directory Structure
 
 Fuga has the following top-level directory structure:
 
 * `src/` - source files
+* `src/fuga/` - the embeddable interpreter's source/header files
 * `bin/` - binary files (object files)
 * `test/` - various test executables
-* `Makefile` - makefile
-* `fuga` - the fuga interpreter
+* `tools/` - tools for building and testing Fuga
 
-## Modules / Naming Conventions
+## Building
 
-The Fuga source code follows a naming convention that makes use of the
-idea of modules. A module is simply a header file connected to one or
-more source files (that implement the functions specified in the
-header).
+To build Fuga, use `tools/make`. For example,
 
-The naming convention establishes that, for the module `foo`, made up of
-`foo.h` and `foo.c`, we have:
+    $ tools/make fuga/gc
+    
+Will build `fuga/gc.c` and all of its dependencies. Like the traditional 
+`make`, it only builds files that have changed since the last time they 
+were built (or if the `.o`) file is missing from the `bin` folder.
 
-* All identifiers are either defined as `foo_xx` or `_foo_xx`.
-* The `_foo_xx` convention is intended for private data, and shall not
-be used outside of the `foo` module. Likewise, fields within structs
-that are prefixed with an underscore (`_`) are meant to be accessed only
-from within the struct's module.
-* All type identifiers shall be suffixed with `_t`.
-* Identifiers for pre-processor constants and macros may be uppercase,
-such as `FOO_XX`. They may also be normal: `foo_xx`.
-* Except for type-identifiers, there is a one-to-one correspondence
-between the underscores and the module structure. Please. Use camelCase
-for anything else: `foo_takeOverTheWorld`.
+Once the project is further along `tools/make` should build the interpreter
+by default, and `tools/make --install` will install it once it's built.
 
-## Packages
+## Style
 
-We can often group independent functionality into standalone components.
-Such is the case of garbage collection, and of fuga interpretation in
-general. For this, a package system (or, abstraction) was developed on
-top of the module system. We can think of a package as a collection of
-modules. In terms of files, a package is a directory.
+In order to keep the C API simple, consistency is a must. Here are some rules
+that were designed to enhance consistency.
 
-For this reason, we have the following directories inside `src`:
+### Naming Conventions
 
-* `src/test`: testing framework (see below for some information on
-testing)
-* `src/gc`: garbage collection package
-* `src/string`: portable (i.e. multi-encoding) string package
-* `src/bigint`: unlimited-size integers package
-* `src/fuga`: fuga interpreter package
+Global identifiers must begin with the prefix `Fuga` or `FUGA_`. Global
+identifiers that are meant to be used only inside the Fuga source code (and
+not in the surrounding application) use `_Fuga` or `_FUGA_` instead.
 
-Intra-package includes have the form:
+Type names are in `CamelCase`, with the first letter capitalized, and the
+first letter of subsequent words also capitalized. For example, the following
+are all types: `Fuga`, `FugaInt`, `FugaGC`, `_FugaGCHeader`.
 
-    #include "bar.h"
+Functions almost always pertain mainly to one type (think method in an OO
+language). Function names begin with that type name, followed by an 
+underscore, followed by a name. For example, the following are all function
+names: `Fuga_new`, `FugaInt_add`, `FugaGC_alloc`.
 
-Inter-package includes have the form:
+In general, the names of functions after the underscore use camelCase, with
+the first letter lowercase and the first letter of each subsequent word
+capitalized. For example: `Fuga_fooBarBaz`.
 
-    #include "../gc/gc.h"
+Macros and #defines begin with the `FUGA_` or `_FUGA_` prefixes, and are
+entirely uppercase, using underscores to separate words. For example: 
+`FUGA_INIT_CORE`, `_FUGA_GC_HEADER`.
 
-That is, to include files from another package, go up a directory (`..`),
-specify the package's name (`gc`), and the file you wish to include
-(`gc.h`).
+### Formatting
 
-We consider packages to be part of the module structure, so identifiers
-within a package `bar` must be prefixed with `bar_`. In other words,
-every identifier in the `fuga` package starts with `fuga_`, and every
-identifier in the `gc` package starts with `gc_`.
+Don't use tabs -- use spaces. Four spaces, to be exact.
 
-## Encapsulation
-
-In order to maintain as much flexibility as possible for implementation,
-all types should be as opaque as possible. In C, the best way to achieve
-this is to have a (public) struct that contains a pointer to a (private)
-struct. By (public), I mean that the definition is in the header file,
-and is thus visible to everyone. By (private), I mean that the
-definition is only in the source file, so only the module know what is
-contained within the struct. For example, in the header file we would
-have,
-
-    struct foo_bar_t { struct _foo_bar_t * _data; };
-
-And in the source file, we would have
-
-    struct _foo_bar_t { int x, y; };
-
-or something. The point is that the implementation of foo_bar_t is
-completely malleable.
-
-### Why not have a foo_bar_t be a pointer?
-
-We could always just pass pointers around, or we could
-
-    typedef struct _foo_bar_t* foo_bar_t;
-
-But this is less general than the solution above. Another problem with
-this is that pointers have operations which one wouldn't expect on
-foo_bar_t (such as, adding two pointers together, array indexing, etc).
-
-Pointers might be the ideal for some types, but we should standardize on
-our (public) structures.
-
-## Documentation
+### Documentation
 
 Document, document! Heavily document! Documentation is to precede the
 code in question, and should take the form:
 
-    /*
-    ** documentation
-    ** goes
-    ** here
-    */
+    /**
+    *** documentation
+    *** goes
+    *** here
+    **/
 
 Documentation is to be in Markdown format, where headers are prefixed
 with `#` or `##`, small code snippets are enclosed in backquotes (`\``),
 and large code snippets are set off and indented, as such:
 
-    /*
-    ** Here's some sample code:
-    **
-    **     int fact(x) {
-    **         if (x < 1) return 1;
-    **         return x * fact(x-1);
-    **     }
-    **
-    ** Isn't it pretty?
-    */
+    /**
+    *** Here's some sample code:
+    ***
+    ***     int fact(x) {
+    ***         if (x < 1) return 1;
+    ***         return x * fact(x-1);
+    ***     }
+    ***
+    *** Isn't it pretty?
+    **/
 
 For a primer on Markdown syntax search for "Markdown" using your favorite
 search engine.
@@ -141,14 +113,56 @@ developer who wishes to modify a module can quickly get to grips with the
 existing code, and can tell what can and can't be modified without
 repercussions.
 
+Here's an example of documentation of a function (note that this isn't a real 
+function in Fuga, so the function name doesn't follow any convention).
+
+In the header file:
+
+    /**
+    *** `max` returns the greater of its two arguments.
+    ***
+    *** - Parameters:
+    ***     - `int a`
+    ***     - `int b`
+    *** - Returns: `a` or `b`, whichever is greater.
+    *** - See also: `min`
+    **/
+    int max(int a, int b)
+
+In the source file:
+
+    /**
+    *** In `max` we compare `a` with `b` and return whichever is greater.
+    *** If they are both the same, we return `a`, in order to preserve
+    *** order (this would be more useful if `>=` were overloaded somehow).
+    **/
+    int max(int a, int b) {
+        if (a >= b)
+            return a;
+        return b;
+    }
+
+Granted, this source code documentation might be a bit overkill for this
+particular function, but it usually doesn't hurt to elaborate a bit on the
+techniques used and decisions made when implementing a function.
+
+The greatest enemy of documentation is laziness. Hopefully I can develop some
+sort of tool to combat this laziness. Meanwhile, one needs to be considerate
+and update one's documentation alongside the code, not after the fact (or
+worse, never).
+
+In the future, there will be a tool to turn all of this documentation into
+Markdown / HTML. That's why the documentation has to be in Markdown format:
+because Markdown makes it easy to convert it into HTML.
+
 ## Testing
 
-The `test` package contains useful macros and functions for unit testing.
-Because of the generality of this package, and because it only exports a
-handful of symbols, and for historical reasons, identifiers aren't
-prefixed with `test_` or `TEST_`.
+`fuga/test.h` contains a useful testing framework, when paired with
+`tools/test`. Because of the generality of this package, and because it
+only exports a handful of symbols, and for historical reasons, identifiers
+aren't prefixed with `FugaTest_` or `FUGA_TEST_`.
 
-For more information about testing, look in `src/test/test.h`.
+For more information about testing, look in `src/fuga/test.h`.
 
 ### Assertions
 
@@ -210,10 +224,13 @@ To run a test suite, use the hand tools/test:
 
     $ tools/test suite_name
 
-You can run all test suites in a module or in a package by passing those
+You can run all test suites in a file or directory by passing those
 to tools/test instead, or you can run all test suites.
 
-    $ tools/test module
-    $ tools/test package
+    $ tools/test filename
+    $ tools/test directory
     $ tools/test --all
 
+At this point, don't pass in the .c if you want to test a file! That's 
+added automatically. In the future, the .c will be allowed, but right now
+it isn't.
