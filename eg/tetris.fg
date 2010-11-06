@@ -1,0 +1,30 @@
+
+HEIGHT = 20
+WIDTH  = 10
+BLOCK  = 10
+
+grid = matrix((WIDTH, HEIGHT), (x,y) => var(0x000000))
+
+import(Window)
+window = Window new(
+    width  = WIDTH  * BLOCK
+    height = HEIGHT * BLOCK
+    onDraw(screen) => for((x,y), grid) do(
+        screen fillRect(
+            rect  = (x1 =  x      * BLOCK, y1 =  y      * BLOCK
+                     x2 = (x + 1) * BLOCK, y2 = (y + 1) * BLOCK)
+            color = grid(x,y)
+        )
+    )
+)
+window show
+
+import(Timer)
+timer = Timer new(
+    interval = 0.5
+    onTick => tetris!
+)
+timer start
+
+
+
