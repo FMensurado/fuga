@@ -1,11 +1,11 @@
-/*
-** # Garbage Collection: The `gc` module.
-**
-** 
-*/
+/**
+*** # Garbage Collection
+***
+*** 
+**/
 
 #include "gc.h"
-#include "../test/test.h"
+#include "test.h"
 
 #include <stdlib.h>
 
@@ -50,10 +50,14 @@ FugaGC* FugaGC_start() {
 } TESTSUITE(FugaGC_start) {
     FugaGC* gc = FugaGC_start();
 
-    TEST(FugaGCList_empty(&gc->root), "FugaGC_start should initialize root list");
-    TEST(FugaGCList_empty(&gc->black),"FugaGC_start should initialize black list");
-    TEST(FugaGCList_empty(&gc->root), "FugaGC_start should initialize gray list");
-    TEST(FugaGCList_empty(&gc->white),"FugaGC_start should initialize white list");
+    TEST(FugaGCList_empty(&gc->root),
+         "FugaGC_start should initialize root list");
+    TEST(FugaGCList_empty(&gc->black),
+         "FugaGC_start should initialize black list");
+    TEST(FugaGCList_empty(&gc->root),
+         "FugaGC_start should initialize gray list");
+    TEST(FugaGCList_empty(&gc->white),
+         "FugaGC_start should initialize white list");
 
     TEST(gc->num_objects == 0, "gc should start without any objects");
     TEST(gc->size == sizeof(FugaGC),

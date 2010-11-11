@@ -1,5 +1,5 @@
-#include "list.h"
-#include "../test/test.h"
+#include "gclist.h"
+#include "test.h"
 
 void FugaGCList_init(FugaGCList* list) {
     NEVER(list == NULL);
@@ -279,7 +279,7 @@ void FugaGCList_appendBack  (FugaGCList* dest, FugaGCList* src) {
 #define FALSE 0
 #endif
 
-int FugaGCList_empty(FugaGCList *list) {
+bool FugaGCList_empty(FugaGCList *list) {
     NEVER((list->next == list) ^ (list->prev == list));
     return list->next == list;
 } TESTSUITE(FugaGCList_empty) {
@@ -290,7 +290,7 @@ int FugaGCList_empty(FugaGCList *list) {
     TEST(!FugaGCList_empty(&d1), "single list shouldn't be empty...");
 }
 
-int FugaGCList_contains(FugaGCList *list, void* data) {
+bool FugaGCList_contains(FugaGCList *list, void* data) {
     FugaGCList *link;
     for(link = list->next; link != list; link = link->next) {
         if (link == data)

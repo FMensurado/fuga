@@ -92,7 +92,7 @@ def run_testsuites(module, testsuites):
     testcode = open("src/.test.c", "w")
     testcode.write("""
 #define TESTING
-#include "test/test.h"
+#include "fuga/test.h"
 #include "%s.h"
 
 %s
