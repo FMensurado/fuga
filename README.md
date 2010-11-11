@@ -118,7 +118,8 @@ function in Fuga, so the function name doesn't follow any convention).
 
 In the header file:
 
-    /** ### max
+    /**
+    *** ### max
     ***
     *** `max` returns the greater of its two arguments.
     ***
@@ -132,7 +133,8 @@ In the header file:
 
 In the source file:
 
-    /** ### max
+    /**
+    *** ### max
     ***
     *** In `max` we compare `a` with `b` and return whichever is greater.
     *** If they are both the same, we return `a`, in order to preserve

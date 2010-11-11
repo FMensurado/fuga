@@ -6,7 +6,8 @@
 
 #include "table.h"
 
-/** ### Fuga
+/**
+*** ### Fuga
 ***
 *** The `Fuga` struct represents an object in the world of Fuga.
 *** 
@@ -32,7 +33,8 @@ struct _Fuga {
     char data[];
 };
 
-/** ## Constructors and Destructors
+/**
+*** ## Constructors and Destructors
 *** ### Fuga_new
 ***
 *** `Fuga_new` allocates and initializes a new Fuga environment. At the moment
@@ -44,7 +46,8 @@ struct _Fuga {
 **/
 Fuga* Fuga_new();
 
-/** ### Fuga_free
+/**
+*** ### Fuga_free
 ***
 *** `Fuga_free` deallocates the Fuga environment. This is useful when, e.g.,
 *** you're done with your program, or a little Fuga "session" is done.
@@ -56,7 +59,8 @@ Fuga* Fuga_new();
 **/
 void Fuga_free(Fuga* self);
 
-/** ## Prototyping
+/**
+*** ## Prototyping
 *** ### Fuga_clone
 ***
 *** `Fuga_clone` creates an object, using the old object as a prototype.
@@ -71,7 +75,8 @@ void Fuga_free(Fuga* self);
 **/
 Fuga* Fuga_clone(Fuga* proto);
 
-/** ### Fuga_alloc
+/**
+*** ### Fuga_alloc
 ***
 *** `Fuga_alloc` creates an object just like `Fuga_clone`, but it adds
 *** a tiny bit of spice. Essentially, `Fuga_alloc` allows you to define
