@@ -23,50 +23,6 @@
 **/
 typedef struct FugaGC FugaGC;
 
-/**
-*** ## Constructors, Destructors
-***
-*** `gc_start` creates the master-level garbage collector, while `gc_fork`
-*** creates a thread-specific `gc_t`, that dumps its contents to the
-*** master, once it's full. This way, `gc_register` can be implemented
-*** without locks and without race conditions.
-***
-*** Use one `gc_fork` per thread. If you only have one thread, `gc_start`
-*** is all you need (since no race conditions will arise anyway).
-***
-*** Use `gc_end` to free a garbage collector and all associated data. If
-*** you use `gc_end` on a master `gc_t`, all of its slaves will be
-*** automatically freed.
-***
-*** Example:
-***
-***     int main(int argc, char** argv) {
-***         if (argc != 2) return EXIT_FAILURE;
-***         int nthreads = atoi(argv[1]);
-***         if (nthreads <= 0) return EXIT_FAILURE;
-***         if (nthreads == 1) {
-***             gc_t gc = gc_start();
-***             doSomething(gc);
-***             gc_free(gc);
-***             return EXIT_SUCCESS;
-***         } else {
-***             gc_t gc_master = gc_start();
-***             thread_t *threads = malloc(nthreads * sizeof(gc_t));
-***             for (int i = 0; i < nthreads; i++) {
-***                 gc_t gc_slave = gc_fork(gc_master);
-***                 threads[i] = thread_new(doSomething, gc_slave);
-***             }
-***             for (int i = 0; i < nthreads; i++)
-***                 thread_start(threads[i]);
-***             for (int i = 0; i < nthreads; i++)
-***                 thread_waitForExit(threads[i]);
-***             free(threads);
-***             gc_free(gc_master);
-***             return EXIT_SUCCESS;
-***         }
-***     }
-**/
-
 /** 
 *** ## Constructors, Destructors
 *** ### FugaGC_start
