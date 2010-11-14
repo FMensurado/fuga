@@ -274,10 +274,6 @@ void FugaGCList_appendBack  (FugaGCList* dest, FugaGCList* src) {
     TEST(i2.prev == &i1, "failed at appending empty list on the lef")
 }
 
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
-#endif
 
 bool FugaGCList_empty(FugaGCList *list) {
     NEVER((list->next == list) ^ (list->prev == list));
@@ -294,9 +290,9 @@ bool FugaGCList_contains(FugaGCList *list, void* data) {
     FugaGCList *link;
     for(link = list->next; link != list; link = link->next) {
         if (link == data)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 } TESTSUITE(FugaGCList_contains) {
     FugaGCList d1, i1, i2;
     FugaGCList_init(&d1);
