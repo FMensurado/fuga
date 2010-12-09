@@ -56,7 +56,8 @@ def repl():
     while True:
         parsed = read()
         if not parsed: continue
-        for (name,value) in parsed.slots:
+        for name in parsed.slots:
+            value = parsed.slots[name]
             try:
                 evalue = env.eval(value)
                 if name:

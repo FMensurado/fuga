@@ -10,13 +10,28 @@ class fgobject(object):
         else:
             self._value = None
         self.proto = proto
-        self.slots = list(slots)
-        self.byName = {}
-        for i,(k,v) in enumerate(slots):
-            if k is not None:
-                self.byName[k] = i
+        self.slots = {}
+        self.length = 0
+        self.thunk = None
+        for (k,v) in slots:
+            self.set(k,v)
+            if k:
+                self.slots[k] = v
+            else:
+                self.slots[self.length] = v
+                self.length += 1
+ 
+    def mkStrict(self):
+        while self.thunk:
+            result = self.thunk[0].eval(self.thunk[1])
+            self. slots  = result. slots
+            self. length = result. length
+            self. proto  = result. proto
+            self._value  = result._value
+            self. thunk  = result. thunk
 
     def value(self):
+        self.mkStrict()
         if self._value is not None:
             return self._value
         elif self.proto:
@@ -28,20 +43,22 @@ class fgobject(object):
         return fgobject(self, *slots)
 
     def set(self, name, value):
-        if isinstance(name, str) or name is None:
-            if name in self.byName:
-                raise FugaError, "Can't have two slots with name %s" % name
-            if name is not None:
-                self.byName[name] = len(self.slots)
-            self.slots.append((name, value))
+        self.mkStrict()
+        if name is None:
+            self.slots[self.length] = value
+            while self.length in self.slots:
+                self.length += 1
+        elif isinstance(name, int) or isinstance(name, str):
+            self.slots[name] = value
+            while self.length in self.slots:
+                self.length += 1
         else:
             raise TypeError, "Can't set slot by type %s." % type(name)
 
     def rawHas(self, name):
-        if isinstance(name, str):
-            return name in self.byName
-        elif isinstance(name, int):
-            return name  >= 0 and name < len(self.slots)
+        self.mkStrict()
+        if isinstance(name, str) or isinstance(name, int):
+            return name in self.slots
         else:
             raise TypeError, "Can't get slot by type %s." % type(name)
 
@@ -51,10 +68,7 @@ class fgobject(object):
     def rawGet(self, name):
         if not self.rawHas(name):
             raise FugaError, "No slot named %s" % name
-        elif isinstance(name,str):
-            return self.slots[self.byName[name]][1]
-        elif isinstance(name,int):
-            return self.slots[name][1]
+        return self.slots[name]
 
     def get(self, name):
         if self.rawHas(name):
@@ -65,165 +79,44 @@ class fgobject(object):
             raise FugaError, "No slot named %s" % name
 
     def isA(self, proto):
+        self.mkStrict()
         return self.proto and (self.proto is proto
                            or  self.proto.isA(proto))
 
-    def eval(self, obj, env=None, callenv=None):
-        """
-        >>> Object.eval(fgint(10))
-        10
-        >>> Object.eval(fgreal(3.25))
-        3.25
-        >>> Object.eval(fgstr('Hello, world!'))
-        "Hello, world!"
-        >>> Object.clone(('foo', fgtrue)).eval(fgmsg('foo'))
-        true
-        >>> Object.clone(('foo', fgmethod(lambda x,y,z: 100))).eval(fgmsg('foo'))
-        100
-        >>> Object.clone(('foo', fgmethod(lambda x,y,z: y))).eval(fgmsg('foo')).slots
-        []
-        >>> Object.clone(('foo', fgmethod(lambda x,y,z: y))).eval(fgmsg('foo', (None, None))).slots
-        [(None, None)]
-        >>> Object.clone(('foo', Object.clone(('bar', fgtrue)))).eval(fglist(fgmsg('foo'), fgmsg('bar')))
-        true
-        """
-        if not env:
-            env = self
-        if not callenv:
-            callenv = env
-
-        if obj.isA(Int) or obj.isA(Real) or obj.isA(String):
+    def eval(self, obj, scope=None):
+        if not scope:
+            scope = self
+        if obj.isA(Int) or obj.isA(String):
             return obj
-        elif obj.isA(Quote) and obj.has('value'):
+        elif obj.isA(Quote):
             return obj.get('value')
-        elif obj.isA(Message):
-            val = env.get(obj.value())
-            if val.isCallable():
-                args = Object.clone(*obj.slots)
-                return val.call(env, args, callenv)
-            else:
-                if len(obj.slots):
-                    raise FugaError, "can't pass arguments to non-method"
-                return val
         elif obj.isA(List):
-            if obj.get('empty?') is fgtrue:
-                raise FugaError, "can't evaluate empty list"
-            elif obj.get('single?') is fgtrue:
-                return self.eval(obj.get('value'), env, callenv)
-            else:
-                env =  self.eval(obj.get('left'), env, callenv)
-                return self.eval(obj.get('right'), env, callenv)
+            pass ## TODO
+            raise FugaError, "not yet implemented: Expr"
+        elif obj.isA(Message):
+            fn   = self.get(obj.value())
+            args = Object.clone()
+            for i in obj.slots:
+                args.set(i, obj.get(i))
+            fn.call(self, args, scope)
         else:
-            newObj = fgobject(obj.proto)
-            newEnv = fgobject(env)
-            for (name, oldVal) in obj.slots:
-                newVal = newEnv.eval(oldVal)
-                newObj.set(name, newVal)
-                newEnv.set(name, newVal)
-            return newObj
+            return self.evalParts(obj)
 
-    def isCallable(self):
-        return self.isA(Method) or self.isA(Var)
+    def evalParts(self, obj):
+        obj.mkStrict()
+        env = self.clone()
+        result = self.clone()
+        for k in obj.slots:
+            if isinstance(k, str) or k >= obj.length:
+                val = env.mkThunk(obj.get(k))
+                env.set(k, val)
+                result.set(k, val)
+        for i in range(obj.length):
+            result.set(i, env.eval(obj.get(i), env))
 
-    def call(method, self, actuals, env, guard=False):
-        if method.isA(Method):
-            if method.value():
-                return method.value()(self, actuals, env)
-           
-            index = 1
-            scope = method.get('scope')
-            while index < len(method.slots):
-                if method.slots[index][0] is not None:
-                    continue
-                try:
-                    if method.get(index).isA(Method):
-                        m = method.get(index)
-                        index += 1
-                        return m.call(self, actuals, env, True)
-                    else:
-                        formals = method.get(index)
-                        body    = method.get(index+1)
-                        index += 2
-                        if len(formals.slots) == len(actuals.slots):
-                            actuals = lazy_eval_actuals(actuals, env)
-                            return handle_call(
-                                formals,
-                                actuals,
-                                body,
-                                scope,
-                                self
-                            )
-                except FugaError, e:
-                    if 'GUARD' in str(e):
-                        pass
-                    else:
-                        raise e
-            
-            if guard:
-                raise FugaError, "GUARD"
-            else:
-                raise FugaError, "No pattern matches arguments to method."
-        elif method.isA(Var):
-            if actuals.slots:
-                raise FugaError, "Var expects no arguments."
-            return method.get('value')
-        else:
-            raise FugaError, "expected a Method -- can't call a non-method"
-
-    def __repr__(self):
-        return self.eval(fgmsg('str')).value()
-
-class lazy_eval_actuals(object):
-    """Ensure that actuals are evaluated only if value needs to bound,
-    while also ensuring that actuals are only evaluated once."""
-    def __init__(self, actuals, env):
-        self.values  = {}
-        self.actuals = actuals
-        self.env     = env
-
-    def get_value(self, name):
-        if name not in self.values:
-
-            if not isinstance(name, int):
-                name = slef.actuals.byName[name]
-            
-            env = self.env.clone()
-            for i in range(name):
-                k,v = self.actuals.slots[i]
-                if k: env.set(k, self.get_value(i))
-
-            value = env.eval(self.actuals.get(name))
-            self.values[name] = value
-            if self.actuals.slots[name][0]:
-                self.values[self.actuals.slots[name][0]] = value
-        return self.values[name]
-
-    def get_code(self, name):
-        return self.actuals.get(name)
-
-def handle_call(formals, actuals, body, oscope, self):
-    scope = oscope.clone(
-        ('self',  self),
-        ('scope', oscope),
-    )
-
-    for i,(n,m) in enumerate(formals.slots):
-        if m.isA(Quote):
-            scope.set('caller', actuals.env)
-            scope.set(m.get('value').value(), actuals.get_code(i))
-        elif not m.isA(Message):
-            if m.eval(fgmsg(
-                '==',
-                (None, fgquote(actuals.get_value(i)))
-            )) is not fgtrue:
-                raise FugaError, "GUARD"
-        elif m.slots:
-            raise FugaError, "in formal parameter, expected just a name"
-        elif n:
-            raise FugaError, "can't handle named parameters yet."
-        else:
-            scope.set(m.value(), actuals.get_value(i))
-    return scope.eval(body)
+    def mkThunk(self, obj):
+        result = fgobject(obj.proto)
+        result.slot[0][1]
 
 Object = fgobject(None)
 
@@ -416,14 +309,14 @@ class fgjoin(fgobject):
         return obj.isA(self.left) or obj.isA(self.right)
 
 def Object_join(self, args, env):
-    if len(args.slots) != 2:
+    if args.length != 2:
         raise FugaError, "join expects exactly 2 arguments (for now)"
     args = env.eval(args)
     return fgjoin(args.get(0), args.get(1))
 
 Object.set("join", fgmethod(Object_join))
 
-# coid and null
+# void and null
 
 fgvoid = Object.clone()
 Object.set("void",  fgvoid)
@@ -445,7 +338,7 @@ def fgvar(value):
     return Var.clone(('value', value))
 
 def Object_var(self, args, env):
-    if len(args.slots)>1:
+    if args.length > 1:
         raise FugaError, "var expects 0 or 1 arguments"
     if args.slots:
         args = env.eval(args)
@@ -454,7 +347,7 @@ def Object_var(self, args, env):
         return fgvar(fgnull)
 
 def Var_set(self, args, env):
-    if len(args.slots) != 1:
+    if args.length != 1:
         raise FugaError, "Var set! expects 1 argument."
     if not self.isA(Var):
         raise FugaError, "can't use Var set! on Var, only on instances"
@@ -464,7 +357,7 @@ def Var_set(self, args, env):
     return fgvoid
 
 def Object_varset(self, args, env):
-    if len(args.slots) != 2:
+    if args.length != 2:
         raise FugaError, ":= expects 2 arguments."
     left = args.get(0)
     if left.isA(Message):
@@ -479,7 +372,5 @@ Var.set("set!", fgmethod(Var_set))
 Object.set("Var", Var)
 Object.set("var", fgmethod(Object_var))
 Object.set(":=", fgmethod(Object_varset))
-
-
 
 
