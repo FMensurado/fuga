@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.6
 
 from doctest import testmod
+from functools import reduce
 
 class PEG(object):
     """
@@ -49,14 +50,14 @@ class PEG(object):
         if match.success:
             return match.value
         else:
-            raise SyntaxError, match.errormsg()
+            raise SyntaxError(match.errormsg())
 
 class Match(object):
     def __init__(self, success, index, value):
         if not isinstance(success, bool):
-            raise TypeError, "success must be a bool"
+            raise TypeError("success must be a bool")
         if not isinstance(index, int):
-            raise TypeError, "index must be an int"
+            raise TypeError("index must be an int")
         self.success = success
         self.index   = index
         self.value   = value
@@ -84,7 +85,7 @@ class Match(object):
         ... except TypeError, e: pass
         """
         if self.success or other.success:
-            raise TypeError, "can only combine _failed_ matches"
+            raise TypeError("can only combine _failed_ matches")
         if self.index > other.index:
             return self
         if other.index > self.index:
@@ -206,7 +207,7 @@ class cc(Matcher):
             if desc[i] == '\\':
                 i += 1
                 if i >= len(desc):
-                    raise ValueError, "missing escaped character"
+                    raise ValueError("missing escaped character")
                 escapes = {
                     'n': '\n',
                     'r': '\n',
@@ -494,7 +495,7 @@ class PE_parser(PEG):
     m_Range      = (seq(sym('Char'), lit('-'), sym('Char')) /
                     seq(sym('Char')))
 
-    m_Char       = (seq(lit("\\"), cc('\n\t\r\a\'\"\[\]\\-')) /
+    m_Char       = (seq(lit("\\"), dot()) /
                     seq(notp(lit("\\")), dot()))
 
 
@@ -575,7 +576,7 @@ def PE(matcher):
         return matcher
     elif isinstance(matcher, str):
         return PE_parser().parse(matcher)
-    raise TypeError, "expected a Matcher"
+    raise TypeError("expected a Matcher")
 
 
 class Calc(PEG):
