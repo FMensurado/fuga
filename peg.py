@@ -78,11 +78,11 @@ class Match(object):
         >>> Match(False, 0, [0,1]) + Match(False, 0, [1,2])
         Match(False, 0, [0, 1, 2])
         >>> try: Match(True, 0, [0]) + Match(True, 1, [1])
-        ... except TypeError, e: pass
+        ... except TypeError as e: pass
         >>> try: Match(True, 0, [0]) + Match(False, 1, [1])
-        ... except TypeError, e: pass
+        ... except TypeError as e: pass
         >>> try: Match(False, 0, [0]) + Match(True, 1, [1])
-        ... except TypeError, e: pass
+        ... except TypeError as e: pass
         """
         if self.success or other.success:
             raise TypeError("can only combine _failed_ matches")
@@ -117,7 +117,7 @@ class Matcher(object):
     def opt(self):
         return _opt(self)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return _or(self, other)
 
 class sym(Matcher):
@@ -617,4 +617,5 @@ class Calc(PEG):
 
 if __name__ == '__main__':
     testmod()
+
 

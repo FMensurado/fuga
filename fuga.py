@@ -32,7 +32,7 @@ class fgobj:
         >>> fgobj(Object).proto() is Object
         True
         >>> try: Object.proto()
-        ... except FugaError, e: print(e)
+        ... except FugaError as e: print(e)
         Object proto: Object has no prototype
         """
         self.need()
@@ -101,13 +101,13 @@ class fgobj:
         >>> soprano.rawGet('soprano') is Object
         True
         >>> try: alto.rawGet('soprano')
-        ... except FugaError, e: print(e)
+        ... except FugaError as e: print(e)
         Object rawGet: object has no slot soprano
         >>>
         >>> tenor.rawGet(0) is alto
         True
         >>> try: bass.rawGet(0)
-        ... except FugaError, e: print(e)
+        ... except FugaError as e: print(e)
         Object rawGet: object has no slot 0
         """
         if self.rawHas(name):
@@ -154,7 +154,7 @@ class fgobj:
         >>> tenor.get(0) is alto
         True
         >>> try: bass.get(0)
-        ... except FugaError, e: print(e)
+        ... except FugaError as e: print(e)
         Object get: object has no slot 0
         """
         if self.rawHas(name):
@@ -744,3 +744,4 @@ def Msg_str(self, args):
 #### TESTING FRAMEWORK ####
 if __name__ == '__main__':
     testmod()
+
