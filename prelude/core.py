@@ -449,6 +449,10 @@ Msg    = Object['Msg']    = Object.clone()
 Method = Object['Method'] = Object.clone()
 Quote  = Object['Quote']  = Object.clone()
 Expr   = Object['Expr']   = Object.clone()
+Bool   = Object['Bool']   = Object.clone()
+
+fgtrue  = Object['true']   = Bool.clone(True)
+fgfalse = Object['false']  = Bool.clone(False)
 
 # Primitives
 def fgint(val):
@@ -486,6 +490,12 @@ def fgexpr(*vargs):
         raise TypeError("Expr must have at least one indexed slot.")
     return expr
 
+def fgbool(m):
+    if m:
+        return fgtrue
+    else:
+        return fgfalse
+
 ###########################################
 ## Important methods ######################
 ###########################################
@@ -506,14 +516,18 @@ Quote ['name'] = fgstr('Quote')
 Method['name'] = fgstr('Method')
 Msg   ['name'] = fgstr('Msg')
 Expr  ['name'] = fgstr('Expr')
+Bool  ['name'] = fgstr('Bool')
+
+fgtrue ['name'] = fgstr('true')
+fgfalse['name'] = fgstr('false')
 
 # Stringifying!
 @setAt(Object, 'str')
 def Object_str(self, args):
     if len(args):
         raise FugaError("Object str: expected no arguments")
-    elif self is Object:
-        return fgstr('Object')
+    elif self.rawHas('name'):
+        return self['name']
     elif 'depth' in args:
         if args['depth'].isa(Int):
             return self.strSlots(args['depth'].value())
@@ -595,20 +609,27 @@ def Msg_str(self, args):
 
 ## Slot manipulation
 
-@setAt(Object, 'get')
-def Object_set(self, args):
-    if len(args) != 1:
-        raise FugaError("Object get: expected 1 argument, got %d" %
-            len(args))
-    name  = args[0]
-    if name.isa(Int) and name.isPrimitive(int):
-        return self.get(name.value())
-    elif (name.isa(String) or name.isa(Symbol)
-                           or name.isa(Msg)) and name.isPrimitive(str):
-        return self.get(name.value())
-    else:
-        raise FugaError("Object get: name must be an Int, String,"
-                                                 " Symbol or Msg.")
+def slotmanip(method, wrap=None):
+    if wrap is None:
+        wrap = lambda x: x
+    @setAt(Object, method)
+    def fn(self, args):
+        if len(args) != 1:
+            raise FugaError("Object %s: expected 1 argument, got %d" %
+                (method, len(args))
+            )
+        name = args[0]
+        if name.isPrimitive(int) or name.isPrimitive(str):
+            return getattr(self, method)(name.value())
+        else:
+            raise FugaError("Object %s: expected primitive Int, String, "
+                "Symbol, or Msg." % name)
+
+
+slotmanip('get')
+slotmanip('rawGet')
+slotmanip('has', fgbool)
+slotmanip('rawHas', fgbool)
 
 @setAt(Object, 'set')
 def Object_set(self, args):
@@ -625,7 +646,15 @@ def Object_set(self, args):
     else:
         raise FugaError("Object set: name must be an Int, String,"
                                                  " Symbol or Msg.")
-    return value
+    return self
+
+@setAt(Object, 'append')
+def Object_append(self, args):
+    if len(args) != 1:
+        raise FugaError("Object append: expected 1 argument, got %d" %
+            len(args))
+    self.append(args[0])
+    return self
 
 if __name__ == '__main__':
     import doctest
