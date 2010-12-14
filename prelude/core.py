@@ -479,18 +479,17 @@ class fgthunk(fgobj):
 ############################################
 
 Object = fgobj(None)
-Object['Object'] = Object
 
-Int    = Object['Int']    = Object.clone()
-String = Object['String'] = Object.clone()
-Symbol = Object['Symbol'] = Object.clone()
-Msg    = Object['Msg']    = Object.clone()
-Method = Object['Method'] = Object.clone()
-Expr   = Object['Expr']   = Object.clone()
-Bool   = Object['Bool']   = Object.clone()
+Int    = Object.clone()
+String = Object.clone()
+Symbol = Object.clone()
+Msg    = Object.clone()
+Method = Object.clone()
+Expr   = Object.clone()
+Bool   = Object.clone()
 
-fgtrue  = Object['true']   = Bool.clone(True)
-fgfalse = Object['false']  = Bool.clone(False)
+fgtrue  = Bool.clone(True)
+fgfalse = Bool.clone(False)
 
 # Primitives
 def fgint(val):
@@ -615,6 +614,18 @@ fgfalse['name'] = fgstr('false')
 # Stringifying!
 @setstr(Object, True)
 def Object_str(self, depth):
+    return self.strSlots(depth)
+
+@setmethod(Object, 'strSlots', 0, True)
+def Object_strSlots(self, args):
+    if 'depth' in args:
+        if (args['depth'].isPrimitive(int) and
+            args['depth'].isa(Int)):
+            depth = args['depth'].value()
+        else:
+            raise FugaError('strSlots: depth must be a primitive int')
+    else:
+         depth = STR_DEPTH
     return self.strSlots(depth)
 
 @setstr(String)
