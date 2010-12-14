@@ -621,9 +621,8 @@ def slotmanip(method, wrap=None):
         name = args[0]
         if name.isPrimitive(int) or name.isPrimitive(str):
             return getattr(self, method)(name.value())
-        else:
-            raise FugaError("Object %s: expected primitive Int, String, "
-                "Symbol, or Msg." % name)
+        raise FugaError("Object %s: expected primitive Int, String, "
+                        "Symbol, or Msg." % name)
 
 
 slotmanip('get')
@@ -638,15 +637,11 @@ def Object_set(self, args):
             len(args))
     name  = args[0]
     value = args[1]
-    if name.isa(Int) and name.isPrimitive(int):
+    if name.isPrimitive(int) or name.isPrimitive(str):
         self.set(name.value(), value)
-    elif (name.isa(String) or name.isa(Symbol)
-                           or name.isa(Msg)) and name.isPrimitive(str):
-        self.set(name.value(), value)
-    else:
-        raise FugaError("Object set: name must be an Int, String,"
-                                                 " Symbol or Msg.")
-    return self
+        return self
+    raise FugaError("Object set: name must be an Int, String, "
+                                              "Symbol, or Msg.")
 
 @setAt(Object, 'append')
 def Object_append(self, args):
