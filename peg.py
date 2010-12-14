@@ -1,9 +1,227 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python3
 
+import sys
 from doctest import testmod
 from functools import reduce
 
-class PEG(object):
+TABSTOP = 4
+
+class Location:
+    """Location(filename, line, column) => location
+    Represent a location in code -- filename, line, and column.
+    This object is immutable and persistant. That is, operations
+    that involve this object cannot modify the object, they can
+    only create new versions. This makes it easy to store anywhere
+    without fear that it will be modified.
+    """
+    def __init__(self, filename, line=1, column=1):
+        assert isinstance(filename, str)
+        assert isinstance(line, int)
+        assert isinstance(column, int)
+        object.__setattr__(self, 'filename', filename)
+        object.__setattr__(self, 'line', line)
+        object.__setattr__(self, 'column', column)
+
+    def __setattr__(self, name):
+        raise TypeError("self is not mutable")
+
+    def __str__(self):
+        return "%s, line %s" % (self.filename, self.line)
+
+    def __repr__(self):
+        return 'Location(%r, %r, %r)' % (
+            self.filename, self.line, self.column
+        )
+
+    def over(self, code):
+        r"""
+        Calculate the new location after moving over code.
+        
+        >>> Location('', 0, 0).over('')
+        Location('', 0, 0)
+        >>> Location('', 0, 0).over('soprano')
+        Location('', 0, 7)
+        >>> Location('', 0, 1).over('\t').column == TABSTOP+1
+        True
+        >>> Location('', 0, 2).over('\t').column == TABSTOP+1
+        True
+        >>> Location('', 0, 1+TABSTOP).over('\t').column == TABSTOP*2+1
+        True
+        >>> Location('', 0, 0).over('do\nre')
+        Location('', 1, 3)
+        >>> Location('', 0, 0).over('do\n\rre')
+        Location('', 1, 3)
+        >>> Location('', 10, 32).over('do re mi')
+        Location('', 10, 40)
+        >>> Location('', 10, 32).over('do\nre\nmi')
+        Location('', 12, 3)
+        """
+        line   = self.line
+        column = self.column
+        for c in code:
+            if c == '\n':
+                line   += 1
+                column  = 1
+            elif c == '\t':
+                column  = ((column - 1) // TABSTOP + 1) * TABSTOP + 1
+            elif c == '\r':
+                pass
+            else:
+                column += 1
+        return Location(self.filename, line, column)
+
+    def __lt__(self, other):
+        """
+        >>> try: Location('', 0, 0) < 10
+        ... except TypeError as e: print(e)
+        incompatible types for '<': peg.Location and int
+        >>> try: Location('foo', 0,0) < Location('bar', 0,0)
+        ... except ValueError as e: print(e)
+        can't compare locations in different files
+        >>> Location('', 0, 1) < Location('', 1, 0)
+        True
+        >>> Location('', 1, 0) < Location('', 0, 1)
+        False
+        >>> Location('', 0, 0) < Location('', 0, 0)
+        False
+        >>> Location('', 0, 0) < Location('', 0, 1)
+        True
+        >>> Location('', 0, 1) < Location('', 0, 0)
+        False
+        """
+        if not isinstance(other, Location):
+            raise TypeError(
+                "incompatible types for '<': peg.Location and " + 
+                    type(other).__name__
+            )
+        if self.filename != other.filename:
+            raise ValueError("can't compare locations in different files")
+        if self.line < other.line:
+            return True
+        if self.line > other.line:
+            return False
+        return self.column < other.column
+
+class Iterator:
+    """
+    Iterator keeps track of location while traversing through code.
+    """
+    __slots__ = ['code', 'index', 'location']
+    def __init__(self, code, filename="<file>"):
+        assert isinstance(code, str)
+        assert isinstance(filename, str)
+        self.code  = code
+        self.index = 0
+        self.location = Location(filename)
+
+    def match(self, pattern):
+        """
+        Iterator.match(self, pattern) => bool
+        Determine whether the code at the current location matches the 
+        given pattern. The pattern can be either a string, or a set of
+        characters.
+        
+        >>> iter = Iterator('a b c d e f g', '')
+        >>> iter.match('')
+        True
+        >>> iter.match('a b c')
+        True
+        >>> iter.match('b c d')
+        False
+        >>> iter.match(set([]))
+        False
+        >>> iter.match(set(['a', 'b', 'c']))
+        True
+        >>> iter.match(set(['A', 'b', 'c']))
+        False
+        >>> iter.match(set(['a', 'B', 'c']))
+        True
+        >>> iter.index = 2
+        >>> iter.match('a b c')
+        False
+        >>> iter.match('b c d')
+        True
+        >>> iter.match(set(['a', 'b', 'c']))
+        True
+        >>> iter.match(set(['A', 'b', 'c']))
+        True
+        >>> iter.match(set(['a', 'B', 'c']))
+        False
+        >>> iter = Iterator('', '')
+        >>> iter.match('do re mi')
+        False
+        >>> iter.match(set(['d', 'r', 'm']))
+        False
+        """
+        if isinstance(pattern, str):
+            endix = self.index + len(pattern)
+            return self.code[self.index:endix] == pattern
+        elif isinstance(pattern, set):
+            return (self.index < len(self.code)
+               and  self.code[self.index] in pattern)
+        else:
+            raise TypeError("pattern must be a string or a set")
+    
+    def move(self, n):
+        r"""
+        Iterator.move(self, n) => None
+        
+        >>> iter = Iterator('do re mi', '')
+        >>> iter.index
+        0
+        >>> iter.move(2)
+        >>> iter.index
+        2
+        >>> iter.move(2); iter.index
+        4
+        >>> iter.move(4); iter.index
+        8
+        >>> try: iter.move(2); iter.index
+        ... except IndexError as e: print(e)
+        Can't move beyond end of code.
+        >>> iter = Iterator('do\nre mi', '')
+        >>> iter.location
+        Location('', 1, 1)
+        >>> iter.move(2); iter.location
+        Location('', 1, 3)
+        >>> iter.move(2); iter.location
+        Location('', 2, 2)
+        """
+        endix = self.index + n
+        if endix > len(self.code):
+            raise IndexError("Can't move beyond end of code.")
+        self.location = self.location.over(self.code[self.index:endix])
+        self.index = endix
+
+    def clone(self):
+        r"""
+        Iterator.clone(self) => iterator
+        Create a new iterator based on self. Modifications to either
+        iterator will affect only one of them.
+        
+        >>> iter1 = Iterator('do re mi', '')
+        >>> iter1.move(2)
+        >>> iter2 = iter1.clone()
+        >>> iter2.index == iter1.index
+        True
+        >>> iter2.location == iter1.location
+        True
+        >>> iter2.move(2)
+        >>> iter2.index == iter1.index
+        False
+        >>> iter2.location == iter1.location
+        False
+        """
+        iter = Iterator(self.code)
+        iter.copy(self)
+        return iter
+
+    def copy(self, other):
+        self.code     = other.code
+        self.index    = other.index
+        self.location = other.location
+
+class PEG:
     """
     
     >>> class test1(PEG):
@@ -34,18 +252,21 @@ class PEG(object):
     def _reset(self):
         self._memo = {}
 
-    def _match(self, name, code, index):
-        if (name,index) in self._memo:
-            return self._memo[(name,index)]
-        match = self._matcher[name](code, index, self)
+    def _match(self, name, iter):
+        index = iter.index
+        if (name, index) in self._memo:
+            (match, newiter) = self._memo[(name, index)]
+            iter.copy(newiter)
+            return match
+        match = self._matcher[name](iter, self)
         if match.success and hasattr(self, name):
             match.value = getattr(self, name)(match.value)
-        self._memo[(name,index)] = match
+        self._memo[(name, index)] = (match, iter.clone())
         return match
 
-    def parse(self, code, name='start'):
+    def parse(self, code, name='start', filename='<file>'):
         self._reset()
-        match = self._match(name, code, 0)
+        match = self._match(name, Iterator(code, filename))
         self._reset()
         if match.success:
             return match.value
@@ -53,14 +274,14 @@ class PEG(object):
             raise SyntaxError(match.errormsg())
 
 class Match(object):
-    def __init__(self, success, index, value):
+    def __init__(self, success, location, value):
         if not isinstance(success, bool):
             raise TypeError("success must be a bool")
-        if not isinstance(index, int):
+        if not isinstance(location, Location):
             raise TypeError("index must be an int")
-        self.success = success
-        self.index   = index
-        self.value   = value
+        self.success  = success
+        self.location = location
+        self.value    = value
 
     def __add__(self, other):
         """Combine two failed matches.
@@ -69,41 +290,48 @@ class Match(object):
         the highest index or, in case they have the same index, you
         must return the union of their "value"s.
         
-        >>> Match(False, 0, [0]) + Match(False, 1, [1])
-        Match(False, 1, [1])
-        >>> Match(False, 1, [0]) + Match(False, 0, [1])
-        Match(False, 1, [0])
-        >>> Match(False, 0, [0]) + Match(False, 0, [1])
-        Match(False, 0, [0, 1])
-        >>> Match(False, 0, [0,1]) + Match(False, 0, [1,2])
-        Match(False, 0, [0, 1, 2])
-        >>> try: Match(True, 0, [0]) + Match(True, 1, [1])
+        >>> l0 = Location('',0,0)
+        >>> l1 = Location('',0,1)
+        >>> Match(False, l0, [0])  + Match(False, l1, [1])
+        Match(False, Location('', 0, 1), [1])
+        >>> Match(False, l1, [0])  + Match(False, l0, [1])
+        Match(False, Location('', 0, 1), [0])
+        >>> Match(False, l0, [0]) + Match(False, l0, [1])
+        Match(False, Location('', 0, 0), [0, 1])
+        >>> Match(False, l0, [0,1]) + Match(False, l0, [1,2])
+        Match(False, Location('', 0, 0), [0, 1, 2])
+        >>> try: Match(True, l0, [0]) + Match(True, l1, [1])
         ... except TypeError as e: pass
-        >>> try: Match(True, 0, [0]) + Match(False, 1, [1])
+        >>> try: Match(True, l0, [0]) + Match(False, l1, [1])
         ... except TypeError as e: pass
-        >>> try: Match(False, 0, [0]) + Match(True, 1, [1])
+        >>> try: Match(False, l0, [0]) + Match(True, l1, [1])
         ... except TypeError as e: pass
         """
         if self.success or other.success:
-            raise TypeError("can only combine _failed_ matches")
-        if self.index > other.index:
-            return self
-        if other.index > self.index:
+            raise TypeError("can only combine failed matches")
+        if self.location < other.location:
             return other
+        if other.location < self.location:
+            return self
         combined = list(set(self.value) | set(other.value))
-        return Match(False, self.index, combined)
+        return Match(False, self.location, combined)
 
 
     def __repr__(self):
-        return "Match(%r, %r, %r)" % (self.success, self.index, self.value)
+        return "Match(%r, %r, %r)" % (
+            self.success, self.location, self.value
+        )
 
     def errormsg(self):
-        return "expected %s" % ', '.join([repr(c) for c in self.value])
+        return "%s: expected %s" % (
+            self.location,
+            ', '.join([repr(c) for c in self.value])
+        )
 
 
 class Matcher(object):
-    def __call__(self, code, index, grammar):
-        return self.match(code, index, grammar)
+    def __call__(self, iter, grammar):
+        return self.match(iter, grammar)
 
     def reprnp(self):
         return repr(self)
@@ -129,22 +357,22 @@ class sym(Matcher):
     def __repr__(self):
         return 'sym(%r)' % self.name
 
-    def match(self, code, index, grammar):
-        return grammar._match(self.name, code, index)
+    def match(self, iter, grammar):
+        return grammar._match(self.name, iter)
 
 class lit(Matcher):
     """Match a literal string.
     
-    >>> lit("10").match("010", 0, None)
-    Match(False, 0, ['10'])
-    >>> lit("10").match("010", 3, None)
-    Match(False, 3, ['10'])
-    >>> lit("10").match("010", 1, None)
-    Match(True, 3, '10')
-    >>> lit("10").match("1010", 0, None)
-    Match(True, 2, '10')
-    >>> lit("abc").match("1010", 0, None)
-    Match(False, 0, ['abc'])
+    >>> iter = Iterator("010", '')
+    >>> lit("10").match(iter, None)
+    Match(False, Location('', 1, 1), ["'10'"])
+    >>> iter.index
+    0
+    >>> iter.move(1)
+    >>> lit("10").match(iter, None)
+    Match(True, Location('', 1, 2), '10')
+    >>> iter.index
+    3
     """
     def __init__(self, string):
         self.string = string
@@ -152,51 +380,61 @@ class lit(Matcher):
     def __repr__(self):
         return "lit(%r)" % self.string
 
-    def match(self, code, index, grammar):
-        endindex = index + len(self.string)
-        if self.string == code[index:endindex]:
-            return Match(True, endindex, self.string)
+    def match(self, iter, grammar):
+        location = iter.location
+        if iter.match(self.string):
+            iter.move(len(self.string))
+            return Match(True,  location,  self.string)
         else:
-            return Match(False, index, [self.string])
+            return Match(False, location, [repr(self.string)])
 
 class dot(Matcher):
     """Match any single character.
     
-    >>> dot().match('10', 0, None)
-    Match(True, 1, '1')
-    >>> dot().match('10', 1, None)
-    Match(True, 2, '0')
-    >>> dot().match('10', 2, None)
-    Match(False, 2, [])
+    >>> iter = Iterator('10', '')
+    >>> dot().match(iter, None)
+    Match(True, Location('', 1, 1), '1')
+    >>> dot().match(iter, None)
+    Match(True, Location('', 1, 2), '0')
+    >>> dot().match(iter, None)
+    Match(False, Location('', 1, 3), ['.'])
     """
     def __repr__(self):
         return "dot()"
 
-    def match(self, code, index, grammar):
-        if index < len(code):
-            return Match(True, index+1, code[index])
+    def match(self, iter, grammar):
+        location = iter.location
+        if iter.index < len(iter.code):
+            char = iter.code[iter.index]
+            iter.move(1)
+            return Match(True,  location, char)
         else:
-            return Match(False, index, [])
+            return Match(False, location, ['.'])
 
 class cc(Matcher):
     r"""Matches a character class.
     
-    >>> cc('ab').match('ab', 0, None)
-    Match(True, 1, 'a')
-    >>> cc('ab').match('bb', 0, None)
-    Match(True, 1, 'b')
-    >>> cc('ab').match('cb', 0, None)
-    Match(False, 0, ['[ab]'])
-    >>> cc('a-z').match('cb', 0, None)
-    Match(True, 1, 'c')
-    >>> cc('a-z').match('z', 0, None)
-    Match(True, 1, 'z')
-    >>> cc(r'\n').match('\n', 0, None)
-    Match(True, 1, '\n')
-    >>> cc(r'\n').match(r'\n', 0, None)
-    Match(False, 0, ['[\\n]'])
-    >>> cc('abc').match('', 0, None)
-    Match(False, 0, ['[abc]'])
+    >>> iter = Iterator('abc', '')
+    >>> cc('ab').match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> cc('ab').match(iter, None)
+    Match(True, Location('', 1, 2), 'b')
+    >>> cc('ab').match(iter, None)
+    Match(False, Location('', 1, 3), ['[ab]'])
+    >>> iter = Iterator('', '')
+    >>> cc('ab').match(iter, None)
+    Match(False, Location('', 1, 1), ['[ab]'])
+    >>> iter = Iterator('cb', '')
+    >>> cc('a-z').match(iter, None)
+    Match(True, Location('', 1, 1), 'c')
+    >>> iter = Iterator('z', '')
+    >>> cc('a-z').match(iter, None)
+    Match(True, Location('', 1, 1), 'z')
+    >>> iter = Iterator('\n\\n', '')
+    >>> cc(r'\n').match(iter, None)
+    Match(True, Location('', 1, 1), '\n')
+    >>> cc(r'\n').match(iter, None)
+    Match(False, Location('', 2, 1), ['[\\n]'])
     """
     def __init__(self, desc):
         self.desc = desc
@@ -225,29 +463,38 @@ class cc(Matcher):
     def __repr__(self):
         return "cc(%r)" % self.desc
 
-    def match(self, code, index, grammar):
-        if index >= len(code):
-            return Match(False, index, ['[%s]' % self.desc])
-        elif code[index] in self.charset:
-            return Match(True, index+1, code[index])
+    def match(self, iter, grammar):
+        location = iter.location
+        if iter.match(self.charset):
+            iter.move(1)
+            return Match(True,  location, iter.code[iter.index-1])
         else:
-            return Match(False, index, ['[%s]' % self.desc])
+            return Match(False, location, ['[%s]' % self.desc])
 
 class _star(Matcher):
     """Match zero or more of another matcher.
     
-    >>> lit("a").star().match("aaaa", 0, None)
-    Match(True, 4, ['a', 'a', 'a', 'a'])
-    >>> lit("a").star().match(" aaa", 0, None)
-    Match(True, 0, [])
-    >>> lit("a").star().match(" aab", 1, None)
-    Match(True, 3, ['a', 'a'])
-    >>> lit("aa").star().match("aaaaaa", 0, None)
-    Match(True, 6, ['aa', 'aa', 'aa'])
-    >>> lit("ab").star().match("ababaa", 0, None)
-    Match(True, 4, ['ab', 'ab'])
-    >>> lit("ab").star().match("ababaa", 2, None)
-    Match(True, 4, ['ab'])
+    >>> iter = Iterator('aaaa', '')
+    >>> lit("a").star().match(iter, None)
+    Match(True, Location('', 1, 1), ['a', 'a', 'a', 'a'])
+    >>> iter = Iterator(' aaa', '')
+    >>> lit("a").star().match(iter, None)
+    Match(True, Location('', 1, 1), [])
+    >>> iter = Iterator('aab', '')
+    >>> iter.move(1)
+    >>> lit("a").star().match(iter, None)
+    Match(True, Location('', 1, 2), ['a'])
+    >>> iter = Iterator('aaaaaa', '')
+    >>> lit("aa").star().match(iter, None)
+    Match(True, Location('', 1, 1), ['aa', 'aa', 'aa'])
+    >>> iter = Iterator('ababaa', '')
+    >>> lit("ab").star().match(iter, None)
+    Match(True, Location('', 1, 1), ['ab', 'ab'])
+    >>> iter = Iterator('ababacab', '')
+    >>> seq(lit("a"), lit("b")).star().match(iter, None)
+    Match(True, Location('', 1, 1), [('a', 'b'), ('a', 'b')])
+    >>> iter.index
+    4
     """
     def __init__(self, matcher):
         self.matcher = matcher
@@ -255,30 +502,35 @@ class _star(Matcher):
     def __repr__(self):
         return '%r.star()' % self.matcher
 
-    def match(self, code, index, grammar):
+    def match(self, iter, grammar):
         results = []
-        match = self.matcher(code, index, grammar)
+        location = iter.location
+        match = self.matcher(iter, grammar)
         while match.success:
-            index = match.index
             results.append(match.value)
-            match = self.matcher(code, index, grammar)
-        return Match(True, index, results)
+            match = self.matcher(iter, grammar)
+        return Match(True, location, results)
 
 class _plus(Matcher):
     """Match one or more of another matcher.
     
-    >>> lit("a").plus().match("aaaa", 0, None)
-    Match(True, 4, ['a', 'a', 'a', 'a'])
-    >>> lit("a").plus().match(" aaa", 0, None)
-    Match(False, 0, ['a'])
-    >>> lit("a").plus().match(" aab", 1, None)
-    Match(True, 3, ['a', 'a'])
-    >>> lit("aa").plus().match("aaaaaa", 0, None)
-    Match(True, 6, ['aa', 'aa', 'aa'])
-    >>> lit("ab").plus().match("ababaa", 0, None)
-    Match(True, 4, ['ab', 'ab'])
-    >>> lit("ab").plus().match("ababaa", 2, None)
-    Match(True, 4, ['ab'])
+    >>> lit("a").plus().match(Iterator('aaaa', ''), None)
+    Match(True, Location('', 1, 1), ['a', 'a', 'a', 'a'])
+    >>> lit("a").plus().match(Iterator(" aaa", ''), None)
+    Match(False, Location('', 1, 1), ["'a'"])
+    >>> lit("a").plus().match(Iterator("ab", ''), None)
+    Match(True, Location('', 1, 1), ['a'])
+    >>> lit("a").plus().match(Iterator("aab", ''), None)
+    Match(True, Location('', 1, 1), ['a', 'a'])
+    >>> lit("aa").plus().match(Iterator("aaaaaa", ''), None)
+    Match(True, Location('', 1, 1), ['aa', 'aa', 'aa'])
+    >>> lit("ab").plus().match(Iterator("ababaa", ''), None)
+    Match(True, Location('', 1, 1), ['ab', 'ab'])
+    >>> iter = Iterator('ababacab', '')
+    >>> seq(lit("a"), lit("b")).plus().match(iter, None)
+    Match(True, Location('', 1, 1), [('a', 'b'), ('a', 'b')])
+    >>> iter.index
+    4
     """
     def __init__(self, matcher):
         self.matcher = matcher
@@ -286,24 +538,32 @@ class _plus(Matcher):
     def __repr__(self):
         return '%r.plus()' % self.matcher
 
-    def match(self, code, index, grammar):
+    def match(self, iter, grammar):
         results = []
-        match = self.matcher(code, index, grammar)
+        location = iter.location
+        match = self.matcher(iter, grammar)
         if not match.success:
             return match
         while match.success:
-            index = match.index
             results.append(match.value)
-            match = self.matcher(code, index, grammar)
-        return Match(True, index, results)
+            match = self.matcher(iter, grammar)
+        return Match(True, location, results)
+
 
 class _opt(Matcher):
     """Match zero or one of another matcher.
     
-    >>> lit("a").opt().match("  a ", 1, None)
-    Match(True, 1, None)
-    >>> lit("a").opt().match("  a ", 2, None)
-    Match(True, 3, 'a')
+    >>> iter = Iterator("  a ", '')
+    >>> lit("a").opt().match(iter, None)
+    Match(True, Location('', 1, 1), None)
+    >>> iter.move(2)
+    >>> lit("a").opt().match(iter, None)
+    Match(True, Location('', 1, 3), 'a')
+    >>> iter = Iterator('acabacab', '')
+    >>> seq(lit("a"), lit("b")).opt().match(iter, None)
+    Match(True, Location('', 1, 1), None)
+    >>> iter.index
+    0
     """
     def __init__(self, matcher):
         self.matcher = matcher
@@ -311,22 +571,38 @@ class _opt(Matcher):
     def __repr__(self):
         return repr(self.matcher) + '.opt()'
 
-    def match(self, code, index, grammar):
-        match = self.matcher(code, index, grammar)
+    def match(self, iter, grammar):
+        location = iter.location
+        match = self.matcher(iter, grammar)
         if match.success:
             return match
         else:
-            return Match(True, index, None)
+            return Match(True, location, None)
 
 class seq(Matcher):
     """Match a sequence of matchers.
 
-    >>> seq(lit("a"), lit("b")).match(" ab ", 1, None)
-    Match(True, 3, ('a', 'b'))
-    >>> seq(lit("a"), lit("b")).match(" xb ", 1, None)
-    Match(False, 1, ['a'])
-    >>> seq(lit("a"), lit("b")).match(" ax ", 1, None)
-    Match(False, 2, ['b'])
+    >>> iter = Iterator('ab', '')
+    >>> seq(lit("a"), lit("b")).match(iter, None)
+    Match(True, Location('', 1, 1), ('a', 'b'))
+    >>> iter.index
+    2
+    >>> iter = Iterator('xb', '')
+    >>> seq(lit("a"), lit("b")).match(iter, None)
+    Match(False, Location('', 1, 1), ["'a'"])
+    >>> iter.index
+    0
+    >>> iter = Iterator('ax', '')
+    >>> seq(lit("a"), lit("b")).match(iter, None)
+    Match(False, Location('', 1, 2), ["'b'"])
+    >>> iter.index
+    0
+    >>> iter = Iterator('a', '')
+    >>> seq(lit("a"), lit("b")).match(iter, None)
+    Match(False, Location('', 1, 2), ["'b'"])
+    >>> iter = Iterator('', '')
+    >>> seq(lit("a"), lit("b")).match(iter, None)
+    Match(False, Location('', 1, 1), ["'a'"])
     """
     def __init__(self, *matchers):
         self.matchers = matchers
@@ -334,32 +610,42 @@ class seq(Matcher):
     def __repr__(self):
         return 'seq(%s)'%', '.join([v.reprnp() for v in self.matchers])
 
-    def match(self, code, index, grammar):
+    def match(self, iter, grammar):
+        location = iter.location
+        iterc = iter.clone()
         results = []
         for matcher in self.matchers:
-            match = matcher(code, index, grammar)
-            if match.success:
-                results.append(match.value)
-                index = match.index
-            else:
+            match = matcher(iterc, grammar)
+            if not match.success:
                 return match
-        return Match(True, index, tuple(results))
+            results.append(match.value)
+        iter.copy(iterc)
+        return Match(True, location, tuple(results))
 
 class _or(Matcher):
     """Match any of two matchers, preferrably the first one.
 
-    >>> (lit("a")/lit("b")).match('ab', 0, None)
-    Match(True, 1, 'a')
-    >>> (lit("a")/lit("b")).match('ab', 1, None)
-    Match(True, 2, 'b')
-    >>> (lit("a")/lit("ab")).match('ab', 0, None)
-    Match(True, 1, 'a')
-    >>> (lit("ab")/lit("a")).match('ab', 0, None)
-    Match(True, 2, 'ab')
-    >>> (lit("a")/lit("b")).match('x', 0, None)
-    Match(False, 0, ['a', 'b'])
-    >>> (lit("a")/seq(lit("x"), lit("b"))).match('x', 0, None)
-    Match(False, 1, ['b'])
+    >>> iter = Iterator('ab', '')
+    >>> (lit("a")/lit("b")).match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> (lit("a")/lit("b")).match(iter, None)
+    Match(True, Location('', 1, 2), 'b')
+    >>> (lit("a")/lit("b")).match(iter, None)
+    Match(False, Location('', 1, 3), ["'a'", "'b'"])
+    >>> iter = Iterator('', '')
+    >>> (lit("a")/lit("b")).match(iter, None)
+    Match(False, Location('', 1, 1), ["'a'", "'b'"])
+    >>> iter.index
+    0
+    >>> iter = Iterator('ab', '')
+    >>> (lit("a")/lit("ab")).match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> iter = Iterator('ab', '')
+    >>> (lit("ab")/lit("a")).match(iter, None)
+    Match(True, Location('', 1, 1), 'ab')
+    >>> iter = Iterator('ab', '')
+    >>> (seq(lit("a"), lit("c")) / lit("ab")).match(iter, None)
+    Match(True, Location('', 1, 1), 'ab')
     """
     def __init__(self, left, right):
         self.left = left
@@ -371,11 +657,11 @@ class _or(Matcher):
     def __repr__(self):
         return '(%s)' % self.reprnp()
 
-    def match(self, code, index, grammar):
-        leftm = self.left.match(code, index, grammar)
+    def match(self, iter, grammar):
+        leftm = self.left(iter, grammar)
         if leftm.success:
             return leftm
-        rightm = self.right.match(code, index, grammar)
+        rightm = self.right(iter, grammar)
         if rightm.success:
             return rightm
         return leftm + rightm
@@ -383,14 +669,19 @@ class _or(Matcher):
 class andp(Matcher):
     """Match a matcher without consuming input.
     
-    >>> andp(lit("a")).match("a", 0, None)
-    Match(True, 0, 'a')
-    >>> andp(lit("a")).match("a", 1, None)
-    Match(False, 1, ['a'])
-    >>> andp(lit("a")).match("b", 0, None)
-    Match(False, 0, ['a'])
-    >>> andp(seq(lit("a"), lit("b"))).match("ax", 0, None)
-    Match(False, 1, ['b'])
+    >>> iter = Iterator('a', '')
+    >>> andp(lit("a")).match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> andp(lit("a")).match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> andp(lit("a")).match(iter, None)
+    Match(True, Location('', 1, 1), 'a')
+    >>> andp(lit("a")).match(Iterator("", ''), None)
+    Match(False, Location('', 1, 1), ["'a'"])
+    >>> andp(lit("a")).match(Iterator("b", ''), None)
+    Match(False, Location('', 1, 1), ["'a'"])
+    >>> andp(seq(lit("a"), lit("b"))).match(Iterator("ax", ''), None)
+    Match(False, Location('', 1, 2), ["'b'"])
     """
     def __init__(self, matcher):
         self.matcher = matcher
@@ -398,24 +689,27 @@ class andp(Matcher):
     def __repr__(self):
         return 'andp(%s)' % self.matcher.reprnp()
 
-    def match(self, code, index, grammar):
-        match = self.matcher(code, index, grammar)
-        if match.success:
-            match.index = index
-        return match
-
+    def match(self, iter, grammar):
+        iter = iter.clone()
+        return self.matcher(iter, grammar)
 
 class notp(Matcher):
     """Match a matcher, but expect it to fail. Consumes no input.
 
-    >>> notp(lit("a")).match("a", 0, None)
-    Match(False, 0, [])
-    >>> notp(lit("a")).match(" a", 1, None)
-    Match(False, 1, [])
-    >>> notp(lit("a")).match("a", 1, None)
-    Match(True, 1, None)
-    >>> notp(lit("a")).match("b", 0, None)
-    Match(True, 0, None)
+    >>> iter = Iterator('a', '')
+    >>> notp(lit("a")).match(iter, None)
+    Match(False, Location('', 1, 1), [])
+    >>> notp(lit("a")).match(iter, None)
+    Match(False, Location('', 1, 1), [])
+    >>> notp(lit("a")).match(Iterator("", ''), None)
+    Match(True, Location('', 1, 1), None)
+    >>> notp(lit("a")).match(Iterator("b", ''), None)
+    Match(True, Location('', 1, 1), None)
+    >>> iter = Iterator('ax', '')
+    >>> notp(seq(lit("a"), lit("b"))).match(iter, None)
+    Match(True, Location('', 1, 1), None)
+    >>> iter.index
+    0
     """
     def __init__(self, matcher):
         self.matcher = matcher
@@ -423,13 +717,14 @@ class notp(Matcher):
     def __repr__(self):
         return 'notp(%s)' % self.matcher.reprnp()
 
-    def match(self, code, index, grammar):
-        match = self.matcher(code, index, grammar)
+    def match(self, iter, grammar):
+        iter  = iter.clone()
+        location = iter.location
+        match = self.matcher(iter, grammar)
         if match.success:
-            return Match(False, index, [])
+            return Match(False, location, [])
         else:
-            return Match(True, index, None)
-
+            return Match(True, location, None)
 
 class PE_parser(PEG):
     m_start = seq(sym('Expression'), sym('EndOfFile'))
@@ -489,7 +784,7 @@ class PE_parser(PEG):
                         lit("'"), sym("Spacing")) /
                     seq(lit('"'), seq(notp(lit('"')), sym("Char")).star(),
                         lit('"'), sym("Spacing")))
-    m_Class      = seq(lit('['), seq(notp(lit(']')), sym("Range")).star(),
+    m_Class      = seq(lit('['), seq(notp(lit(']')), sym('Range')).star(),
                        lit(']'), sym("Spacing"))
 
     m_Range      = (seq(sym('Char'), lit('-'), sym('Char')) /
@@ -498,6 +793,14 @@ class PE_parser(PEG):
     m_Char       = (seq(lit("\\"), dot()) /
                     seq(notp(lit("\\")), dot()))
 
+    def classstar(self, v):
+        return v
+
+    def classseq(self, v):
+        return v
+
+    def sentinel(self, v):
+        return v
 
     def Identifier(self, v):
         return sym(v[0] + ''.join(v[1]))
