@@ -157,10 +157,15 @@ class fgobj:
         """
         if self.rawHas(name):
             return self._slots[name]
-        elif self._proto is not None and isinstance(name, str):
+        elif (self._proto is not None and isinstance(name, str)
+                                      and self._proto.has(name)):
             return self._proto.get(name)
-        else:
-            raise FugaError("Object get: object has no slot %s" % name)
+        else:    
+            if self['name'].isPrimitive(str):
+                raise FugaError("Object get: %s has no slot %s" %
+                        (self['name'].value(), name))
+            else:
+                raise FugaError("Object get: object has no slot %s" % name)
 
     def set(self, name, value):
         """
@@ -196,7 +201,12 @@ class fgobj:
             raise TypeError("expected a fuga object for slot value")
         self.need()
         if name in self._slots:
-            raise FugaError("Object set: object already has slot %s" %name)
+            if self['name'].isPrimitive(str):
+                raise FugaError("Object set: %s already has slot %s" %
+                        (self['name'].value(), name))
+            else:
+                raise FugaError("Object set: object already has slot %s"
+                        % name)
         self._slots[name] = value
         while self._length in self._slots:
             self._length += 1
@@ -462,7 +472,9 @@ def fgmethod(val):
     return Method.clone(val)
 
 def fgmsg(name, *vargs, **kwargs):
-    assert isinstance(name, str)
+    if isinstance(name, fgobj):
+        name = name.value()
+    assert isinstance(name, str) or isinstance(name, int)
     return Msg.clone(name, *vargs, **kwargs)
 
 def fgquote(val):
@@ -577,9 +589,43 @@ def Msg_str(self, args):
         depth = 4
 
     if list(self._slots.keys()):
-        return fgstr(self.value() + self.strSlots(depth).value())
+        return fgstr(str(self.value()) + self.strSlots(depth).value())
     else:
-        return fgstr(self.value())
+        return fgstr(str(self.value()))
+
+## Slot manipulation
+
+@setAt(Object, 'get')
+def Object_set(self, args):
+    if len(args) != 1:
+        raise FugaError("Object get: expected 1 argument, got %d" %
+            len(args))
+    name  = args[0]
+    if name.isa(Int) and name.isPrimitive(int):
+        return self.get(name.value())
+    elif (name.isa(String) or name.isa(Symbol)
+                           or name.isa(Msg)) and name.isPrimitive(str):
+        return self.get(name.value())
+    else:
+        raise FugaError("Object get: name must be an Int, String,"
+                                                 " Symbol or Msg.")
+
+@setAt(Object, 'set')
+def Object_set(self, args):
+    if len(args) != 2:
+        raise FugaError("Object set: expected 2 arguments, got %d" %
+            len(args))
+    name  = args[0]
+    value = args[1]
+    if name.isa(Int) and name.isPrimitive(int):
+        self.set(name.value(), value)
+    elif (name.isa(String) or name.isa(Symbol)
+                           or name.isa(Msg)) and name.isPrimitive(str):
+        self.set(name.value(), value)
+    else:
+        raise FugaError("Object set: name must be an Int, String,"
+                                                 " Symbol or Msg.")
+    return value
 
 if __name__ == '__main__':
     import doctest

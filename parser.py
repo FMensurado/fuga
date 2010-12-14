@@ -17,7 +17,7 @@ class _parser(PEG):
     i_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
     i_PExpr        = 'LBRACKET Expr RBRACKET'
     m_Object       = 'LPAREN Block RPAREN'
-    i_Msg          = 'Name Object? / DeceptiveOp Object?'
+    i_Msg          = '(Name / Int) Object? / DeceptiveOp Object?'
 
     def Module(self,v): return v[1]
     def Block(self,v):
@@ -220,6 +220,8 @@ def parse(code):
     (foo baz)
     >>> parse(':hello')
     (:hello)
+    >>> parse("soprano 10")
+    (soprano 10)
     """
     try:
         return parser.parse(code)
