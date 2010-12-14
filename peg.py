@@ -269,13 +269,15 @@ class PEG:
         self._memo[(name, index)] = (match, iter.clone())
         return match
 
-    def _expected(self, match):
+    def _expected(self, match, iter):
         if not self._expecting or not hasattr(self, 'm_'+match.value[0]):
             return
         if self._worst is None:
             self._worst = match
+            self._worstIndex = iter.index
         else:
             self._worst += match
+            self._worstIndex = max(iter.index, self._worstIndex)
     
     def _toggleExpecting(self):
         self._expecting = not self._expecting
@@ -283,6 +285,7 @@ class PEG:
     def parse(self, code, name='start', filename='<file>'):
         self._memo = {}
         self._worst = None
+        self._worstIndex = 0
         self._expecting = True
         match = self._match(name, Iterator(code, filename))
         del self._memo
@@ -290,6 +293,12 @@ class PEG:
             return match.value
         else:
             raise SyntaxError(self._worst.errormsg())
+
+    def worst(self):
+        return self._worst
+
+    def worstIndex(self):
+        return self._worstIndex
 
 class Match(object):
     def __init__(self, success, location, value):
@@ -383,7 +392,7 @@ class sym(Matcher):
         match    = grammar._match(self.name, iter)
         if (not match.success) and location == match.location:
             match = Match(False, location, [self.name])
-            grammar._expected(match)
+            grammar._expected(match, iter)
             return match
         else:
             return match

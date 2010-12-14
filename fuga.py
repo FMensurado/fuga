@@ -4,13 +4,18 @@ import prelude
 from prelude.core import *
 import parser
 
-def read():
+def read(oldtext=''):
     while True:
         try:
-            text = input(">>> ")
-            if text.strip() in ['quit', 'quit()']:
-                return None
+            if oldtext:
+                text = oldtext + input("... ")
+            else:
+                text = input(">>> ")
+                if text.strip() in ['quit', 'quit()']:
+                    return None
             return parser.parse(text)
+        except parser.UnfinishedCode:
+            oldtext = text + '\n'
         except SyntaxError as e:
             print(e)
         except EOFError:

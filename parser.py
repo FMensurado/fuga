@@ -157,6 +157,9 @@ class _parser(PEG):
 
 parser = _parser()
 
+class UnfinishedCode(SyntaxError):
+    pass
+
 def parse(code):
     r"""
     >>> parse('')
@@ -218,7 +221,15 @@ def parse(code):
     >>> parse(':hello')
     (:hello)
     """
-    return parser.parse(code)
+    try:
+        return parser.parse(code)
+    except SyntaxError as e:
+        expected = parser.worst().value
+        if 'RBRACKET' in expected or 'RPAREN' in expected:
+            if parser.worstIndex() == len(code):
+                raise UnfinishedCode(str(e))
+        raise e
+
 
 if __name__ == '__main__':
     testmod()
