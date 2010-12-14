@@ -29,11 +29,17 @@ def repl():
         code = read()
         if code is None: break 
         try:
-            code = code.eval(env)
-            for slot in code:
-                print(slot)
+            code = code.thunk(env)
+            code.thunkSlots()
         except FugaError as e:
-            print ("ERROR:", e)
+            print("ERROR:", e)
+    
+
+        for slot in code:
+            try:
+                print(slot)
+            except FugaError as e:
+                print("ERROR:", e)
 
 
 def main():
