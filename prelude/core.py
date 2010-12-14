@@ -110,7 +110,8 @@ class fgobj:
         """
         if self.rawHas(name):
             return self._slots[name]
-        raise FugaError("Object rawGet: object has no slot %s" % name)
+        raise FugaError("Object rawGet: %s has no slot %s" %
+            (self['name'], name))
 
     def has(self, name):
         """
