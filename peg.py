@@ -26,7 +26,9 @@ class Location:
         raise TypeError("self is not mutable")
 
     def __str__(self):
-        return "%s, line %s" % (self.filename, self.line)
+        return "%s (line %s, column %s)" % (
+            self.filename, self.line, self.column
+        )
 
     def __repr__(self):
         return 'Location(%r, %r, %r)' % (
@@ -69,6 +71,11 @@ class Location:
             else:
                 column += 1
         return Location(self.filename, line, column)
+
+    def __eq__(self, other):
+        return (self.filename == other.filename and
+                self.line     == other.line     and
+                self.column   == other.column)
 
     def __lt__(self, other):
         """
@@ -246,11 +253,8 @@ class PEG:
             return
         self._matcher = {}
         for name in dir(self):
-            if name[:2] == 'm_':
+            if name[:2] == 'm_' or name[:2] == 'i_':
                 self._matcher[name[2:]] = PE(getattr(self, name))
-
-    def _reset(self):
-        self._memo = {}
 
     def _match(self, name, iter):
         index = iter.index
@@ -259,19 +263,33 @@ class PEG:
             iter.copy(iterc)
             return match
         match = self._matcher[name](iter, self)
-        if match.success and hasattr(self, name):
-            match.value = getattr(self, name)(match.value)
+        if match.success:
+            if hasattr(self, name):
+                match.value = getattr(self, name)(match.value)
         self._memo[(name, index)] = (match, iter.clone())
         return match
 
+    def _expected(self, match):
+        if not self._expecting or not hasattr(self, 'm_'+match.value[0]):
+            return
+        if self._worst is None:
+            self._worst = match
+        else:
+            self._worst += match
+    
+    def _toggleExpecting(self):
+        self._expecting = not self._expecting
+
     def parse(self, code, name='start', filename='<file>'):
-        self._reset()
+        self._memo = {}
+        self._worst = None
+        self._expecting = True
         match = self._match(name, Iterator(code, filename))
-        self._reset()
+        del self._memo
         if match.success:
             return match.value
         else:
-            raise SyntaxError(match.errormsg())
+            raise SyntaxError(self._worst.errormsg())
 
 class Match(object):
     def __init__(self, success, location, value):
@@ -323,10 +341,13 @@ class Match(object):
         )
 
     def errormsg(self):
-        return "%s: expected %s" % (
-            self.location,
-            ', '.join([repr(c) for c in self.value])
-        )
+        if self.value:
+            return "SYNTAX ERROR in %s: Expected %s." % (
+                self.location,
+                ', '.join(self.value)
+            )
+        else:
+            return "SYNTAX ERROR in %s." % self.location
 
 
 class Matcher(object):
@@ -358,7 +379,14 @@ class sym(Matcher):
         return 'sym(%r)' % self.name
 
     def match(self, iter, grammar):
-        return grammar._match(self.name, iter)
+        location = iter.location
+        match    = grammar._match(self.name, iter)
+        if (not match.success) and location == match.location:
+            match = Match(False, location, [self.name])
+            grammar._expected(match)
+            return match
+        else:
+            return match
 
 class lit(Matcher):
     """Match a literal string.
@@ -720,7 +748,9 @@ class notp(Matcher):
     def match(self, iter, grammar):
         iter  = iter.clone()
         location = iter.location
+        grammar._toggleExpecting()
         match = self.matcher(iter, grammar)
+        grammar._toggleExpecting()
         if match.success:
             return Match(False, location, [])
         else:

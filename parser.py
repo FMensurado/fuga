@@ -7,17 +7,17 @@ class _parser(PEG):
     m_start = 'Module'
 
     # Hierarchical
-    m_Module       = 'Spacing Block EndOfFile'
-    m_Block        = 'Slot? (SEPARATOR+ Slot)* SEPARATOR*'
+    i_Module       = 'Spacing Block EndOfFile'
+    i_Block        = 'Slot? (COMMA+ Slot)* COMMA*'
     m_Slot         = 'Slot_EQUALS / Slot_BECOMES / Expr'
-    m_Slot_EQUALS  = 'Name+ EQUALS Expr'
-    m_Slot_BECOMES = 'Name+ Object? BECOMES Expr'
+    i_Slot_EQUALS  = 'Name+ EQUALS Expr'
+    i_Slot_BECOMES = 'Name+ Object? BECOMES Expr'
     m_Expr         = 'Part' # a simplification for now
-    m_Part         = 'PrefixOp* Root Msg*'
-    m_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
-    m_PExpr        = 'LBRACKET Expr RBRACKET'
+    i_Part         = 'PrefixOp* Root Msg*'
+    i_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
+    i_PExpr        = 'LBRACKET Expr RBRACKET'
     m_Object       = 'LPAREN Block RPAREN'
-    m_Msg          = 'Name Object? / DeceptiveOp Object?'
+    i_Msg          = 'Name Object? / DeceptiveOp Object?'
 
     def Module(self,v): return v[1]
     def Block(self,v):
@@ -68,24 +68,24 @@ class _parser(PEG):
 
 
     # Lexical
-    m_LBRACKET     = '"[" LineSpacing'
+    i_LBRACKET     = '"[" LineSpacing'
     m_RBRACKET     = 'LineSpacing "]" Spacing'
-    m_LPAREN       = '"(" Spacing'
+    i_LPAREN       = '"(" Spacing'
     m_RPAREN       = '")" Spacing'
-    m_SEPARATOR    = '[,\r\n] LineSpacing'
+    m_COMMA    = '[,\r\n] LineSpacing'
     m_EQUALS       = '"=" !RawOp LineSpacing'
     m_BECOMES      = '"=>" !RawOp LineSpacing'
-    m_SYMPREFIX    = '":" !RawOp Spacing'
+    i_SYMPREFIX    = '":" !RawOp Spacing'
     
     m_Op           = '!EQUALS !BECOMES !SYMPREFIX RawOp LineSpacing'
-    m_RawOp        = r'[`~!@$%^&*\-+=|:;.<>/?]+'
-    m_PrefixOp     = '!DeceptiveOp Op'
-    m_DeceptiveOp  = '&(RawOp "(") Op'
+    i_RawOp        = r'[`~!@$%^&*\-+=|:;.<>/?]+'
+    i_PrefixOp     = '!DeceptiveOp Op'
+    i_DeceptiveOp  = '&(RawOp "(") Op'
     
     m_Symbol       = 'SYMPREFIX RawName Spacing'
     m_Name         = '!Int RawName Spacing'
     m_Int          = 'RawInt !RawName Spacing'
-    m_RawName      = r'[a-zA-Z0-9_][a-zA-Z0-9_?!]* / "\\" RawOp'
+    i_RawName      = r'[a-zA-Z0-9_][a-zA-Z0-9_?!]* / "\\" RawOp'
 
     def Op(self,v): return ''.join(v[3])
     def PrefixOp(self, v): return v[1]
@@ -95,10 +95,10 @@ class _parser(PEG):
     def Int(self,v): return v[0]
     def RawName(self,v): return v[0] + ''.join(v[1])
 
-    m_RawInt       = 'BinInt / HexInt / DecInt'
-    m_BinInt       = '"0b" [01]+'
-    m_DecInt       = '"0d"? [0-9]+'
-    m_HexInt       = '"0x" [0-9a-fA-F]+'
+    i_RawInt       = 'BinInt / HexInt / DecInt'
+    i_BinInt       = '"0b" [01]+'
+    i_DecInt       = '"0d"? [0-9]+'
+    i_HexInt       = '"0x" [0-9a-fA-F]+'
 
     def BinInt(self,v):
         total = 0
@@ -132,8 +132,8 @@ class _parser(PEG):
         return fgint(total)
 
     m_String       = 'StringFrag+'
-    m_StringFrag   = r'"\"" (![\n\"] Char)* "\"" Spacing'
-    m_Char         = r'"\\"? .'
+    i_StringFrag   = r'"\"" (![\n\"] Char)* "\"" Spacing'
+    i_Char         = r'"\\"? .'
 
     def String(self, v):
         return fgstr(''.join(v))
@@ -148,12 +148,12 @@ class _parser(PEG):
         else:
             return v[1]
 
-    m_Comment      = '"#" (!"\n" .)*'
-    m_EscapedLine  = r'"\\" RawSpacing* [\r\n]+'
-    m_RawSpacing   = '[ \t]+ / Comment'
-    m_Spacing      = '(EscapedLine / RawSpacing)*'
-    m_LineSpacing  = '(EscapedLine / [ \t\r\n]+ / Comment)*'
-    m_EndOfFile    = '!.'
+    i_Comment      = '"#" (!"\n" .)*'
+    i_EscapedLine  = r'"\\" RawSpacing* [\r\n]+'
+    i_RawSpacing   = '[ \t]+ / Comment'
+    i_Spacing      = '(EscapedLine / RawSpacing)*'
+    i_LineSpacing  = '(EscapedLine / [ \t\r\n]+ / Comment)*'
+    i_EndOfFile    = '!.'
 
 parser = _parser()
 

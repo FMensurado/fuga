@@ -12,7 +12,7 @@ def read():
                 return None
             return parser.parse(text)
         except SyntaxError as e:
-            print("SYNTAX ERROR:", e)
+            print(e)
         except EOFError:
             print("quit")
             return None
