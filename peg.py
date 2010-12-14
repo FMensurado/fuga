@@ -255,8 +255,8 @@ class PEG:
     def _match(self, name, iter):
         index = iter.index
         if (name, index) in self._memo:
-            (match, newiter) = self._memo[(name, index)]
-            iter.copy(newiter)
+            (match, iterc) = self._memo[(name, index)]
+            iter.copy(iterc)
             return match
         match = self._matcher[name](iter, self)
         if match.success and hasattr(self, name):
