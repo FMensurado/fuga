@@ -30,7 +30,7 @@ def repl():
         if code is None: break 
         try:
             code = code.thunk(env)
-            code.thunkSlots()
+            code.thunkSlots(True, True)
         except FugaError as e:
             print("ERROR:", e)
     
@@ -40,8 +40,7 @@ def repl():
                 print(slot)
             except FugaError as e:
                 print("ERROR:", e)
-
-
+        
 def main():
     print("Prototypical Fuga interpreter, version 2.")
     repl()

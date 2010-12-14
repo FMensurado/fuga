@@ -41,6 +41,36 @@ class fgobj:
         else:
             raise FugaError("Object proto: Object has no prototype")
 
+    def update(self, other):
+        """
+        Copy all named slots from other into self.
+
+        >>> obj = Object.clone(fgint(10))
+        >>> obj
+        (10)
+        >>> obj.update(Object.clone(Object, a=Object))
+        >>> obj
+        (10, a=Object)
+        """
+        for name in other._slots:
+            if isinstance(name, str):
+                self[name] = other[name]
+
+    def extend(self, other):
+        """
+        Append all indexed slots from other into self.
+        
+        >>> obj = Object.clone(fgint(10))
+        >>> obj
+        (10)
+        >>> obj.extend(Object.clone(Object, a=Object))
+        >>> obj
+        (10, Object)
+        """
+        for slot in other:
+            self.append(slot)
+
+
     def value(self):
         """
         >>> Object = fgobj(None)
@@ -284,7 +314,7 @@ class fgobj:
     def clone(self, *vargs, **kwargs):
         return fgobj(self, *vargs, **kwargs)
 
-    def eval(self, receiver, scope=None):
+    def eval(self, receiver, scope=None, reflect=False, bleed=False):
         """
         >>> fgint(10).eval(Object)
         10
@@ -319,7 +349,7 @@ class fgobj:
             args._length = self._length
             return fn.activate(receiver, fgthunk(args, scope))
         else:
-            return self.evalSlots(scope)
+            return self.evalSlots(scope, reflect, bleed)
 
     def activate(self, receiver, args):
         if self.isa(Method):
@@ -332,9 +362,9 @@ class fgobj:
                                                 + " no arguments")
         return self
 
-    def evalSlots(self, scope):
+    def evalSlots(self, scope, reflect=False, bleed=False):
         result = fgthunk(self, scope)
-        result.thunkSlots()
+        result.thunkSlots(reflect, bleed)
         result.needSlots()
         return result
 
@@ -416,17 +446,20 @@ class fgthunk(fgobj):
             self._strict = None
             self._transfer(self._code.eval(self._env))
     
-    def thunkSlots(self):
+    def thunkSlots(self, reflect=False, bleed=False):
         if not self._strict:
             self._strict = True
             self._slots  = {}
             self._proto  = Object
             self._value  = None
             self._length = 0
-            scope = self._env.clone()
+            scope = self._env
+            if reflect and not bleed:
+                scope = scope.clone()
             for k in self._code._slots:
                 thunk = fgthunk(self._code.rawGet(k), scope)
-                scope[k] = thunk
+                if isinstance(k, str) and reflect:
+                    scope[k] = thunk
                 self [k] = thunk
             del self._env
             del self._code
