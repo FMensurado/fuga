@@ -5,6 +5,8 @@ import collections
 class FugaError(Exception):
     pass
 
+STR_DEPTH = 4
+
 class fgobj:
     def __init__(self, proto, *vargs, **kwargs):
         self._proto = proto
@@ -88,6 +90,18 @@ class fgobj:
         self.need()
         return name in self._slots
 
+
+    def handle(self):
+        if self.has('name') and self['name'].isPrimitive(str):
+            if self.rawHas('name'):
+                return self['name'].value()
+            elif self['name'].value() == 'Object':
+                return 'object'
+            else:
+                return self['name'].value() + ' object'
+        else:
+            return 'object'
+
     def rawGet(self, name):
         """
         >>> Object  = fgobj(None)
@@ -110,11 +124,8 @@ class fgobj:
         """
         if self.rawHas(name):
             return self._slots[name]
-        if self['name'].isPrimitive(str):
-            raise FugaError("Object rawGet: %s has no slot %s" %
-                    (self['name'].value(), name))
-        else:
-            raise FugaError("Object rawGet: object has no slot %s" % name)
+        raise FugaError("Object rawGet: %s has no slot %s" %
+                    (self.handle(), name))
 
     def has(self, name):
         """
@@ -165,11 +176,8 @@ class fgobj:
                                       and self._proto.has(name)):
             return self._proto.get(name)
         else:    
-            if self['name'].isPrimitive(str):
-                raise FugaError("Object get: %s has no slot %s" %
-                        (self['name'].value(), name))
-            else:
-                raise FugaError("Object get: object has no slot %s" % name)
+            raise FugaError("Object get: %s has no slot %s" %
+                    (self.handle(), name))
 
     def set(self, name, value):
         """
@@ -204,13 +212,9 @@ class fgobj:
         if not isinstance(value, fgobj):
             raise TypeError("expected a fuga object for slot value")
         self.need()
-        if name in self._slots:
-            if self['name'].isPrimitive(str):
-                raise FugaError("Object set: %s already has slot %s" %
-                        (self['name'].value(), name))
-            else:
-                raise FugaError("Object set: object already has slot %s"
-                        % name)
+        #if name in self._slots:
+        #    raise FugaError("Object set: %s already has slot %s" %
+        #            (self._handle(), name))
         self._slots[name] = value
         while self._length in self._slots:
             self._length += 1
@@ -308,8 +312,6 @@ class fgobj:
             for slot in self:
                 receiver = slot.eval(receiver)
             return receiver
-        elif self.isa(Quote):
-            return self['value']
         elif self.isa(Msg):
             fn = receiver.get(self.value())
             args = Object.clone()
@@ -444,14 +446,13 @@ class fgthunk(fgobj):
 ############################################
 
 Object = fgobj(None)
-Object['Object'] = Object.clone()
+Object['Object'] = Object
 
 Int    = Object['Int']    = Object.clone()
 String = Object['String'] = Object.clone()
 Symbol = Object['Symbol'] = Object.clone()
 Msg    = Object['Msg']    = Object.clone()
 Method = Object['Method'] = Object.clone()
-Quote  = Object['Quote']  = Object.clone()
 Expr   = Object['Expr']   = Object.clone()
 Bool   = Object['Bool']   = Object.clone()
 
@@ -485,9 +486,6 @@ def fgmsg(name, *vargs, **kwargs):
     assert isinstance(name, str) or isinstance(name, int)
     return Msg.clone(name, *vargs, **kwargs)
 
-def fgquote(val):
-    return Quote.clone(value=val)
-
 def fgexpr(*vargs):
     expr = Expr.clone(*vargs)
     if not len(expr):
@@ -504,19 +502,75 @@ def fgbool(m):
 ## Important methods ######################
 ###########################################
 
-# handy decorator
-def setAt(obj, name):
-    def decorator(val):
-        obj[name] = fgmethod(val)
-        return val
-    return decorator
+# handy decorators
+def setmethod(obj, name, nargs=None, passargs=False):
+    if nargs is None:
+        def decorator(fn):
+            obj[name] = fgmethod(fn)
+            return fn
+        return decorator
+    elif not isinstance(nargs, int):
+        raise TypeError("nargs must be an int")
+    else:
+        if obj.rawHas('name') and obj['name'].isPrimitive(str):
+            prefix = obj['name'].value() + ' ' + name
+        else:
+            prefix = name
+
+        if nargs == 1:
+            prefix += ': expected 1 argument, got '
+        else:
+            prefix += ': expected %d arguments, got ' % nargs
+
+        def decorator(fn):
+            def newfn(self, args):
+                if len(args) != nargs:
+                    raise FugaError(prefix + str(len(args)))
+                vargs = []
+                for slot in args:
+                    vargs.append(slot)
+                if passargs:
+                    vargs.append(args)
+                return fn(self, *vargs)
+            obj[name] = fgmethod(newfn)
+            return obj[name]
+        return decorator
+
+def setstr(obj, needdepth=False):
+    name = 'str'
+    if needdepth:
+        def decorator(fn):
+            @setmethod(obj, 'str', 0, True)
+            def newfn(self, args):
+                if self.rawHas('name') and self['name'].isPrimitive(str):
+                    return self['name']
+                if 'depth' in args:
+                    if (args['depth'].isPrimitive(int) and
+                        args['depth'].isa(Int)):
+                        depth = args['depth'].value()
+                    else:
+                        raise FugaError('str: depth must be a primitive'
+                                                                   'int')
+                else:
+                    depth = STR_DEPTH
+                return fn(self, depth)
+            return newfn
+        return decorator
+    else:
+        def decorator(fn):
+            @setmethod(obj, 'str', 0)
+            def newfn(self):
+                if self.rawHas('name') and self['name'].isPrimitive(str):
+                    return self['name']
+                return fn(self)
+            return newfn
+        return decorator
 
 # Name
 Object['name'] = fgstr('Object')
 Int   ['name'] = fgstr('Int')
 String['name'] = fgstr('String')
 Symbol['name'] = fgstr('Symbol')
-Quote ['name'] = fgstr('Quote')
 Method['name'] = fgstr('Method')
 Msg   ['name'] = fgstr('Msg')
 Expr  ['name'] = fgstr('Expr')
@@ -526,86 +580,36 @@ fgtrue ['name'] = fgstr('true')
 fgfalse['name'] = fgstr('false')
 
 # Stringifying!
-@setAt(Object, 'str')
-def Object_str(self, args):
-    if len(args):
-        raise FugaError("Object str: expected no arguments")
-    elif self.rawHas('name'):
-        return self['name']
-    elif 'depth' in args:
-        if args['depth'].isa(Int):
-            return self.strSlots(args['depth'].value())
-        else:
-            raise FugaError("Object str: depth must be an Int")
-    else:
-        return self.strSlots()
+@setstr(Object, True)
+def Object_str(self, depth):
+    return self.strSlots(depth)
 
-@setAt(Int, 'str')
-def Int_str(self, args):
-    if len(args):
-        raise FugaError("Int str: expected no arguments")
-    elif self is Int:
-        return fgstr('Int')
-    return fgstr(str(self.value()))
-
-@setAt(String, 'str')
-def String_str(self, args):
-    if len(args):
-        raise FugaError("String str: expected no arguments")
-    elif self is String:
-        return fgstr('String')
+@setstr(String)
+def String_str(self):
     reps = {'\n': '\\n', '\r': '\\r', '\t': '\\t',
              '"': '\\"', '\\': '\\\\'}
     result = ''.join(reps.get(c,c) for c in self.value())
     return fgstr('"%s"' % result)
 
-@setAt(Symbol, 'str')
-def Symbol_str(self, args):
-    if len(args):
-        raise FugaError("Symbol str: expected no arguments")
-    elif self is Symbol:
-        return fgstr('Symbol')
-    return fgstr(':' + self.value())
+@setstr(Int)
+def Int_str(self): return fgstr(str(self.value()))
 
-Method['str'] = fgstr('method(...)')
+@setstr(Symbol)
+def Symbol_str(self): return fgstr(':' + self.value())
 
-@setAt(Quote, 'str')
-def Quote_str(self, args):
-    if len(args):
-        raise FugaError("Quote str: expected no arguments")
-    elif self is Quote:
-        return fgstr('Quote')
-    return fgstr("'[" + asdfasdfasdf + "]")
+@setstr(Method)
+def Method_str(self): return fgstr('method(...)')
 
-@setAt(Expr, 'str')
-def Expr_str(self, args):
-    if len(args):
-        raise FugaError("Expr str: expected no arguments")
-    if 'depth' in args:
-        if args['depth'].isa(Int):
-            depth = args['depth'].value()
-        else:
-            raise FugaError("Expr str: depth must be an Int")
-    else:
-        depth = 4
-    
+
+@setstr(Expr, True)
+def Expr_str(self, depth):
     slots = []
     for slot in self:
         slots.append(slot.str(depth-1).value())
     return fgstr(' '.join(slots))
 
-@setAt(Msg, 'str')
-def Msg_str(self, args):
-    if len(args):
-        raise FugaError("Msg str: expected no arguments")
-    if 'depth' in args:
-        if args['depth'].isa(Int):
-            depth = args['depth'].value()
-        else:
-            raise FugaError("Expr str: depth must be an Int")
-    else:
-        depth = 4
-
+@setstr(Msg, True)
+def Msg_str(self, depth):
     if list(self._slots.keys()):
         return fgstr(str(self.value()) + self.strSlots(depth).value())
     else:
@@ -616,15 +620,10 @@ def Msg_str(self, args):
 def slotmanip(method, wrap=None):
     if wrap is None:
         wrap = lambda x: x
-    @setAt(Object, method)
-    def fn(self, args):
-        if len(args) != 1:
-            raise FugaError("Object %s: expected 1 argument, got %d" %
-                (method, len(args))
-            )
-        name = args[0]
+    @setmethod(Object, method, 1)
+    def fn(self, name):
         if name.isPrimitive(int) or name.isPrimitive(str):
-            return getattr(self, method)(name.value())
+            return wrap(getattr(self, method)(name.value()))
         raise FugaError("Object %s: expected primitive Int, String, "
                         "Symbol, or Msg." % name)
 
@@ -634,26 +633,42 @@ slotmanip('rawGet')
 slotmanip('has', fgbool)
 slotmanip('rawHas', fgbool)
 
-@setAt(Object, 'set')
-def Object_set(self, args):
-    if len(args) != 2:
-        raise FugaError("Object set: expected 2 arguments, got %d" %
-            len(args))
-    name  = args[0]
-    value = args[1]
+@setmethod(Object, 'set', 2)
+def Object_set(self, name, value):
     if name.isPrimitive(int) or name.isPrimitive(str):
         self.set(name.value(), value)
         return self
     raise FugaError("Object set: name must be an Int, String, "
                                               "Symbol, or Msg.")
 
-@setAt(Object, 'append')
-def Object_append(self, args):
-    if len(args) != 1:
-        raise FugaError("Object append: expected 1 argument, got %d" %
-            len(args))
-    self.append(args[0])
+@setmethod(Object, 'append', 1)
+def Object_append(self, value):
+    self.append(value)
     return self
+
+# Other basic methods.
+
+@setmethod(Object, 'clone')
+def Object_clone(self, args):
+    args.need()
+    result = self.clone()
+    result._slots = args._slots
+    result._length = args._length
+    return result
+
+@setmethod(Object, 'proto', 0)
+def Object_proto(self):
+    return self.proto()
+
+@setmethod(Object, 'len', 0)
+def Object_len(self):
+    return fgint(self.length())
+
+@setmethod(Object, 'isa', 1)
+def Object_isa(self, proto):
+    return fgbool(self.isa(proto))
+
+# Testing
 
 if __name__ == '__main__':
     import doctest
