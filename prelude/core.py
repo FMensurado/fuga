@@ -5,6 +5,9 @@ import collections
 class FugaError(Exception):
     pass
 
+class GuardError(FugaError):
+    pass
+
 STR_DEPTH = 4
 
 class fgobj:
@@ -340,7 +343,7 @@ class fgobj:
             return self
         elif self.isa(Expr):
             for slot in self:
-                receiver = slot.eval(receiver)
+                receiver = slot.eval(receiver, scope)
             return receiver
         elif self.isa(Msg):
             fn = receiver.get(self.value())
@@ -355,12 +358,53 @@ class fgobj:
         if self.isa(Method):
             if self.value():
                 return self.value()(receiver, args)
-            raise FugaError("Method activate: non-primitive methods"
-                                              + " not yet supported")
+            # ... oh dear, pattern matching would be good
+            
+            i = 0
+            while i < len(self):
+                try:
+                    formals = self[i]
+                    body    = self[i+1]
+                    i += 2
+
+                    params = formals.match(args)
+                    env = self['scope'].clone()
+                    env['self'] = receiver
+                    env.update(params)
+                    return body.eval(env)
+                except GuardError:
+                    continue
+            else:
+                raise FugaError("Method activate: No matching pattern.")
+
         elif len(args):
             raise FugaError("Object activate: non-method expects"
                                                 + " no arguments")
         return self
+
+    def match(self, candidate):
+    #    if 'match' in self and self['match'].isa(Method):
+    #        return self['match'].activate(self, Object.clone(candidate))
+
+        captures = Object.clone()
+        for k in self._slots:
+            if k in candidate:
+                if self[k].isa(Msg):
+                    captures[self[k].value()] = candidate[k]
+                elif self[k].isa(Symbol) and candidate[k].isa(Symbol):
+                    if self[k].value() != candidate[k].value():
+                        raise GuardError()
+                elif self[k].isa(String) and candidate[k].isa(String):
+                    if self[k].value() != candidate[k].value():
+                        raise GuardError()
+                elif self[k].isa(Int) and candidate[k].isa(Int):
+                    if self[k].value() != candidate[k].value():
+                        raise GuardError()
+                else:
+                    raise GuardError()
+            else:
+                raise GuardError("Parameter mismatch.")
+        return captures
 
     def evalSlots(self, scope, reflect=False, bleed=False):
         result = fgthunk(self, scope)
@@ -480,7 +524,9 @@ class fgthunk(fgobj):
 
 Object = fgobj(None)
 
-Int    = Object.clone()
+Number = Object.clone()
+Int    = Number.clone()
+
 String = Object.clone()
 Symbol = Object.clone()
 Msg    = Object.clone()

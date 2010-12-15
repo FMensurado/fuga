@@ -109,6 +109,17 @@ class Location:
             return False
         return self.column < other.column
 
+    def showError(self):
+        try:
+            file = open(self.filename)
+            lines = list(file)
+            import sys
+            sys.stderr.write(lines[self.line - 1])
+            sys.stderr.write('%s^\n' % (' ' * (self.column - 1)))
+            return True
+        except IOError:
+            return False
+
 class Iterator:
     """
     Iterator keeps track of location while traversing through code.

@@ -5,7 +5,6 @@ Prelude['Prelude'] = Prelude
 Prelude['name'] = fgstr('Prelude')
 
 Prelude['Object'] = Object
-Prelude['Int']    = Int
 Prelude['String'] = String
 Prelude['Symbol'] = Symbol
 Prelude['Msg']    = Msg
@@ -32,5 +31,7 @@ def Prelude_do(self, args):
 
 @setmethod(Prelude, 'method')
 def Prelude_method(self, args):
-    pass
+    method = Method.clone(scope=args.scope())
+    method.extend(args.code())
+    return method
 

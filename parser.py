@@ -234,7 +234,12 @@ def parse(code, filename='<file>'):
 
 def parseFile(filename):
     code = open(filename).read()
-    return parse(code, filename)
+    try:
+        return parse(code, filename)
+    except SyntaxError as e:
+        parser.worst().location.showError()
+        raise e
+
 
 if __name__ == '__main__':
     testmod()

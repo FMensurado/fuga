@@ -46,9 +46,11 @@ def repl():
                 print("ERROR:", e)
 
 def load(filename):
-    code = parser.parseFile(filename)
     try:
+        code = parser.parseFile(filename)
         code.eval(prelude.Prelude, prelude.Prelude, True, True)
+    except SyntaxError as e:
+        print(e)
     except FugaError as e:
         print("ERROR:", e)
 
