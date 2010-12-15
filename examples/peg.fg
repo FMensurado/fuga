@@ -1,180 +1,51 @@
+import(...)
+module(PEG)
 
-Matcher = ()
-Matcher mk('code...) => Matcher clone(
-    match = caller eval(
-        'method with('(code, index), 'do with(code...))
-    )
-)
-Matcher parse(code) => match(code, 0)
-
-lit(str) => Matcher mk(
-    if(
-        code slice(index) startsWith(str),
-        'success with(str, index + str len)
-        'failure
-    )
+new(~body..) => do(
+    matcher = body evalIn(self matcherEnv) start
 )
 
-#import(Regex)
-regex(pattern) => Matcher clone(
-    regex = Regex compile(pattern)
-    match(code, index) => do(
-        result = regex match(code slice(index))
-        regex match(code slice(index)) switch(
-            success(groups) => 'success with(
-                                    groups whole
-                                    groups whole len + index
-                                )
-            failure         => 'failure 
-        )
-    )
+matcherEnv = (
+)   
+    
+fuga = new(
+    start       = Module
+    
+    Module      = Spacing; Block; EndOfFile
+    Block       = Slot opt; [Separator; Slot opt] star
+    Slot        = SlotPrefix; Expr
+    SlotPrefix  = [Name plus; Equals] / [Name star; Object opt; Becomes]
+    Expr        = Part; [Operator Part] star
+    Part        = Root; Msg star
+    Root        = PExpr / Object / Int / String / Msg
+    PExpr       = LBracket; Expr; RBracket
+    Object      = LParen; Block; RParen
+    Msg         = Name; Object opt
+    
+    LBracket    = lit("["); Spacing
+    RBracket    = lit("]"); Spacing
+    LParen      = lit("("); Spacing
+    RParen      = lit(")"); Spacing
+    Separator   = [lit(",") / lit("\n")]; Spacing
+    Equals      = lit("=");  !RawOp; Spacing
+    Becomes     = lit("=>"); !RawOp; Spacing
+    SymPrefix   = lit(":"); !RawOp
+    Operator    = !Equals; !Becomes; !SymPrefix; RawOp; Spacing
+    Symbol      = lit(":"); RawName; Spacing
+    Name        = !Int; RawName; Spacing
+    Int         = [BinInt / DecInt / HexInt]; !RawName; Spacing
+    
+    RawOp       = anyof("`~!@$%^&*\-+=|:;.<>/?") plus
+    RawName     = [anyof("a-zA-Z0-9_"); anyof("a-zA-Z0-9_?!") star] /
+                  [lit("\\") ; RawOp]
+    BinInt      = lit("0b"); anyof("01") plus
+    DecInt      = lit("0d") opt; anyof("0-9") plus
+    HexInt      = lit("0x"); anyof("0-9a-fA-F") plus
+          
+    LineSpacing = anyof(" \t\r\n") star
+    Comment     = lit("#"); anyof("^\n") star; lit("\n") opt
+    Spacing     = [anyof(" \t\r") / Comment] star
+    EndOfFile   = !any
+) transform (
+    Name(match) => match text symbol
 )
-
-seq(matchers...) => Matcher mk(
-    value = var(list)
-    index = var(index)
-    for(matcher, matchers) do(
-        matcher match(code, index) switch(
-            success(v,i) => value := value <+ v; index := i
-            failure      => break('failure)
-        )
-    ) else('success with(value, index))
-)
-
-star(matcher) => Matcher mk(
-    value = var(list)
-    index = var(index)
-    loop do(
-        matcher match(code, index) switch(
-            success(v,i) => value := value <+ v; index := i
-            failure      => break
-        )
-    )
-    'success with(value, index)
-)
-
-choice(matchers...) => Matcher mk(
-    for(match, matchers) do(
-        matcher match(code, index) switch(
-            success(v,i) => break('success with(v,i))
-            failure      => void
-        )
-    ) else('failure)
-)
-
-plus(matcher) => Matcher mk(
-    matcher match(code, index) switch(
-        success(v,i) => star(matcher) match(code, index)
-        failure      => 'failure
-    )
-)
-
-opt(matcher) => Matcher mk(
-    matcher match(code, index) switch(
-        success(v,i) => 'success with(v, i)
-        failure      => 'success with(null, index)
-    )
-)
-
-andp(matcher) => Matcher mk(
-    matcher match(code, index) switch(
-        success(v,i) => 'success with(v, index)
-        failure      => 'failure
-    )
-)
-
-notp(matcher) => Matcher mk(
-    matcher match(code, index) switch(
-        success(v,i) => 'failure
-        failure      => 'success with(null,i)
-    )
-)
-
-symbol(name, grammar) => Matcher mk(
-    grammar get(name) match(code, index) switch(
-        success(v,i) => if(
-            grammar trans has?(name)
-            'success with(grammar trans eval(name with(v)),i)
-            'success with(v,i)
-        )
-        failure => 'failure
-   )
-)
-
-
-normalize(expr, grammar) => expr typeswitch(
-    String  => regex(expr)
-    List    => seq(expr map((e) => normalize(e, grammar)))
-    Message => expr switch(
-        plus(e) => plus(normalize(e, grammar))
-        star(e) => star(normalize(e, grammar))
-        opt (e) => opt (normalize(e, grammar))
-        andp(e) => andp(normalize(e, grammar))
-        notp(e) => notp(normalize(e, grammar))
-        |(a,b)  => choice(normalize(a, grammar), normalize(b, grammar))
-                   symbol(expr, grammar)
-    )
-)
-
-PEG = Matcher clone(
-    mk('args...) => do(
-        grammar = clone
-        for(name,expr, args) do(
-            grammar set(name, normalize(expr, grammar))
-        )
-        grammar START = grammar get(0)
-        grammar
-    )
-    EOF = notp(regex("."))
-    match(code, index) => START match(code, index)
-    trans = ()
-
-    transform(args...) => set('trans, args)
-)
-
-sexps = PEG mk(
-    Program = Spacing plus(Expr) EOF
-    Expr    = LParen plus(Expr) RParen | Ident | Number
-    LParen  = "\(" Spacing
-    RParen  = "\)" Spacing
-    Ident   = "[a-zA-Z_][a-zA-Z0-9_]*" Spacing
-    Number  = "[1-9][0-9]*" Spacing
-    Spacing = "[ \t\n\r]*"
-)
-
-fuga = PEG mk(
-    Program    = Spacing Block EOF
-    Block      = opt(Slot) star(SEPARATOR opt(Slot))
-    Slot       = SlotPrefix Expr | Expr opt(EPS)
-    SlotPrefix = plus(NAME) EQUALS | plus(NAME) opt(Object) BECOMES
-    Expr       = Part star(OP Part)
-    Part       = Root star(Msg)
-    Root       = PExpr | Atom
-    PExpr      = LBRACKET Expr RBRACKET
-    Atom       = Object | Number | STRING | Msg | QUOTE Atom
-    Msg        = NAME opt(Object)
-    Object     = LPAREN Block RPAREN
-
-    SEPARATOR  = "[,\n]" Spacing
-    NAME       = notp(INT) "[_a-zA-Z0-9][_a-zA-Z0-9\?!]" Spacing
-               | "\\" OpCC
-               | OpCC andp(LPAREN) Spacing
-    OP         = WSep notp(EPS | EQUALS | BECOMES) OpCC Spacing WSep
-    NUMBER     = INT | REAL
-    INT        = "(0d)?[0-9]+|0x[0-9a-fA-F]+|0o[0-7]+|0b[01]+" \
-                 notp(NAME) Spacing
-    LPAREN     = "\(" Spacing WSep
-    RPAREN     = WSep "\)" Spacing
-    LBRACKET   = "\[" Spacing WSep
-    RBRACKET   = WSep "\]" Spacing
-
-    EPS        = WSep "..." notp(OpCC) Spacing WSep
-    EQUALS     = WSep "="  notp(OpCC) Spacing WSep
-    BECOMES    = WSep "=>" notp(OpCC) Spacing WSep
-
-    OpCC       = "[\+\-\*/%\^=<>\?!~@$&|:;\.]+"
-
-    WSep       = star("\n" Spacing)
-    Spacing    = star("[ \t\r]+" | "#[^\n]*" | "\\[ \t]*\n")
-)
-
