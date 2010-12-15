@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import sys
 import prelude
 from prelude.core import *
 import parser
+
+prelude.parse     = parser.parse
+prelude.parseFile = parser.parseFile
 
 def read(oldtext=''):
     while True:
@@ -23,8 +27,8 @@ def read(oldtext=''):
             return None
 
 def repl():
+    print("Prototypical Fuga interpreter, version 2.")
     env = prelude.Prelude.clone()
-
     while True:
         code = read()
         if code is None: break 
@@ -40,10 +44,26 @@ def repl():
                 print(slot)
             except FugaError as e:
                 print("ERROR:", e)
-        
+
+def load(filename):
+    code = parser.parseFile(filename)
+    try:
+        code.eval(prelude.Prelude, prelude.Prelude, True, True)
+    except FugaError as e:
+        print("ERROR:", e)
+
+def usage():
+    print("Usage:")
+    print("\t%s [filename]" % sys.argv[0])
+
 def main():
-    print("Prototypical Fuga interpreter, version 2.")
-    repl()
+    if len(sys.argv) == 1:
+        repl()
+    elif len(sys.argv) == 2:
+        load(sys.argv[1])
+    else:
+        usage()
+
 
 if __name__ == '__main__':
     main()

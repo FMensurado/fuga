@@ -160,7 +160,7 @@ parser = _parser()
 class UnfinishedCode(SyntaxError):
     pass
 
-def parse(code):
+def parse(code, filename='<file>'):
     r"""
     >>> parse('')
     ()
@@ -224,7 +224,7 @@ def parse(code):
     (soprano 10)
     """
     try:
-        return parser.parse(code)
+        return parser.parse(code, 'start', filename)
     except SyntaxError as e:
         expected = parser.worst().value
         if 'RBRACKET' in expected or 'RPAREN' in expected:
@@ -232,6 +232,9 @@ def parse(code):
                 raise UnfinishedCode(str(e))
         raise e
 
+def parseFile(filename):
+    code = open(filename).read()
+    return parse(code, filename)
 
 if __name__ == '__main__':
     testmod()

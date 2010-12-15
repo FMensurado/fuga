@@ -472,7 +472,7 @@ class fgthunk(fgobj):
     def scope(self):
         if self._strict:
             raise FugaError("thunk scope: thunk was already evaluated")
-        return self._scope
+        return self._env
 
 ############################################
 ## Primitive ###############################
