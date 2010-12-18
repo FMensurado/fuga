@@ -2,6 +2,7 @@ from doctest import testmod
 from peg import PEG
 
 from prelude.core import *
+from prelude.op   import shuffle
 
 class _parser(PEG):
     m_start = 'Module'
@@ -12,7 +13,7 @@ class _parser(PEG):
     m_Slot         = 'Slot_EQUALS / Slot_BECOMES / Expr'
     i_Slot_EQUALS  = 'Name+ EQUALS Expr'
     i_Slot_BECOMES = 'Name+ Object? BECOMES Expr'
-    m_Expr         = 'Part' # a simplification for now
+    m_Expr         = 'Part (Op Part)*'
     i_Part         = 'PrefixOp* Root Msg*'
     i_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
     i_PExpr        = 'LBRACKET Expr RBRACKET'
@@ -44,6 +45,14 @@ class _parser(PEG):
         method = fgmsg('method', args, v[3])
         w = [v[0], '=', method]
         return self.Slot_EQUALS(w)
+
+    def Expr(self, v):
+        ops   = []
+        parts = [v[0]]
+        for op, part in v[1]:
+            ops.append(op)
+            parts.append(part)
+        return shuffle(ops, parts)
 
     def Part(self, v):
         if v[0]:
@@ -222,6 +231,20 @@ def parse(code, filename='<file>'):
     (:hello)
     >>> parse("soprano 10")
     (soprano 10)
+    >>> parse("a + b")
+    (a +(b))
+    >>> parse("a + b + c")
+    (a +(b) +(c))
+    >>> parse("a + b * c")
+    (a +(b *(c)))
+    >>> parse("a +=+=+=+=+ b + c")
+    (a +=+=+=+=+(b +(c)))
+    >>> parse("a := b")
+    (:=(a, b))
+    >>> parse("a -> b")
+    (->(a, b))
+    >>> parse("a <- b")
+    (<-(a, b))
     """
     try:
         return parser.parse(code, 'start', filename)

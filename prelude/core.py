@@ -8,7 +8,7 @@ class FugaError(Exception):
 class GuardError(FugaError):
     pass
 
-STR_DEPTH = 4
+STRDEPTH = 7
 
 class fgobj:
     def __init__(self, proto, *vargs, **kwargs):
@@ -428,7 +428,7 @@ class fgobj:
         for slot in self:
             slot.need()
 
-    def strSlots(self, depth=4):
+    def strSlots(self, depth=STRDEPTH):
         if not list(self._slots.keys()):
             return fgstr('()')
         if depth == 0:
@@ -450,7 +450,7 @@ class fgobj:
         else:
             return self.value() is not None
 
-    def str(self, depth=4):      
+    def str(self, depth=STRDEPTH):      
         assert isinstance(depth, int)
         if self.rawHas('name') and self['name'].isPrimitive(str):
             return self['name']
@@ -630,7 +630,7 @@ def setstr(obj, needdepth=False):
                         raise FugaError('str: depth must be a primitive'
                                                                    'int')
                 else:
-                    depth = STR_DEPTH
+                    depth = STRDEPTH
                 return fn(self, depth)
             return newfn
         return decorator
@@ -671,7 +671,7 @@ def Object_strSlots(self, args):
         else:
             raise FugaError('strSlots: depth must be a primitive int')
     else:
-         depth = STR_DEPTH
+         depth = STRDEPTH
     return self.strSlots(depth)
 
 @setstr(String)
