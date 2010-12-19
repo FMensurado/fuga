@@ -1,25 +1,22 @@
 # File: fibonacci-slow.fg
-# Date: Oct 5, 2010
-# 
+# Date: Oct  5, 2010
+# Mod.: Dec 18, 2010  -- removed the complicated parts.
 #
 
 
-fib(n) => if(
-    n < 2
-    n
-    fib(n - 1) + fib(n - 2)
-)
+fib(n) =>
+    if( n < 2
+        n
+        fib(n - 1) + fib(n - 2) )
 
-Int to(b) => if(
-    self == b
-    list(self)
-    self to(self + (b - self) // 2) ++ (self + (b - self) // 2 + 1) to(b)
-)
+START = 0
+END   = 20
 
-start = 0
-end   = 20
+loop(n) =>
+    if( n > END
+        void
+        do( print(fib(n))
+            loop(n+1) ) )
 
-start to(end) map(
-    (n) => print(n, fib(n))
-)
+loop(START)
 

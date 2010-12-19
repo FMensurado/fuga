@@ -1,36 +1,23 @@
 # File: fibonacci-fast.fg
 # Date: Oct 5, 2010
-# 
+# Mod.: Dec 18, 2010 -- simplified range.
 #
 
-fib(n) => fibAux(n, 0, 1)
 
-fibAux(n, a,b) => if(
-    n == 0
-    a
-    fibAux(n - 1, b, a + b)
+fib = method(
+    (n), fib(n, 0, 1)
+    (0, a, b), a
+    (n, a, b), fib(n-1, b, a+b)
 )
 
-do = method(
-    (a) => a
-    (a,b) => b
-    (a,b,c) => c
-    (a,b,c,d) => d
-    (a,b,c,d,e) => e
-    (a,b,c,d,e,f) => f
-)
+START = 0
+END   = 40 
 
-Int to(b) => if(
-    self == b
-    list(self)
-    do(mid = self + [b - self]//2,
-       self to(mid) ++ [mid + 1] to(self))
-)
+loop(n) =>
+    if( n > END
+        void
+        do( print(fib(n))
+            loop(n+1) ) )
 
-start = 0
-end   = 40 
-
-start to(end) map(
-    (n) => print(n, fib(n))
-)
+loop(START)
 
