@@ -12,7 +12,7 @@ class _parser(PEG):
     i_Block        = 'Slot? (COMMA+ Slot)* COMMA*'
     m_Slot         = 'Slot_EQUALS / Slot_BECOMES / Expr'
     i_Slot_EQUALS  = 'Name+ EQUALS Expr'
-    i_Slot_BECOMES = 'Name+ Object? BECOMES Expr'
+    i_Slot_BECOMES = '(Name* DeceptiveOp / Name+) Object? BECOMES Expr'
     m_Expr         = 'Part (Op Part)*'
     i_Part         = 'PrefixOp* Root Msg*'
     i_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
@@ -41,6 +41,8 @@ class _parser(PEG):
         return fgexpr(*msgs)
 
     def Slot_BECOMES(self, v):
+        if isinstance(v[0], tuple):
+            v = [v[0][0] + [v[0][1]]] + list(v[1:])
         args = Object.clone() if v[1] is None else v[1]
         method = fgmsg('method', args, v[3])
         w = [v[0], '=', method]
