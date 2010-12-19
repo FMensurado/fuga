@@ -10,12 +10,19 @@ class GuardError(FugaError):
 
 STRDEPTH = 7
 
+_objid = 0
+def _newid():
+    global _objid
+    _objid += 1
+    return _objid
+
 class fgobj:
     def __init__(self, proto, *vargs, **kwargs):
         self._proto = proto
         self._slots = {}
         self._length = 0
         self._value  = None
+        self._id = _newid()
         
         if vargs and not isinstance(vargs[0], fgobj):
             self._value = vargs[0]
@@ -25,6 +32,13 @@ class fgobj:
             self.set(i, varg)
         for k in kwargs:
             self.set(k, kwargs[k])
+
+    def id(self):
+        self.need()
+        return self._id
+
+    def is_(self, other):
+        return self.id() == other.id()
 
     def need(self):
         pass
@@ -310,7 +324,7 @@ class fgobj:
         """
         self.need()
         return (self._proto is not None) and (
-            self._proto is proto  or
+            self._proto.is_(proto)  or
             self._proto.isa(proto)
         )
 
@@ -358,8 +372,6 @@ class fgobj:
         if self.isa(Method):
             if self.value():
                 return self.value()(receiver, args)
-            # ... oh dear, pattern matching would be good
-            
             i = 0
             while i < len(self):
                 try:
@@ -387,6 +399,8 @@ class fgobj:
     #        return self['match'].activate(self, Object.clone(candidate))
 
         captures = Object.clone()
+        if len(self) != len(candidate):
+            raise GuardError("Wrong number of arguments.")
         for k in self._slots:
             if k in candidate:
                 if self[k].isa(Msg):
@@ -480,6 +494,7 @@ class fgthunk(fgobj):
         self._value = other._value
         self._length = other._length
         self._strict = True
+        self._id     = other._id
         del self._code
         del self._env
 
@@ -497,6 +512,8 @@ class fgthunk(fgobj):
             self._proto  = Object
             self._value  = None
             self._length = 0
+            self._id     = _newid()
+
             scope = self._env
             if reflect and not bleed:
                 scope = scope.clone()
@@ -533,6 +550,7 @@ Msg    = Object.clone()
 Method = Object.clone()
 Expr   = Object.clone()
 Bool   = Object.clone()
+void   = Object.clone()
 
 fgtrue  = Bool.clone(True)
 fgfalse = Bool.clone(False)
@@ -653,6 +671,7 @@ Method['name'] = fgstr('Method')
 Msg   ['name'] = fgstr('Msg')
 Expr  ['name'] = fgstr('Expr')
 Bool  ['name'] = fgstr('Bool')
+void  ['name'] = fgstr('void')
 
 fgtrue ['name'] = fgstr('true')
 fgfalse['name'] = fgstr('false')

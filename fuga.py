@@ -32,6 +32,7 @@ def repl():
     while True:
         code = read()
         if code is None: break 
+
         try:
             code = code.thunk(env)
             code.thunkSlots(True, True)
@@ -41,7 +42,8 @@ def repl():
 
         for slot in code:
             try:
-                print(slot)
+                if not slot.is_(void):
+                    print(slot)
             except FugaError as e:
                 print("ERROR:", e)
 
