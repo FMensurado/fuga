@@ -361,12 +361,51 @@ class fgobj:
             return receiver
         elif self.isa(Msg):
             fn = receiver.get(self.value())
+            args = self.args(scope)
+            return fn.activate(receiver, args)
+        else:
+            return self.evalSlots(scope, reflect, bleed)
+
+
+    def args(self, scope):
+        """
+        Extract arguments from Msg.
+        """
+        normal = True
+        for k in self._slots:
+            if self[k].specialArg():
+                normal = False
+                break
+
+        if normal:
             args = Object.clone()
             args._slots = self._slots
             args._length = self._length
-            return fn.activate(receiver, fgthunk(args, scope))
+            return fgthunk(args, scope)
         else:
-            return self.evalSlots(scope, reflect, bleed)
+            args = Object.clone()
+            for k in self._slots:
+                arg = self[k].toArg(scope, k)
+                args.extend(arg)
+                args.update(arg)
+            return args
+
+    def toArg(self, scope, name):
+        if self.specialArg():
+            return self['toArg'].activate(self,
+                Object.clone(scope, fgname(name))
+            )
+        else:
+            arg = Object.clone()
+            arg[name] = fgthunk(self, scope)
+            return arg
+
+    def specialArg(self):
+        return 'specialArg?' in self and self['specialArg?'].activate(
+                        self, Object.clone()).is_(fgtrue)
+
+    def thunkSlots(self):
+        pass
 
     def activate(self, receiver, args):
         if self.isa(Method):
@@ -394,30 +433,34 @@ class fgobj:
                                                 + " no arguments")
         return self
 
-    def match(self, candidate):
-    #    if 'match' in self and self['match'].isa(Method):
-    #        return self['match'].activate(self, Object.clone(candidate))
 
-        captures = Object.clone()
+    def isthunk(self):
+        return False
+
+    def match(self, candidate):
+        if 'match' in self and self['match'].isa(Method):
+            return self['match'].activate(self, Object.clone(candidate))
+        raise FugaError("match: no callable match method for object")
+
+    def matchSlots(self, candidate):
+        self.need()
+        for k in self._slots:
+            if 'matchByThunk?' in self[k]:
+                if self[k]['matchByThunk?'].activate(
+                                               self[k],
+                                               Object.clone()
+                                           ).is_(fgtrue):
+                    candidate.thunkSlots()
+                    break
+
         if len(self) != len(candidate):
             raise GuardError("Wrong number of arguments.")
+        captures = Object.clone()
         for k in self._slots:
             if k in candidate:
-                if self[k].isa(Msg):
-                    captures[self[k].value()] = candidate[k]
-                elif self[k].isa(Symbol) and candidate[k].isa(Symbol):
-                    if self[k].value() != candidate[k].value():
-                        raise GuardError()
-                elif self[k].isa(String) and candidate[k].isa(String):
-                    if self[k].value() != candidate[k].value():
-                        raise GuardError()
-                elif self[k].isa(Int) and candidate[k].isa(Int):
-                    if self[k].value() != candidate[k].value():
-                        raise GuardError()
-                else:
-                    raise GuardError()
+                captures.update(self[k].match(candidate[k]))
             else:
-                raise GuardError("Parameter mismatch.")
+                raise GuardError()
         return captures
 
     def evalSlots(self, scope, reflect=False, bleed=False):
@@ -484,6 +527,9 @@ class fgthunk(fgobj):
         self._strict = False
         self._code = code
         self._env  = env
+
+    def isthunk(self):
+        return not self._strict
 
     def _transfer(self, other):
         if self._strict:
@@ -555,7 +601,9 @@ void   = Object.clone()
 fgtrue  = Bool.clone(True)
 fgfalse = Bool.clone(False)
 
-# Primitives
+Thunk = Object.clone()
+
+# Primitives / Basic Objects
 def fgint(val):
     assert isinstance(val, int)
     return Int.clone(val)
@@ -593,6 +641,15 @@ def fgbool(m):
         return fgtrue
     else:
         return fgfalse
+
+def fgfgthunk(code, scope):
+    return Thunk.clone(code=code, scope=scope)
+
+def fgname(name):
+    if isinstance(name, str):
+        return fgsym(name)
+    else:
+        return fgint(name)
 
 ###########################################
 ## Important methods ######################
@@ -676,6 +733,8 @@ void  ['name'] = fgstr('void')
 fgtrue ['name'] = fgstr('true')
 fgfalse['name'] = fgstr('false')
 
+Thunk ['name'] = fgstr('Thunk')
+
 # Stringifying!
 @setstr(Object, True)
 def Object_str(self, depth):
@@ -723,6 +782,75 @@ def Msg_str(self, depth):
         return fgstr(str(self.value()) + self.strSlots(depth).value())
     else:
         return fgstr(str(self.value()))
+ 
+@setstr(Thunk)
+def Thunk_str(self):
+    return fgstr('thunk(...)')
+
+## Matching
+
+@setmethod(Object, 'match', 1)
+def Object_match(self, candidate):
+    return self.matchSlots(candidate)
+
+@setmethod(Msg, 'matchByThunk?', 0)
+def Msg_matchByThunk(self):
+    if self.value() == '~' and len(self) == 1:
+        return fgtrue
+    return fgfalse
+
+@setmethod(Msg, 'specialArg?', 0)
+def Msg_specialArg_(self):
+    if self.value() == '~' and len(self) == 1:
+        return fgtrue
+    return fgfalse
+
+@setmethod(Msg, 'toArg', 2)
+def Msg_toArg(self, scope, name):
+    arg = Object.clone()
+    if self.value() == '~' and len(self) == 1:
+        thunk = self[0].eval(scope)
+        if not thunk.isa(Thunk):
+            raise FugaError("can't use ~ on non-Thunks!")
+        arg[name.value()] = fgthunk(thunk['code'], thunk['scope'])
+    else:
+        arg[name.value()] = fgthunk(self, scope)
+    return arg
+
+@setmethod(Msg, 'match', 1)
+def Msg_match(self, candidate):
+    captures = Object.clone()
+    if self.value() == '~' and len(self) == 1 and self[0].isa(Msg):
+        captures[self[0].value()] = fgfgthunk(
+            candidate.code(),
+            candidate.scope()
+        )
+    elif len(self):
+        raise FugaError("this doesn't make sense")
+    else:
+        captures[self.value()] = candidate
+    return captures
+
+@setmethod(Int, 'match', 1)
+def Int_match(self, candidate):
+    if (candidate.isa(Int) and candidate.isPrimitive(int)
+                           and self.value() == candidate.value()):
+        return Object.clone()
+    raise GuardError("Int doesn't match.")
+
+@setmethod(String, 'match', 1)
+def Int_match(self, candidate):
+    if (candidate.isa(String) and candidate.isPrimitive(str)
+                              and self.value() == candidate.value()):
+        return Object.clone()
+    raise GuardError("String doesn't match.")
+
+@setmethod(Symbol, 'match', 1)
+def Int_match(self, candidate):
+    if (candidate.isa(Symbol) and candidate.isPrimitive(str)
+                              and self.value() == candidate.value()):
+        return Object.clone()
+    raise GuardError("String doesn't match.")
 
 ## Slot manipulation
 

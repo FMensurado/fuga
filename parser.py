@@ -89,7 +89,7 @@ class _parser(PEG):
     i_SYMPREFIX    = '":" !RawOp Spacing'
     
     m_Op           = '!EQUALS !BECOMES !SYMPREFIX RawOp LineSpacing'
-    i_RawOp        = r'[`~!@$%^&*\-+=|:;.<>/?]+'
+    i_RawOp        = r'[`\'~!@$%^&*\-+=|:;.<>/?]+'
     i_PrefixOp     = '!DeceptiveOp Op'
     i_DeceptiveOp  = '&(RawOp "(") Op'
     
