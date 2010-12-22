@@ -807,14 +807,20 @@ def Msg_specialArg_(self):
 
 @setmethod(Msg, 'toArg', 2)
 def Msg_toArg(self, scope, name):
+    if name.isPrimitive(int) or name.isPrimitive(str):
+        name = name.value()
+    else:
+        raise FugaError("toArg: name must be primitive int,"
+                                     " or string or symbol.")
+
     arg = Object.clone()
     if self.value() == '~' and len(self) == 1:
         thunk = self[0].eval(scope)
         if not thunk.isa(Thunk):
             raise FugaError("can't use ~ on non-Thunks!")
-        arg[name.value()] = fgthunk(thunk['code'], thunk['scope'])
+        arg[name] = fgthunk(thunk['code'], thunk['scope'])
     else:
-        arg[name.value()] = fgthunk(self, scope)
+        arg[name] = fgthunk(self, scope)
     return arg
 
 @setmethod(Msg, 'match', 1)
