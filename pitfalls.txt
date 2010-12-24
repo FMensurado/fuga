@@ -1,0 +1,4 @@
+# Thunks
+
+To evaluate a thunk, you must flag the thunk's status as "being evaluated," in order to detect any cyclic dependencies. If an exception occurs while a thunk is being evaluated, you must reset the thunk's status, or any attempt to re-evaluate the thunk will fail (due to a spurious "cyclic dependency").
+
