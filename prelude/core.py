@@ -548,8 +548,13 @@ class fgthunk(fgobj):
         if self._strict is None:
             raise FugaError("thunk need: cyclic dependency")
         if not self._strict:
-            self._strict = None
-            self._transfer(self._code.eval(self._env))
+            try:
+                self._strict = None
+                value = self._code.eval(self._env)
+            except FugaError as e:
+                self._strict = False
+                raise e
+            self._transfer(value)
     
     def thunkSlots(self, reflect=False, bleed=False):
         if not self._strict:
@@ -570,7 +575,7 @@ class fgthunk(fgobj):
                 self [k] = thunk
             del self._env
             del self._code
-    
+
     def code(self):
         if self._strict:
             raise FugaError("thunk code: thunk was already evaluated")
