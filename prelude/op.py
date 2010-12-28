@@ -1,30 +1,52 @@
 from .prelude import *
 
 operator = Prelude["operator"] = Object.clone()
+
+# Highest Priority
+
+operator['.'] = Object.clone(priority=fgint(-10), send=fgsym('scope'))
+
+# Default Priority
+
 operator['default'] = Object.clone(
-    priority=fgint(200),
+    priority=fgint(0),
     send=fgsym('left')
 )
 
+# Arithmetic
+
+operator['**']  = Object.clone(priority=fgint(50), send=fgsym('left'))
+operator['*']  = Object.clone(priority=fgint(51), send=fgsym('left'))
+operator['/']  = Object.clone(priority=fgint(51), send=fgsym('left'))
+operator['//'] = Object.clone(priority=fgint(51), send=fgsym('left'))
+operator['%']  = Object.clone(priority=fgint(51), send=fgsym('left'))
+operator['+']  = Object.clone(priority=fgint(52), send=fgsym('left'))
+operator['-']  = Object.clone(priority=fgint(52), send=fgsym('left'))
+
+# Relational
+
+operator['<']  = Object.clone(priority=fgint(60), send=fgsym('left'))
+operator['>']  = Object.clone(priority=fgint(60), send=fgsym('left'))
+operator['=='] = Object.clone(priority=fgint(60), send=fgsym('left'))
+operator['<='] = Object.clone(priority=fgint(60), send=fgsym('left'))
+operator['>='] = Object.clone(priority=fgint(60), send=fgsym('left'))
+
+# Boolean
+
+operator['&&'] = Object.clone(priority=fgint(70), send=fgsym('scope'))
+operator['||'] = Object.clone(priority=fgint(70), send=fgsym('scope'))
+operator['^^'] = Object.clone(priority=fgint(70), send=fgsym('scope'))
+
 # Organization
 
-operator['->'] = Object.clone(priority=fgint(10), send=fgsym('scope'))
-operator['<-'] = Object.clone(priority=fgint(10), send=fgsym('scope'))
+operator['->'] = Object.clone(priority=fgint(100), send=fgsym('scope'))
+operator['<-'] = Object.clone(priority=fgint(100), send=fgsym('scope'))
 
 # Assignment
 
-operator[':='] = Object.clone(priority=fgint(10), send=fgsym('scope'))
+operator[':='] = Object.clone(priority=fgint(100), send=fgsym('scope'))
 
-# Arithmetic
-
-operator['**']  = Object.clone(priority=fgint(90), send=fgsym('left'))
-operator['*']  = Object.clone(priority=fgint(91), send=fgsym('left'))
-operator['/']  = Object.clone(priority=fgint(91), send=fgsym('left'))
-operator['//'] = Object.clone(priority=fgint(91), send=fgsym('left'))
-operator['%']  = Object.clone(priority=fgint(91), send=fgsym('left'))
-operator['+']  = Object.clone(priority=fgint(92), send=fgsym('left'))
-operator['-']  = Object.clone(priority=fgint(92), send=fgsym('left'))
-
+#############
 
 def send(op):
     if op not in operator or 'send' not in operator[op]:
