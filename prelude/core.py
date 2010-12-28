@@ -407,6 +407,9 @@ class fgobj:
     def thunkSlots(self):
         pass
 
+    def splitThunk(self):
+        return self
+
     def activate(self, receiver, args):
         if self.isa(Method):
             if self.value():
@@ -450,7 +453,7 @@ class fgobj:
                                                self[k],
                                                Object.clone()
                                            ).is_(fgtrue):
-                    candidate.thunkSlots()
+                    candidate = candidate.splitThunk()
                     break
 
         if len(self) != len(candidate):
@@ -464,8 +467,7 @@ class fgobj:
         return captures
 
     def evalSlots(self, scope, reflect=False, bleed=False):
-        result = fgthunk(self, scope)
-        result.thunkSlots(reflect, bleed)
+        result = fgthunk(self, scope).splitThunk(reflect, bleed)
         result.needSlots()
         return result
 
@@ -558,23 +560,27 @@ class fgthunk(fgobj):
     
     def thunkSlots(self, reflect=False, bleed=False):
         if not self._strict:
-            self._strict = True
-            self._slots  = {}
-            self._proto  = Object
-            self._value  = None
-            self._length = 0
-            self._id     = _newid()
+            self._transfer(self.splitThunk(reflect, bleed))
 
-            scope = self._env
-            if reflect and not bleed:
-                scope = scope.clone()
-            for k in self._code._slots:
-                thunk = fgthunk(self._code.rawGet(k), scope)
-                if isinstance(k, str) and reflect:
-                    scope[k] = thunk
-                self [k] = thunk
-            del self._env
-            del self._code
+    def splitThunk(self, reflect=False, bleed=False):
+        if self._strict:
+            return self
+
+        result = Object.clone()
+        
+        scope = self._env
+        if reflect and not bleed:
+            scope = scope.clone()
+        
+        self._code.need()
+        
+        for k in self._code._slots:
+            thunk = fgthunk(self._code[k], scope)
+            if isinstance(k, str) and reflect:
+                scope[k] = thunk
+            result[k] = thunk
+        
+        return result
 
     def code(self):
         if self._strict:

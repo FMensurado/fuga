@@ -26,13 +26,13 @@ def Prelude_scope(self, args):
 
 @setmethod(Prelude, 'do')
 def Prelude_do(self, args):
-    args.thunkSlots(True)
+    args = args.splitThunk(True)
     args.needSlots()
     return args[len(args)-1]
 
 @setmethod(Prelude, 'if')
 def Prelude_if(self, args):
-    args.thunkSlots()
+    args = args.splitThunk(True)
     if len(args) != 3:
         raise FugaError("if: expected 3 arguments, got $d" % len(args))
     args[0].need()

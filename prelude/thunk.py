@@ -5,7 +5,7 @@ Prelude['Thunk'] = Thunk
 
 @setmethod(Prelude, 'thunk')
 def Prelude_thunk(self, args):
-    args.thunkSlots()
+    args = args.splitThunk()
     if len(args) != 1:
         raise FugaError("thunk: expected 1 argument, got %d" % len(args))
     return fgfgthunk(args[0].code(), args[0].scope())
