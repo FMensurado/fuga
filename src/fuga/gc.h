@@ -129,7 +129,8 @@ typedef void (*FugaGCMarkFn)(void*, FugaGC*);
 *** - Parameters:
 ***     - `FugaGC* gc`: The garbage collector.
 ***     - `void* parent`: The object which holds a link to child.
-***     - `void* child`: The object referenced in `parent`.
+***     - `void* child`: The object referenced in `parent`. If you pass in
+***     NULL, this function does nothing.
 *** - Returns: void
 *** - See also: `FugaGCMarkFn`
 **/
