@@ -170,13 +170,16 @@ void FugaGC_unroot (FugaGC* gc, void* object);
 *** ## Allocation
 *** ### FugaGC_alloc
 ***
-*** Allocate a new object.
+*** Allocate a new object. The data is not initialized to anything (like
+*** `malloc`).
 ***
 *** - Parameters:
 ***     - `FugaGC* gc`: The garbage collector.
 ***     - `size_t size`: The size of the new object.
-***     - `FugaGCFreeFn`: The function that tells us how to free the object. 
-***     - `FugaGCMarkFn`: The function that tells us the object's references.
+***     - `FugaGCFreeFn`: Function that tells us how to free the object.
+***     If NULL is passed, the default FreeFn is used.
+***     - `FugaGCMarkFn`: Function that tells us the object's references.
+***     If NULL is passed, the default FreeFn is used.
 *** - Returns: The new object.
 *** - See also: `FugaGCFreeFn`, `FugaGCMarkFn`
 **/
