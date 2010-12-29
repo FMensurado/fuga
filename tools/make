@@ -18,6 +18,11 @@ def filename_o(module):
     module = module.replace('/', '_')
     return "bin/%s.o" % module
 
+def modulename(filename):
+    suffix = filename[-2:]
+    if suffix in ['.h', '.c']:
+        return filename[:-2]
+    return filename
 
 def needs_building(module, executable=None):
     try:
@@ -121,6 +126,8 @@ def build(module, executable=False, done=None):
     run('gcc', cc)
 
 def make(module, executable=False, done=None):
+    module = modulename(module)
+
     if not done:
         done = []
     done.append(module)

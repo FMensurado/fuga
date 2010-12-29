@@ -37,9 +37,9 @@ Fuga has the following top-level directory structure:
 To build Fuga, use `tools/make`. For example,
 
     $ tools/make fuga/gc
-    
+
 Will build `fuga/gc.c` and all of its dependencies. Like the traditional 
-`make`, it only builds files that have changed since the last time they 
+`kmake`, it only builds files that have changed since the last time they 
 were built (or if the `.o`) file is missing from the `bin` folder.
 
 Once the project is further along `tools/make` should build the interpreter
@@ -47,8 +47,8 @@ by default, and `tools/make --install` will install it once it's built.
 
 ## Style
 
-In order to keep the C API simple, consistency is a must. Here are some rules
-that were designed to enhance consistency.
+In order to keep the C API simple, consistency is a must. Here are some 
+rules that were designed to enhance consistency.
 
 ### Naming Conventions
 
@@ -57,8 +57,8 @@ identifiers that are meant to be used only inside the Fuga source code (and
 not in the surrounding application) use `_Fuga` or `_FUGA_` instead.
 
 Type names are in `CamelCase`, with the first letter capitalized, and the
-first letter of subsequent words also capitalized. For example, the following
-are all types: `Fuga`, `FugaInt`, `FugaGC`, `_FugaGCHeader`.
+first letter of subsequent words also capitalized. For example, the
+following are all types: `Fuga`, `FugaInt`, `FugaGC`, `_FugaGCHeader`.
 
 Functions almost always pertain mainly to one type (think method in an OO
 language). Function names begin with that type name, followed by an 
@@ -150,10 +150,10 @@ Granted, this source code documentation might be a bit overkill for this
 particular function, but it usually doesn't hurt to elaborate a bit on the
 techniques used and decisions made when implementing a function.
 
-The greatest enemy of documentation is laziness. Hopefully I can develop some
-sort of tool to combat this laziness. Meanwhile, one needs to be considerate
-and update one's documentation alongside the code, not after the fact (or
-worse, never).
+The greatest enemy of documentation is laziness. Hopefully I can develop 
+some sort of tool to combat this laziness. Meanwhile, one needs to be
+considerate and update one's documentation alongside the code, not after
+the fact (or worse, never).
 
 In the future, there will be a tool to turn all of this documentation into
 Markdown / HTML. That's why the documentation has to be in Markdown format:
@@ -194,7 +194,7 @@ to test every possible condition.
 
 ### Unit tests
 
-To actually test code, we must develop test cases. Tests are organized
+To actually test code, we must develop unit tests. Tests are organized
 into suites. The general syntax / schematic for a test suite is:
 
     TESTSUITE(suite_name) {
@@ -204,7 +204,7 @@ into suites. The general syntax / schematic for a test suite is:
         int c = b/2;
         int *x = malloc(sizeof *x);
         // run tests
-        TEST(a == c);
+        TEST(a == c, "a needs to be the same as b");
         // perform clean up
         free(x);
     }
@@ -224,17 +224,10 @@ To call a test suite from outside, use:
 
     TESTSUITE_RUN(suite_name);
 
-To run a test suite, use the hand tools/test:
-
-    $ tools/test suite_name
-
-You can run all test suites in a file or directory by passing those
-to tools/test instead, or you can run all test suites.
+You can run all test suites in a file or directory in src by passing those
+to tools/test, or you can run all test suites.
 
     $ tools/test filename
     $ tools/test directory
     $ tools/test --all
 
-At this point, don't pass in the .c if you want to test a file! That's 
-added automatically. In the future, the .c will be allowed, but right now
-it isn't.

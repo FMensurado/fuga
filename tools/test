@@ -18,6 +18,12 @@ def filename_o(module):
     module = module.replace('/', '_')
     return "bin/%s.o" % module
 
+def modulename(filename):
+    suffix = filename[-2:]
+    if suffix in ['.h', '.c']:
+        return filename[:-2]
+    return filename
+
 def file_exists(filename):
     try:
         os.path.getmtime(filename)
@@ -29,6 +35,7 @@ def main_module(package):
     return package + "/" + package
 
 def is_module(module):
+    module = modulename(module)
     return (file_exists(filename_c(module)) or
             file_exists(filename_h(module)))
 
@@ -165,8 +172,8 @@ def main():
         print_usage()
     elif sys.argv[1] == '--all':
         test_all()
-    elif is_module(sys.argv[1]):
-        test_module(sys.argv[1])
+    elif is_module(modulename(sys.argv[1])):
+        test_module(modulename(sys.argv[1]))
     elif is_function(sys.argv[1]):
         test_function(sys.argv[1])
     elif is_package(sys.argv[1]):
