@@ -35,17 +35,15 @@ def repl():
 
         try:
             code = code.thunk(env)
-            code.thunkSlots(True, True)
+            code = code.splitThunk(True, True)
+            for slot in code:
+                try:
+                    if not slot.is_(void):
+                        print(slot)
+                except FugaError as e:
+                    print("ERROR:", e)
         except FugaError as e:
             print("ERROR:", e)
-    
-
-        for slot in code:
-            try:
-                if not slot.is_(void):
-                    print(slot)
-            except FugaError as e:
-                print("ERROR:", e)
 
 def load(filename):
     try:

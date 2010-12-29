@@ -83,6 +83,10 @@ class fgobj:
         >>> obj.extend(Object.clone(Object, a=Object))
         >>> obj
         (10, Object)
+        >>> obj = Object.clone()
+        >>> obj.extend(Object.clone(fgint(10), fgint(20), fgint(30)))
+        >>> obj
+        (10, 20, 30)
         """
         for slot in other:
             self.append(slot)
@@ -367,42 +371,41 @@ class fgobj:
             return self.evalSlots(scope, reflect, bleed)
 
 
-    def args(self, scope):
-        """
-        Extract arguments from Msg.
-        """
-        normal = True
-        for k in self._slots:
-            if self[k].specialArg():
-                normal = False
-                break
+    def slots(self):
+        self.need()
+        slots = Object.clone()
+        slots._slots = self._slots
+        slots._length = self._length
+        return slots
 
-        if normal:
-            args = Object.clone()
-            args._slots = self._slots
-            args._length = self._length
-            return fgthunk(args, scope)
-        else:
-            args = Object.clone()
-            for k in self._slots:
-                arg = self[k].toArg(scope, k)
-                args.extend(arg)
-                args.update(arg)
-            return args
+    def args(self, scope):
+        return fgthunk(self.slots(), scope)
 
     def toArg(self, scope, name):
-        if self.specialArg():
-            return self['toArg'].activate(self,
-                Object.clone(scope, fgname(name))
-            )
+        """
+        >>> fgint(10).toArg(Object, 0)
+        (10)
+        >>> fgint(10).toArg(Object, 10)
+        (10)
+        >>> fgint(10).toArg(Object, 'a')
+        (a=10)
+        >>> fgint(10).toArg(Object, 'b')
+        (b=10)
+        """
+        if self.isa(Msg) and self.value() == '~' and len(self) == 1:
+            thunk = self[0].eval(scope)
+            if not thunk.isa(Thunk):
+                raise FugaError("can't use ~ on non-Thunks!")
+            return thunk['code'].toArg(thunk['scope'], name)
+        if self.isa(Msg) and self.value() == '*' and len(self) == 1:
+            return self[0].eval(scope)
         else:
             arg = Object.clone()
-            arg[name] = fgthunk(self, scope)
+            if isinstance(name, int):
+                arg.append(fgthunk(self, scope))
+            else:
+                arg[name] = fgthunk(self, scope)
             return arg
-
-    def specialArg(self):
-        return 'specialArg?' in self and self['specialArg?'].activate(
-                        self, Object.clone()).is_(fgtrue)
 
     def thunkSlots(self):
         pass
@@ -563,6 +566,10 @@ class fgthunk(fgobj):
             self._transfer(self.splitThunk(reflect, bleed))
 
     def splitThunk(self, reflect=False, bleed=False):
+        """
+        >>> len(fgthunk(Object.clone(Int, Int, Int), Object).splitThunk())
+        3
+        """
         if self._strict:
             return self
 
@@ -575,10 +582,11 @@ class fgthunk(fgobj):
         self._code.need()
         
         for k in self._code._slots:
-            thunk = fgthunk(self._code[k], scope)
-            if isinstance(k, str) and reflect:
-                scope[k] = thunk
-            result[k] = thunk
+            arg = self._code[k].toArg(scope, k)
+            if reflect:
+                scope.update(arg)
+            result.update(arg)
+            result.extend(arg)
         
         return result
 
@@ -810,29 +818,6 @@ def Msg_matchByThunk(self):
         return fgtrue
     return fgfalse
 
-@setmethod(Msg, 'specialArg?', 0)
-def Msg_specialArg_(self):
-    if self.value() == '~' and len(self) == 1:
-        return fgtrue
-    return fgfalse
-
-@setmethod(Msg, 'toArg', 2)
-def Msg_toArg(self, scope, name):
-    if name.isPrimitive(int) or name.isPrimitive(str):
-        name = name.value()
-    else:
-        raise FugaError("toArg: name must be primitive int,"
-                                     " or string or symbol.")
-
-    arg = Object.clone()
-    if self.value() == '~' and len(self) == 1:
-        thunk = self[0].eval(scope)
-        if not thunk.isa(Thunk):
-            raise FugaError("can't use ~ on non-Thunks!")
-        arg[name] = fgthunk(thunk['code'], thunk['scope'])
-    else:
-        arg[name] = fgthunk(self, scope)
-    return arg
 
 @setmethod(Msg, 'match', 1)
 def Msg_match(self, candidate):
