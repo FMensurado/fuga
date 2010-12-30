@@ -11,8 +11,8 @@ class _parser(PEG):
     i_Module       = 'Spacing Block EndOfFile'
     i_Block        = 'Slot? (COMMA+ Slot)* COMMA*'
     m_Slot         = 'Slot_EQUALS / Slot_BECOMES / Expr'
-    i_Slot_EQUALS  = 'Name+ EQUALS Expr'
-    i_Slot_BECOMES = '(Name* DeceptiveOp / Name+) Object? BECOMES Expr'
+    i_Slot_EQUALS  = 'Expr EQUALS Expr'
+    i_Slot_BECOMES = 'Expr BECOMES Expr'
     m_Expr         = 'Part (Op Part)*'
     i_Part         = 'PrefixOp* Root Msg*'
     i_Root         = 'PExpr / Object / Int / String / Msg / Symbol'
@@ -25,28 +25,58 @@ class _parser(PEG):
         result = Object.clone()
         slots  = [v[0]] if v[0] is not None else []
         slots.extend(w[1] for w in v[1])
+
         for slot in slots:
             if isinstance(slot, tuple):
                 result.set(slot[0], slot[1])
-            else:
+
+        for slot in slots:
+            if not isinstance(slot, tuple):
                 result.append(slot)
         return result
 
-    def Slot_EQUALS(self,v):
-        if len(v[0]) == 1:
-            return v[0][-1], v[2]
-        msg = fgmsg('set', fgsym(v[0][-1]), v[2])
-        msgs = list(map(fgmsg, v[0][:-1]))
-        msgs.append(msg)
-        return fgexpr(*msgs)
+    def Slot_EQUALS(self, v, allowargs=False):
+        if v[0].isa(Msg):
+            if not allowargs and len(v[0]):
+                raise SyntaxError("non-method slot can't have parameters")
+            return v[0].value(), v[2]
+
+        if v[0].isa(Int):
+            return v[0].value(), v[2]
+
+        if v[0].isa(Expr):
+            i = len(v[0]) - 1
+            last = v[0][i]
+            if not allowargs and last.isa(Msg) and len(last):
+                raise SyntaxError("non-method slot can't have parameters")
+            if not (last.isa(Int) or last.isa(Msg)):
+                raise SyntaxError("slot name must be integer or identifier")
+            expr = Expr.clone()
+            expr.extend(v[0])
+            expr[i] = fgmsg('set', fgname(last.value()), v[2])
+            return expr
+
+        raise SyntaxError("slot name must be integer or identifier")
 
     def Slot_BECOMES(self, v):
-        if isinstance(v[0], tuple):
-            v = [v[0][0] + [v[0][1]]] + list(v[1:])
-        args = Object.clone() if v[1] is None else v[1]
-        method = fgmsg('method', args, v[3])
-        w = [v[0], '=', method]
-        return self.Slot_EQUALS(w)
+    
+        if v[0].isa(Msg):
+            args = v[0].slots()
+        elif v[0].isa(Int):
+            args = Object.clone()
+        elif v[0].isa(Expr):
+            i = len(v[0])-1
+            last = v[0][i]
+            if not (last.isa(Msg) or last.isa(Int)):
+                raise SyntaxError("slot name must be integer or identifier")
+            args = last.slots()
+        elif v[0].isPrimitive():
+            raise SyntaxError("slot name must be integer or identifier")
+        else:
+            return fgmsg('method', v[0], v[2])
+
+        method = fgmsg('method', args, v[2])
+        return self.Slot_EQUALS((v[0], '=', method), True)
 
     def Expr(self, v):
         ops   = []
@@ -240,13 +270,21 @@ def parse(code, filename='<file>'):
     >>> parse("a + b * c")
     (a +(b *(c)))
     >>> parse("a +=+=+=+=+ b + c")
-    (a +=+=+=+=+(b +(c)))
+    (a +=+=+=+=+(b) +(c))
     >>> parse("a := b")
     (:=(a, b))
     >>> parse("a -> b")
     (->(a, b))
     >>> parse("a <- b")
     (<-(a, b))
+    >>> parse("0=a, 1=b, 2=c")
+    (a, b, c)
+    >>> parse("a, 1=b, c")
+    (a, b, c)
+    >>> parse("b, c, 0=a")
+    (a, b, c)
+    >>> parse("(x) => y")
+    (method((x), y))
     """
     try:
         return parser.parse(code, 'start', filename)
