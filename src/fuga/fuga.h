@@ -4,8 +4,78 @@
 *** # Fuga, a homoiconic object-oriented programming language.
 **/
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+/**
+*** ### FugaData
+***
+*** Represents the various types of primitive data. This is meant
+*** to be a 64bit (8bytes) union. It is useful to remember that size
+*** 
+**/
+typedef union FugaData {
+    struct FugaObject OBJECT;
+    int64_t   INT;
+    uint64_t* LONG;
+    double    REAL;
+    char*     SYMBOL;
+    char*     STRING;
+    bool      BOOL;
+    void*     data;
+} FugaData;
+
+/**
+*** ### FUGA_TYPE 
+***
+*** This is an 8bit value that tells whether 
+***
+*** - Values:
+***     - `FUGA_TYPE_NONE`: for objects that aren't primitive
+***     - `FUGA_TYPE_INT`: for small primitive ints
+***     - `FUGA_TYPE_LONG`: for big primitive ints
+***     - `FUGA_TYPE_REAL`: for floating point numbers
+***     - `FUGA_TYPE_STRING`: for primitive strings
+***     - `FUGA_TYPE_SYMBOL`: for primitive symbols
+***     - `FUGA_TYPE_METHOD`: for primitive methods
+***     - `FUGA_TYPE_OBJECT`: for the root object (Object)
+***     - `FUGA_TYPE_NIL`: for the `nil` object (indicating a lack of value)
+***     - `FUGA_TYPE_TRUE`: for the `true` object
+***     - `FUGA_TYPE_FALSE`: for the `false` object
+*** - Flags:
+***     - `FUGA_FLAG_ERROR`: a raised error
+**/
+
+typedef uint8_t FugaType
+
+#define FUGA_TYPE_NONE   0x00 // not a primitive
+#define FUGA_TYPE_INT    0x01 // for smallprimitive ints
+#define FUGA_TYPE_LONG   0x02 // for long primitive ints
+#define FUGA_TYPE_REAL   0x03 // for primitive reals
+#define FUGA_TYPE_STRING 0x04 // for primitive strings
+#define FUGA_TYPE_SYMBOL 0x05 // for primitive symbols
+#define FUGA_TYPE_METHOD 0x06 // for primitive methods
+
+// primitive singletons
+#define FUGA_TYPE_OBJECT 0x08  // type of Object (the base object)
+#define FUGA_TYPE_NIL    0x09  // type of nil
+#define FUGA_TYPE_TRUE   0x0A  // type of true
+#define FUGA_TYPE_FALSE  0x0B  // type of false
+
+// flags
+#define FUGA_FLAG_ERROR  0x80
+
+/**
+*** ### FugaID
+***
+*** Unique identifier for each 
+**/
+typedef uint32_t FugaID;
+
+#define FUGA_ID_LAZY    ((uint32_t)0)
+#define FUGA_ID_NEEDED  ((uint32_t)0xFFFFFFFF)
+#define FUGA_ID_OBJECT  ((uint32_t)1)
 
 /**
 *** ### Fuga
@@ -24,116 +94,62 @@
 ***         - `uint32_t size`: number of slots
 ***
 ***     - Primitive Data:
-***         - `uint32_t type`: refers to the type of the `data` field. It uses
-***         predefined values, such as `FUGA_TYPE_INT` or `FUGA_TYPE_NONE`.
+***         - `uint32_t type`: refers to the type of the `data` field. It
+***         uses predefined values, such as `FUGA_TYPE_INT` or
+***         `FUGA_TYPE_NONE`.
 ***         - `char data[]`: any data that can't be captured by the slots
 ***         themselves. Used for primitves such as numbers, strings, built 
 ***         in functions.
 ***
-*** - See also: `FUGA_TYPE`, `FugaSlot`, `Fuga_new`, `Fuga_clone`
 **/
-typedef struct _FugaSlots FugaSlots;
-typedef struct _Fuga Fuga;
 
+#ifndef FUGA_FUGA_TYPEDEF
+#define FUGA_FUGA_TYPEDEF
+typedef struct _Fuga Fuga;
+#endif
 struct _Fuga {
     Fuga* Object;
     Fuga* proto;
-    FugaSlots* slots;
-    
-    // primitive data
-    uint32_t type;
-    uint32_t size;
-    char data[];
+    struct FugaSlots* slots;
+    FugaID id;
+
+    // primitive type
+    FugaType _type;
+    uint32_t size:24;
+    FugaData data;
 };
 
 /**
-*** ### FugaSlot
-***
-*** The `FugaSlot` struct represents a name - value pair.
-*** 
-*** - Fields:
-***     - `name` is the name associated with this slot. name` must be a
-***     Symbol, or NULL.
-***     - `value` is the value of this slot.
+*** ### FugaObject
 **/
-typedef struct _FugaSlot FugaSlot;
-struct _FugaSlot {
-   Fuga* name;
-   Fuga* value;
-};
+typedef struct FugaObject {
+    FugaGC* gc;
+    FugaID id;
+    Fuga* Prelude;
+    Fuga* Number;
+    Fuga* Int;
+    Fuga* Real;
+    Fuga* String;
+    Fuga* Symbol;
+} FugaObject;
 
-/**
-*** ### FugaSlots
-*** 
-*** Holds an object's slots.
-***
-*** - Fields:
-***     - `uint32_t length`: number of slots 
-***     - `uint32_t capacity`: number of slots this can contain before needing
-***     to grow
-***     - `FugaSlot slot`: individual slots
-**/
-struct _FugaSlots {
-    uint32_t length;
-    uint32_t capacity;
-    void* _pvt;
-    FugaSlot slot[];
-};
-
-
-/**
-*** ### FUGA_TYPE 
-***
-*** This enumeration details the various kinds of Fuga primitives. It is
-*** important to notice that you can have non-standard types -- you must
-*** use the flag `FUGA_FLAG_USER` for non-standard types.
-***
-*** User-defined primitive types / library primitive types have the
-*** unfortunate trouble of not having a taxonomy, so the onus of d
-***
-*** - Values:
-***     - `FUGA_TYPE_NONE`: for objects that aren't primitive
-***     - `FUGA_TYPE_OBJECT`: for the root object (Object)
-***     - `FUGA_TYPE_VOID`: for the `void` object (indicating a lack of value)
-***     - `FUGA_TYPE_NULL`: for the `null` object (indicating no value)
-***     - `FUGA_TYPE_INT`: for (short) primitive ints
-***     - `FUGA_TYPE_LONG`: for long primitive ints
-***     - `FUGA_TYPE_REAL`: for real numbers
-***     - `FUGA_TYPE_STRING`: for primitive strings
-***     - `FUGA_TYPE_SYMBOL`: for primitive symbols (which are always unique)
-***     - `FUGA_TYPE_METHOD`: for primitive methods
-*** - Flags:
-***     - `FUGA_FLAG_USER`: user-defined / library primitives must contain
-***     this flag.
-***     - `FUGA_FLAG_ERROR`: raised types.
-**/
-
-#define FUGA_TYPE_NONE   0 // not a primitve
-    
-// primitive types
-#define FUGA_TYPE_OBJECT 1  // type of Object (the base object)
-#define FUGA_TYPE_NULL   2  // type of null   (object that denotes no value)
-#define FUGA_TYPE_INT    3  // for primitive ints
-#define FUGA_TYPE_LONG   4  // for primitive ints
-#define FUGA_TYPE_REAL   5  // for primitive reals
-#define FUGA_TYPE_STRING 6  // for primitive strings
-#define FUGA_TYPE_SYMBOL 7  // for primitive symbols
-#define FUGA_TYPE_METHOD 8  // for primitive methods
-    
-// flags
-#define FUGA_FLAG_USER    0x40000000
-#define FUGA_FLAG_ERROR   0x80000000
+#define FUGA_Object  (self->Object)
+#define FUGA_Prelude (self->Object->data.OBJECT->Prelude)
+#define FUGA_Number  (self->Object->data.OBJECT->Number)
+#define FUGA_Int     (self->Object->data.OBJECT->Int)
+#define FUGA_Real    (self->Object->data.OBJECT->Real)
+#define FUGA_String  (self->Object->data.OBJECT->String)
+#define FUGA_Symbol  (self->Object->data.OBJECT->Symbol)
 
 /**
 *** ## Constructors and Destructors
 *** ### Fuga_new
 ***
-*** `Fuga_new` allocates and initializes a new Fuga environment. At the moment
-*** there are no parameters, but there may end up being some soonish.
+*** `Fuga_new` allocates and initializes a new Fuga environment. At the
+*** moment there are no parameters, but there may end up being some soonish.
 *** 
-*** - Parameters: (none)
+*** - Params: (none)
 *** - Returns: The base Fuga object, `Object`.
-*** - See also:`Fuga_free` and `Fuga_clone`.
 **/
 Fuga* Fuga_new();
 
@@ -143,10 +159,9 @@ Fuga* Fuga_new();
 *** `Fuga_free` deallocates the Fuga environment. This is useful when, e.g.,
 *** you're done with your program, or a little Fuga "session" is done.
 ***
-*** - Parameters:
+*** - Params:
 ***     - `Fuga* self`: any object in the Fuga environment.
 *** - Returns: void.
-*** - See also: `Fuga_new`.
 **/
 void Fuga_free(Fuga* self);
 
@@ -159,10 +174,9 @@ void Fuga_free(Fuga* self);
 *** to the prototype can have an effect on the new object. This is often
 *** desirable.
 ***
-*** - Parameters:
+*** - Params:
 ***     - `Fuga* proto`: the new object's prototype.
 *** - Returns: the new object
-*** - See also: `Fuga_alloc`
 **/
 Fuga* Fuga_clone(Fuga* proto);
 
@@ -181,12 +195,44 @@ Fuga* Fuga_clone(Fuga* proto);
 *** When creating a primitive, call Fuga_alloc, and then use the new object's
 *** `data` field to store whatever you want.
 ***
-*** - Parameters:
+*** - Params:
 ***     - `Fuga* proto`: the new Object's prototype.
 *** - Returns: the new object
-*** - See also: `Fuga_clone`
 **/
 Fuga* Fuga_alloc(Fuga* proto, uint32_t type, uint32_t size);
+/**
+*** ## Properties
+*** ### Fuga_length
+***
+*** Return the number of canonical slots in self. 
+***
+*** - Params:
+***     - `Fuga* self`
+*** - Returns: `
+**/
+
+/**
+*** ### Fuga_type
+***
+*** Determine the primitive type of the object.
+***
+*** - Params:
+***     - `Fuga* obj`
+*** - Returns: the primitive type of `obj`
+**/
+#define Fuga_type(obj)  (((obj)->_type) & ~FUGA_FLAG_ERROR)
+
+/**
+*** ### Fuga_error
+***
+*** Determine whether an error was raised.
+***
+*** - Params:
+***     - `Fuga* obj`
+*** - Returns: true if `obj` is a raised error, false otherwise.
+**/
+#define Fuga_error(obj) (((obj)->_type) & FUGA_FLAG_ERROR)
+
 
 /**
 *** ## Slot Manipulation
@@ -200,7 +246,6 @@ Fuga* Fuga_alloc(Fuga* proto, uint32_t type, uint32_t size);
 ***     - `Fuga* self`: object to look in
 ***     - `name` or `index`: name or index of the slot to look for 
 *** - Returns: true if there is such a slot, false otherwise.
-*** - See also: `Fuga_get`
 **/
 bool Fuga_has(Fuga* self, Fuga* name);
 bool Fuga_hasi(Fuga* self, uint32_t index);
@@ -216,7 +261,6 @@ bool Fuga_hass(Fuga* self, const char* name);
 ***     - `Fuga* self`: object to look in
 ***     - `name` or `index`: name or index of the slot to look for
 *** - Returns: the value of the slot, or SlotError.
-*** - See also: `Fuga_has`, `Fuga_set`.
 **/
 Fuga* Fuga_get(Fuga* self, Fuga* name);
 Fuga* Fuga_geti(Fuga* self, uint32_t index);
@@ -234,7 +278,6 @@ Fuga* Fuga_gets(Fuga* self, const char* name);
 ***     value in the first available index.
 ***     - `value`: the value of the slot to add.
 *** - Returns: NULL on success, SlotError on failure.
-*** - See also: `Fuga_get`
 **/
 
 Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value);
