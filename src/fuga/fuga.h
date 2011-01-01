@@ -16,7 +16,7 @@
 *** 
 **/
 typedef union FugaData {
-    struct FugaObject OBJECT;
+    struct FugaObject* OBJECT;
     int64_t   INT;
     uint64_t* LONG;
     double    REAL;
@@ -47,7 +47,7 @@ typedef union FugaData {
 ***     - `FUGA_FLAG_ERROR`: a raised error
 **/
 
-typedef uint8_t FugaType
+typedef uint8_t FugaType;
 
 #define FUGA_TYPE_NONE   0x00 // not a primitive
 #define FUGA_TYPE_INT    0x01 // for smallprimitive ints
@@ -123,8 +123,9 @@ struct _Fuga {
 *** ### FugaObject
 **/
 typedef struct FugaObject {
-    FugaGC* gc;
+    struct FugaGC* gc;
     FugaID id;
+    struct FugaSymbols *symbols;
     Fuga* Prelude;
     Fuga* Number;
     Fuga* Int;
@@ -134,6 +135,7 @@ typedef struct FugaObject {
 } FugaObject;
 
 #define FUGA_Object  (self->Object)
+#define FUGA_gc      (self->Object->data.OBJECT->gc)
 #define FUGA_Prelude (self->Object->data.OBJECT->Prelude)
 #define FUGA_Number  (self->Object->data.OBJECT->Number)
 #define FUGA_Int     (self->Object->data.OBJECT->Int)
@@ -180,26 +182,6 @@ void Fuga_free(Fuga* self);
 **/
 Fuga* Fuga_clone(Fuga* proto);
 
-/**
-*** ### Fuga_alloc
-***
-*** `Fuga_alloc` creates an object just like `Fuga_clone`, but it adds
-*** a tiny bit of spice. Essentially, `Fuga_alloc` allows you to define
-*** your own primitive data types in Fuga. In fact, this is how Ints and
-*** Strings are allocated.
-***
-*** The way it works is that you give `Fuga_alloc` a prototype, a "type",
-*** and a size, and it returns an object that was cloned from that prototype,
-*** with the given type (to mark the primitive data type), and with enough
-*** space in the `data` field to store something of the given size.
-*** When creating a primitive, call Fuga_alloc, and then use the new object's
-*** `data` field to store whatever you want.
-***
-*** - Params:
-***     - `Fuga* proto`: the new Object's prototype.
-*** - Returns: the new object
-**/
-Fuga* Fuga_alloc(Fuga* proto, uint32_t type, uint32_t size);
 /**
 *** ## Properties
 *** ### Fuga_length
