@@ -99,9 +99,9 @@
 #endif
 
 /**
-*** ## `TESTSUITE(suite_name, suite_body)` 
+*** ## `TESTS(suite_name, suite_body)` 
 ***
-*** Use `TESTSUITE` to create a test suite / a wrapper around unit tests.
+*** Use `TESTS` to create a test suite / a wrapper around unit tests.
 *** Ideally there should be a 1-to-1 correspondence between tests suites
 *** and functions/modules (see the top-level README file, for information
 *** on modules). If more than one test suite is needed (in order to
@@ -110,11 +110,11 @@
 ***
 *** To call a suite from outside, use
 ***
-***     TESTSUITE_RUN(suite_name);
+***     TESTS_RUN(suite_name);
 ***
 *** To call a suite from within a suite, use
 ***
-***     TESTSUITE_CALL(suite_name);
+***     TESTS_CALL(suite_name);
 ***
 *** Parameters:
 ***
@@ -129,7 +129,7 @@
 ***
 *** Example:
 ***
-***     TESTSUITE(foo_bar,
+***     TESTS(foo_bar,
 ***         // set up
 ***         int x = foo_bar();
 ***         int y = foo_bar();
@@ -141,14 +141,14 @@
 ***     )
 **/
 
-#define TESTSUITE(suite_name)                     \
-    void TESTSUITE_##suite_name(const char* _suite_name)
+#define TESTS(suite_name)                     \
+    void TESTS_##suite_name(const char* _suite_name)
 
-#define TESTSUITE_CALL(suite_name)                            \
-    TESTSUITE_##suite_name(#suite_name)
+#define TESTS_CALL(suite_name)                            \
+    TESTS_##suite_name(#suite_name)
 
-#define TESTSUITE_RUN(suite_name)                             \
-    TESTSUITE_##suite_name(#suite_name)
+#define TESTS_RUN(suite_name)                             \
+    TESTS_##suite_name(#suite_name)
 
 /**
 *** ## `TEST`, `TEST1`, `TEST2`, `TEST3`, `TEST4`
@@ -173,21 +173,21 @@
 *** to activate any branches that we need, without creating unreachable
 *** branches in the process.
 ***
-*** `TEST` must only be called from within a `TESTSUITE`, or it won't
+*** `TEST` must only be called from within a `TESTS`, or it won't
 *** compile. (This is on purpose.) For an example of `TEST` usage, look at
-*** the `TESTSUITE` documentation above.
+*** the `TESTS` documentation above.
 **/
 
 #ifdef TESTING_COVERAGE
 # define TEST(assertion, message) (assertion)
 #else
-# define TEST(assertion, message)                                           \
-    if (!(assertion)) {                                                     \
-        printf("--------------------------------------");                   \
-        printf("--------------------------------------\n");                 \
-        printf("[%s] in %s, line %d\n", _suite_name, __FILE__, __LINE__);   \
-        printf("    Test: %s\n", #assertion);                               \
-        printf("    Msg:  %s\n", message);                                  \
+# define TEST(assertion, message)                                          \
+    if (!(assertion)) {                                                    \
+        printf("--------------------------------------");                  \
+        printf("--------------------------------------\n");                \
+        printf("[%s] in %s, line %d\n", _suite_name, __FILE__, __LINE__);  \
+        printf("    Test: %s\n", #assertion);                              \
+        printf("    Msg:  %s\n", message);                                 \
     }
 #endif
 

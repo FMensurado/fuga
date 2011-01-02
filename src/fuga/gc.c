@@ -47,7 +47,10 @@ FugaGC* FugaGC_start() {
     gc->size = sizeof *gc;
     gc->pass = 0;
     return gc;
-} TESTSUITE(FugaGC_start) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_start) {
     FugaGC* gc = FugaGC_start();
 
     TEST(FugaGCList_empty(&gc->root),
@@ -66,6 +69,7 @@ FugaGC* FugaGC_start() {
 
     FugaGC_end(gc);
 }
+#endif
 
 void _FugaGCFreeFn_count(void* data) {
     // for testing purposes
@@ -87,7 +91,10 @@ void FugaGC_end(FugaGC* gc) {
     }
 
     free(gc);
-} TESTSUITE(FugaGC_end) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_end) {
     int freed = 0;
 
     FugaGC* gc = FugaGC_start();
@@ -108,17 +115,21 @@ void FugaGC_end(FugaGC* gc) {
     FugaGC_end(gc);
     TEST(freed == 5, "I've freed 5 objects so far... I hope.");
 }
-
+#endif
 
 
 void FugaGCFreeFn_default(void* object) {
     ALWAYS(object);
     free(_FUGAGCHEADER(object));
-} TESTSUITE(gc_default_freeFn) {
+}
+
+#ifdef TESTING
+TESTS(gc_default_freeFn) {
     FugaGC* gc = FugaGC_start();
     FugaGC_alloc(gc, 16, NULL, NULL);
     FugaGC_end(gc);
 }
+#endif
 
 void FugaGC_free(void* object) {
     FugaGCFreeFn_default(object);
@@ -144,7 +155,10 @@ void FugaGC_mark(FugaGC* gc, void* parent, void* child) {
             FugaGCList_pushFront(&gc->gray, &childh->list);
         }
     }
-} TESTSUITE(FugaGC_mark) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_mark) {
 
     FugaGC* gc = FugaGC_start();
     void* root = FugaGC_alloc(gc, 16, NULL, NULL);
@@ -179,6 +193,7 @@ void FugaGC_mark(FugaGC* gc, void* parent, void* child) {
 
     FugaGC_end(gc);
 }
+#endif
 
 void* FugaGC_alloc(
     FugaGC*        gc,
@@ -198,7 +213,10 @@ void* FugaGC_alloc(
     gc->num_objects++;
     gc->size += sizeof *header + size;
     return header->data;
-} TESTSUITE(FugaGC_alloc) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_alloc) {
     FugaGC* gc = FugaGC_start();
     size_t size = gc->size;
     
@@ -218,7 +236,7 @@ void* FugaGC_alloc(
 
     FugaGC_end(gc);
 }
-
+#endif
 
 void FugaGC_root(FugaGC* gc, void* data) {
     ALWAYS(gc);
@@ -227,7 +245,10 @@ void FugaGC_root(FugaGC* gc, void* data) {
     header->root = TRUE;
     FugaGCList_unlink(&header->list);
     FugaGCList_pushBack(&gc->root, &header->list);
-} TESTSUITE(FugaGC_root) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_root) {
     FugaGC* gc = FugaGC_start();
 
     void* item = FugaGC_alloc(gc, 8, NULL, NULL);
@@ -240,6 +261,7 @@ void FugaGC_root(FugaGC* gc, void* data) {
 
     FugaGC_end(gc);
 }
+#endif
 
 void FugaGC_unroot(FugaGC* gc, void* data) {
     ALWAYS(gc);
@@ -248,7 +270,10 @@ void FugaGC_unroot(FugaGC* gc, void* data) {
     header->root = FALSE;
     FugaGCList_unlink(&header->list);
     FugaGCList_pushBack(&gc->white, &header->list);
-} TESTSUITE(FugaGC_unroot) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_unroot) {
     FugaGC* gc = FugaGC_start();
 
     void* item = FugaGC_alloc(gc, 8, NULL, NULL);
@@ -259,6 +284,7 @@ void FugaGC_unroot(FugaGC* gc, void* data) {
 
     FugaGC_end(gc);
 }
+#endif
 
 // For testing purposes.
 typedef struct _FugaGCDummy {
@@ -320,7 +346,10 @@ void FugaGC_collect(FugaGC* gc) {
         FugaGCList_unlink(link);
         linkh->freeFn(linkh->data);
     }
-} TESTSUITE(FugaGC_collect) {
+}
+
+#ifdef TESTING
+TESTS(FugaGC_collect) {
     FugaGC* gc = FugaGC_start();
 
     size_t freecount;
@@ -438,4 +467,6 @@ void FugaGC_collect(FugaGC* gc) {
 
     FugaGC_end(gc);
 }
+#endif
+
 

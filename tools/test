@@ -67,8 +67,8 @@ def testsuites(module):
     modfile = open(filename_c(module));
     result = []
     for line in modfile:
-        if 'TESTSUITE' in line:
-            index = line.find('TESTSUITE')
+        if 'TESTS' in line:
+            index = line.find('TESTS')
             line  = line[index:]
             index = line.find('(')
             line  = line[index+1:]
@@ -90,15 +90,14 @@ def run_testsuites(module, testsuites):
         return warning("no test suites to run for %s" % module)
 
     testsuites_decl = '\n'.join(
-        ["TESTSUITE(%s);" % name for name in testsuites]
+        ["TESTS(%s);" % name for name in testsuites]
     )
     testsuites_run = '\n'.join(
-        ["    TESTSUITE_RUN(%s);" % name for name in testsuites]
+        ["    TESTS_RUN(%s);" % name for name in testsuites]
     )
 
     testcode = open("src/.test.c", "w")
     testcode.write("""
-#define TESTING
 #include "fuga/test.h"
 #include "%s.h"
 
@@ -110,7 +109,7 @@ int main() {
 }
 """ % (module, testsuites_decl, testsuites_run))
     testcode.close()
-    run('tools/make', 'tools/make -x .test')
+    run('tools/make', 'tools/make --test -x .test')
     run('test', './.test')
     run('rm', 'rm .test')
     run('rm', 'rm src/.test.c')

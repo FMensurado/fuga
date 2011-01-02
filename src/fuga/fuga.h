@@ -39,6 +39,7 @@ typedef union FugaData {
 ***     - `FUGA_TYPE_REAL`: for floating point numbers
 ***     - `FUGA_TYPE_STRING`: for primitive strings
 ***     - `FUGA_TYPE_SYMBOL`: for primitive symbols
+***     - `FUGA_TYPE_MSG`: for primitive messages
 ***     - `FUGA_TYPE_METHOD`: for primitive methods
 ***     - `FUGA_TYPE_OBJECT`: for the root object (Object)
 ***     - `FUGA_TYPE_NIL`: for the `nil` object (indicating a lack of value)
@@ -56,7 +57,8 @@ typedef uint8_t FugaType;
 #define FUGA_TYPE_REAL   0x03 // for primitive reals
 #define FUGA_TYPE_STRING 0x04 // for primitive strings
 #define FUGA_TYPE_SYMBOL 0x05 // for primitive symbols
-#define FUGA_TYPE_METHOD 0x06 // for primitive methods
+#define FUGA_TYPE_MSG    0x06 // for primitive messages
+#define FUGA_TYPE_METHOD 0x07 // for primitive methods
 
 // primitive singletons
 #define FUGA_TYPE_OBJECT 0x08  // type of Object (the base object)
@@ -230,6 +232,9 @@ Fuga* Fuga_clone(Fuga* proto);
 ***     - `name` or `index`: name or index of the slot to look for 
 *** - Returns: true if there is such a slot, false otherwise.
 **/
+bool Fuga_rawHas(Fuga* self, Fuga* name);
+bool Fuga_rawHasi(Fuga* self, int64_t index);
+bool Fuga_rawHass(Fuga* self, const char* name);
 bool Fuga_has(Fuga* self, Fuga* name);
 bool Fuga_hasi(Fuga* self, int64_t index);
 bool Fuga_hass(Fuga* self, const char* name);

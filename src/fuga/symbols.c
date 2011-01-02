@@ -51,7 +51,10 @@ void FugaSymbols_set(
             self = self->tree[(size_t)*name];
     }
     self->tree[0] = (FugaSymbols*)value;
-} TESTSUITE(FugaSymbols_set) {
+}
+
+#ifdef TESTING
+TESTS(FugaSymbols) {
     FugaGC *gc = FugaGC_start();
     FugaSymbols *self = FugaSymbols_new(gc);
 
@@ -100,4 +103,5 @@ void FugaSymbols_set(
 
     FugaGC_end(gc);
 }
+#endif
 

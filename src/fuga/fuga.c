@@ -73,7 +73,10 @@ Fuga* Fuga_new() {
     FUGA_Symbol  = Fuga_clone(self);
 
     return self;
-} TESTSUITE(Fuga_new) {
+}
+
+#ifdef TESTING
+TESTS(Fuga_new) {
     Fuga* self = Fuga_new();
 
     TEST(self, "need self");
@@ -91,6 +94,7 @@ Fuga* Fuga_new() {
     
     Fuga_free(self);
 }
+#endif
 
 
 /**
@@ -129,7 +133,10 @@ Fuga* Fuga_clone(Fuga* self) {
     result->data.data = NULL;
 
     return result;
-} TESTSUITE(clone) {
+}
+
+#ifdef TESTING
+TESTS(Fuga_clone) {
     Fuga* Object = Fuga_new();
     Fuga* self  = Fuga_clone(Object);
     Fuga* self2 = Fuga_clone(Object);
@@ -151,6 +158,7 @@ Fuga* Fuga_clone(Fuga* self) {
 
     Fuga_free(Object);
 }
+#endif
 
 /**
 *** ## Properties
@@ -198,9 +206,9 @@ bool Fuga_rawHas(Fuga* self, Fuga* name)
     case FUGA_TYPE_STRING: case FUGA_TYPE_MSG:
         return Fuga_rawHass(self, name->data.STRING);
     case FUGA_TYPE_INT:
-        return Fuga_rawHass(self, name->data.SYMBOL);
+        return Fuga_rawHasi(self, name->data.INT);
     case FUGA_TYPE_SYMBOL:
-        return self->slots && FugaSlots_hasIndex(self, index);
+        return self->slots && FugaSlots_hasBySymbol(self->slots, name);
     default:
         return false; // should raise error :-(
     }
@@ -208,11 +216,12 @@ bool Fuga_rawHas(Fuga* self, Fuga* name)
 
 bool Fuga_rawHasi(Fuga* self, int64_t index) {
     ALWAYS(self);
-    return self->slots && FugaSlots_hasIndex(self, index);
+    return self->slots && FugaSlots_hasByIndex(self->slots, index);
 }
 
 bool Fuga_rawHass(Fuga* self, const char* name) {
-
+    ALWAYS(self);
+    return false;
 }
 
 
@@ -220,6 +229,8 @@ bool Fuga_rawHass(Fuga* self, const char* name) {
 *** ### Fuga_has
 **/
 bool Fuga_has(Fuga* self, Fuga* name) {
+    ALWAYS(self);
+    return false;
 }
 
 bool Fuga_hasi(Fuga* self, int64_t index) {

@@ -53,7 +53,10 @@ bool _FugaSlotsList_has(_FugaSlotsList* list, FugaSlotsIndex index) {
         if (list->index == index)
             return true;
     return false;
-} TESTSUITE(_FugaSlotsList_has) {
+}
+
+#ifdef TESTING
+TESTS(_FugaSlotsList_has) {
     FugaGC *gc = FugaGC_start();
     
     _FugaSlotsList *a = _FugaSlotsList_new(gc);
@@ -88,6 +91,7 @@ bool _FugaSlotsList_has(_FugaSlotsList* list, FugaSlotsIndex index) {
 
     FugaGC_end(gc);
 }
+#endif
 
 /**
 *** ### _FugaSlotsList_get
@@ -97,7 +101,10 @@ FugaSlot* _FugaSlotsList_get(_FugaSlotsList* list, FugaSlotsIndex index) {
         if (list->index == index)
             return &(list->slot);
     return NULL;
-} TESTSUITE(_FugaSlotsList_get) {
+}
+
+#ifdef TESTING
+TESTS(_FugaSlotsList_get) {
     FugaGC *gc = FugaGC_start();
     
     _FugaSlotsList *a = _FugaSlotsList_new(gc);
@@ -132,7 +139,7 @@ FugaSlot* _FugaSlotsList_get(_FugaSlotsList* list, FugaSlotsIndex index) {
 
     FugaGC_end(gc);
 }
-
+#endif
 
 /**
 *** ### _FugaSlotsList_set
@@ -161,7 +168,10 @@ _FugaSlotsList* _FugaSlotsList_set(
     newlist->index = index;
     newlist->slot = slot;
     return newlist;
-} TESTSUITE(_FugaSlotsList_set) {
+}
+
+#ifdef TESTING
+TESTS(_FugaSlotsList_set) {
     FugaGC *gc = FugaGC_start();
 
     FugaSlot slot = {NULL, NULL};
@@ -202,6 +212,7 @@ _FugaSlotsList* _FugaSlotsList_set(
 
     FugaGC_end(gc);
 }
+#endif
 
 /**
 *** # FugaSlots
@@ -334,7 +345,10 @@ void FugaSlots_setByIndex(
             slots->length += 1;
         }
     }
-} TESTSUITE(FugaSlots_setByIndex) {
+}
+
+#ifdef TESTING
+TESTS(FugaSlots_setByIndex) {
     FugaGC* gc = FugaGC_start();
     FugaSlots* slots = FugaSlots_new(gc);
     Fuga* name  = FugaGC_alloc(gc, 1, NULL, NULL);
@@ -387,6 +401,7 @@ void FugaSlots_setByIndex(
 
     FugaGC_end(gc);
 }
+#endif
 
 /**
 *** ### FugaSlots_setBySymbol
@@ -411,7 +426,10 @@ void FugaSlots_setBySymbol(
     FugaSlotsIndex index = FugaSlotsIndex_fromPtr(name);
 
     slots->bySymbol = _FugaSlotsList_set(slots->bySymbol, gc, index, slot);
-} TESTSUITE(FugaSlots_setBySymbol) {
+}
+
+#ifdef TESTING
+TESTS(FugaSlots_setBySymbol) {
     FugaGC* gc = FugaGC_start();
     Fuga* name1 = FugaGC_alloc(gc, 4, NULL, NULL);
     Fuga* name2 = FugaGC_alloc(gc, 4, NULL, NULL);
@@ -451,4 +469,5 @@ void FugaSlots_setBySymbol(
 
     FugaGC_end(gc);
 }
+#endif
 

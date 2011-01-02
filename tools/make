@@ -3,6 +3,7 @@
 """
 
 CC = "gcc -Wall -Werror -std=c99 -pedantic"
+BIN = "bin"
 
 import os
 import os.path
@@ -16,7 +17,7 @@ def filename_c(module):
 
 def filename_o(module):
     module = module.replace('/', '_')
-    return "bin/%s.o" % module
+    return BIN + "/%s.o" % module
 
 def modulename(filename):
     suffix = filename[-2:]
@@ -163,7 +164,8 @@ def print_usage():
     print "    %s (-h|--help)" % sys.argv[0]
     print "    %s --clean" % sys.argv[0]
     print "Optional flags:"
-    print "    --quiet     doesn't print build commands"
+    print "    --quiet  doesn't print build commands"
+    print "    --test   defines TESTING while building"
 
 def main():
     if '--quiet' in sys.argv:
@@ -171,13 +173,20 @@ def main():
         flag_quiet = True
         del sys.argv[sys.argv.index('--quiet')]
 
+    if '--test' in sys.argv:
+        del sys.argv[sys.argv.index('--test')]
+        global CC
+        global BIN
+        CC  += ' -DTESTING'
+        BIN += '/test'
+
     if len(sys.argv) not in [2,3,4]:
         print_usage()
     elif sys.argv[1] in ['-h', '--help']:
         print_usage()
     elif sys.argv[1] == '--clean':
         if len(sys.argv) == 2:
-            run('rm', 'rm bin/*.o') 
+            run('rm', 'rm %s/*.o' % BIN) 
         else:
             print_usage()
     elif len(sys.argv) > 2 and sys.argv[1] not in ['-x', '--executable']:
