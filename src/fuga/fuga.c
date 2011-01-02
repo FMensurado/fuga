@@ -122,7 +122,7 @@ Fuga* Fuga_clone(Fuga* self) {
 
     result->Object = FUGA_Object;
     result->proto  = self;
-    result->slots  = FugaSlots_new(FUGA_gc);
+    result->slots  = NULL;
     result->id     = ++FUGA_Object->data.OBJECT->id;
     result->_type  = FUGA_TYPE_NONE;
     result->size   = 0;
@@ -141,7 +141,15 @@ Fuga* Fuga_clone(Fuga* self) {
     TEST(self2->proto == Object, "proto set incorrectly");
     TEST(self3->proto == self, "proto set incorrectly");
 
+    TEST(self->Object == Object, "Object set incorrectly");
+    TEST(self2->Object == Object, "Object set incorrectly");
+    TEST(self3->Object == Object, "Object set incorrectly");
+    
+    TEST(!self->slots, "slots should be NULL (no slots)");
+    TEST(!self2->slots, "slots should be NULL (no slots)");
+    TEST(!self3->slots, "slots should be NULL (no slots)");
 
+    Fuga_free(Object);
 }
 
 /**
@@ -180,20 +188,51 @@ Fuga* Fuga_clone(Fuga* self) {
 
 /**
 *** ## Slot Manipulation
-*** ### Fuga_has
-***
-*** Determine whether a slot exists inside an object, with the given
-*** name or index. If there is such a slot, `Fuga_get` is guaranteed to
-*** succeed.
-***
-*** - Params:
-***     - `Fuga* self`: object to look in
-***     - `name` or `index`: name or index of the slot to look for 
-*** - Returns: true if there is such a slot, false otherwise.
+*** ### Fuga_rawHas
 **/
-bool Fuga_has(Fuga* self, Fuga* name);
-bool Fuga_hasi(Fuga* self, uint32_t index);
-bool Fuga_hass(Fuga* self, const char* name);
+
+bool Fuga_rawHas(Fuga* self, Fuga* name)
+{
+    ALWAYS(self);
+    switch (Fuga_type(name)) {
+    case FUGA_TYPE_STRING: case FUGA_TYPE_MSG:
+        return Fuga_rawHass(self, name->data.STRING);
+    case FUGA_TYPE_INT:
+        return Fuga_rawHass(self, name->data.SYMBOL);
+    case FUGA_TYPE_SYMBOL:
+        return self->slots && FugaSlots_hasIndex(self, index);
+    default:
+        return false; // should raise error :-(
+    }
+}
+
+bool Fuga_rawHasi(Fuga* self, int64_t index) {
+    ALWAYS(self);
+    return self->slots && FugaSlots_hasIndex(self, index);
+}
+
+bool Fuga_rawHass(Fuga* self, const char* name) {
+
+}
+
+
+/**
+*** ### Fuga_has
+**/
+bool Fuga_has(Fuga* self, Fuga* name) {
+}
+
+bool Fuga_hasi(Fuga* self, int64_t index) {
+    ALWAYS(self);
+    return Fuga_rawHasi(self, index) || (
+        self->proto && Fuga_hasi(self, index)
+    );
+}
+
+bool Fuga_hass(Fuga* self, const char* name) {
+    ALWAYS(self);
+    return false;
+}
 
 /**
 *** ### Fuga_get
@@ -207,7 +246,7 @@ bool Fuga_hass(Fuga* self, const char* name);
 *** - Returns: the value of the slot, or SlotError.
 **/
 Fuga* Fuga_get(Fuga* self, Fuga* name);
-Fuga* Fuga_geti(Fuga* self, uint32_t index);
+Fuga* Fuga_geti(Fuga* self, int64_t index);
 Fuga* Fuga_gets(Fuga* self, const char* name);
 
 /**
@@ -225,6 +264,6 @@ Fuga* Fuga_gets(Fuga* self, const char* name);
 **/
 
 Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value);
-Fuga* Fuga_seti(Fuga* self, uint32_t index, Fuga* value);
+Fuga* Fuga_seti(Fuga* self, int64_t index, Fuga* value);
 Fuga* Fuga_sets(Fuga* self, const char* name, Fuga* value);
 

@@ -22,6 +22,7 @@ typedef union FugaData {
     double    REAL;
     char*     SYMBOL;
     char*     STRING;
+    char*     MSG;
     bool      BOOL;
     void*     data;
 } FugaData;
@@ -105,9 +106,9 @@ typedef uint32_t FugaID;
 
 #ifndef FUGA_FUGA_TYPEDEF
 #define FUGA_FUGA_TYPEDEF
-typedef struct _Fuga Fuga;
+typedef struct Fuga Fuga;
 #endif
-struct _Fuga {
+struct Fuga {
     Fuga* Object;
     Fuga* proto;
     struct FugaSlots* slots;
@@ -230,7 +231,7 @@ Fuga* Fuga_clone(Fuga* proto);
 *** - Returns: true if there is such a slot, false otherwise.
 **/
 bool Fuga_has(Fuga* self, Fuga* name);
-bool Fuga_hasi(Fuga* self, uint32_t index);
+bool Fuga_hasi(Fuga* self, int64_t index);
 bool Fuga_hass(Fuga* self, const char* name);
 
 /**
@@ -245,7 +246,7 @@ bool Fuga_hass(Fuga* self, const char* name);
 *** - Returns: the value of the slot, or SlotError.
 **/
 Fuga* Fuga_get(Fuga* self, Fuga* name);
-Fuga* Fuga_geti(Fuga* self, uint32_t index);
+Fuga* Fuga_geti(Fuga* self, int64_t index);
 Fuga* Fuga_gets(Fuga* self, const char* name);
 
 /**
@@ -263,7 +264,7 @@ Fuga* Fuga_gets(Fuga* self, const char* name);
 **/
 
 Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value);
-Fuga* Fuga_seti(Fuga* self, uint32_t index, Fuga* value);
+Fuga* Fuga_seti(Fuga* self, int64_t index, Fuga* value);
 Fuga* Fuga_sets(Fuga* self, const char* name, Fuga* value);
 
 #endif
