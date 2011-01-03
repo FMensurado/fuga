@@ -63,7 +63,7 @@ typedef int64_t FugaSlotsIndex;
 ***
 *** Create an empty FugaSlots.
 **/
-FugaSlots* FugaSlots_new(FugaGC* gc);
+FugaSlots* FugaSlots_new(void* gc);
 
 /**
 *** ## Properties
@@ -117,7 +117,6 @@ FugaSlot* FugaSlots_getBySymbol (FugaSlots* slots, Fuga* name);
 **/
 void FugaSlots_setByIndex(
     FugaSlots* slots,
-    FugaGC *gc,
     Fuga* name,
     Fuga* value,
     FugaSlotsIndex index
@@ -130,7 +129,6 @@ void FugaSlots_setByIndex(
 **/
 void FugaSlots_setBySymbol(
     FugaSlots* slots,
-    FugaGC *gc,
     Fuga* name,
     Fuga* value
 );

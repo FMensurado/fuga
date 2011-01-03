@@ -26,6 +26,7 @@ struct FugaGC {
 
 typedef struct FugaGCHeader {
     FugaGCList list;
+    FugaGC *gc;
     FugaGCFreeFn freeFn;
     FugaGCMarkFn markFn;
     unsigned char pass;
@@ -34,18 +35,25 @@ typedef struct FugaGCHeader {
     char data[];
 } FugaGCHeader;
 
-#define _FUGAGCHEADER(obj) ((FugaGCHeader*)((char*)(obj)-sizeof(FugaGCHeader)))
+#define HEADER(obj) ((FugaGCHeader*)((char*)(obj)-sizeof(FugaGCHeader)))
+#define DATA(obj)   ((void*)(((FugaGCHeader*)(obj))->data))
 
 FugaGC* FugaGC_start() {
-    FugaGC* gc = malloc(sizeof *gc);
-    ALWAYS(gc);
+    size_t gcsize = sizeof(FugaGCHeader) + sizeof(FugaGC);
+
+    FugaGC* gc = DATA(calloc(gcsize, 1));
+   
     FugaGCList_init(&gc->root);
     FugaGCList_init(&gc->black);
     FugaGCList_init(&gc->gray);
     FugaGCList_init(&gc->white);
+
     gc->num_objects = 0;
-    gc->size = sizeof *gc;
+    gc->size = gcsize;
     gc->pass = 0;
+
+    HEADER(gc)->gc = gc;
+
     return gc;
 }
 
@@ -58,8 +66,9 @@ TESTS(FugaGC_start) {
     TEST(FugaGCList_empty(&gc->root));
     TEST(FugaGCList_empty(&gc->white));
 
+    TEST(HEADER(gc)->gc == gc);
     TEST(gc->num_objects == 0);
-    TEST(gc->size == sizeof(FugaGC));
+    TEST(gc->size == sizeof(FugaGC) + sizeof(FugaGCHeader));
     TEST(gc->pass == 0);
 
     FugaGC_end(gc);
@@ -69,11 +78,11 @@ TESTS(FugaGC_start) {
 void _FugaGCFreeFn_count(void* data) {
     // for testing purposes
     (**(int**)data)++;
-    FugaGC_free(data);
 }
 
-void FugaGC_end(FugaGC* gc) {
-    ALWAYS(gc);
+void FugaGC_end(void* self) {
+    ALWAYS(self);
+    FugaGC *gc = HEADER(self)->gc;
     FugaGCList *link;
 
     FugaGCList_appendFront(&gc->white, &gc->root);
@@ -82,10 +91,12 @@ void FugaGC_end(FugaGC* gc) {
 
     for(link = gc->white.next; link != &gc->white; link = gc->white.next) {
         FugaGCList_unlink(link);
-        ((FugaGCHeader*)link)->freeFn(((FugaGCHeader*)link)->data);
+        if (((FugaGCHeader*)link)->freeFn)
+            ((FugaGCHeader*)link)->freeFn(((FugaGCHeader*)link)->data);
+        free(link);
     }
 
-    free(gc);
+    free(HEADER(gc));
 }
 
 #ifdef TESTING
@@ -93,113 +104,95 @@ TESTS(FugaGC_end) {
     int freed = 0;
 
     FugaGC* gc = FugaGC_start();
-    *((int**)FugaGC_alloc(gc, sizeof(int**),
-                          _FugaGCFreeFn_count, NULL)) = &freed;
-    *((int**)FugaGC_alloc(gc, sizeof(int**),
-                          _FugaGCFreeFn_count, NULL)) = &freed;
-    *((int**)FugaGC_alloc(gc, sizeof(int**),
-                          _FugaGCFreeFn_count, NULL)) = &freed;
+    for (int i = 0; i < 3; i++) {
+        int** p = FugaGC_alloc_(gc, sizeof(int**));
+        *p = &freed;
+        FugaGC_onFree_(p, _FugaGCFreeFn_count);
+    }
     FugaGC_end(gc);
     TEST(freed == 3);
 
     gc = FugaGC_start();
-    *((int**)FugaGC_alloc(gc, sizeof(int**),
-                          _FugaGCFreeFn_count, NULL)) = &freed;
-    *((int**)FugaGC_alloc(gc, sizeof(int**),
-                          _FugaGCFreeFn_count, NULL)) = &freed;
+    for (int i = 0; i < 2; i++) {
+        int** p = FugaGC_alloc_(gc, sizeof(int**));
+        *p = &freed;
+        FugaGC_onFree_(p, _FugaGCFreeFn_count);
+    }
     FugaGC_end(gc);
     TEST(freed == 5);
 }
 #endif
 
-
-void FugaGCFreeFn_default(void* object) {
-    ALWAYS(object);
-    free(_FUGAGCHEADER(object));
-}
-
-#ifdef TESTING
-TESTS(gc_default_freeFn) {
-    FugaGC* gc = FugaGC_start();
-    FugaGC_alloc(gc, 16, NULL, NULL);
-    FugaGC_end(gc);
-}
-#endif
-
-void FugaGC_free(void* object) {
-    FugaGCFreeFn_default(object);
-}
-
-void FugaGCMarkFn_default(void* parent, FugaGC* gc) {
-    ALWAYS(gc);
+void FugaGC_mark_(void* parent, void* child) {
     ALWAYS(parent);
-    // Not doing anything is the right default action.
-}
-
-
-void FugaGC_mark(FugaGC* gc, void* parent, void* child) {
-    ALWAYS(gc);
-    ALWAYS(parent);
+    FugaGC* gc = HEADER(parent)->gc;
     if (!child) return;
-
-    FugaGCHeader *childh = _FUGAGCHEADER(child);
-    if (childh->pass != gc->pass) {
-        childh->pass = gc->pass;
-        if (!childh->root) {
-            FugaGCList_unlink(&childh->list);
-            FugaGCList_pushFront(&gc->gray, &childh->list);
+    if (HEADER(child)->pass != gc->pass) {
+        HEADER(child)->pass = gc->pass;
+        if (!HEADER(child)->root) {
+            FugaGCList_unlink(&HEADER(child)->list);
+            FugaGCList_pushFront(&gc->gray, &HEADER(child)->list);
         }
     }
 }
 
 #ifdef TESTING
-TESTS(FugaGC_mark) {
-
+TESTS(FugaGC_mark_) {
     FugaGC* gc = FugaGC_start();
-    void* root = FugaGC_alloc(gc, 16, NULL, NULL);
-    void* item = FugaGC_alloc(gc, 16, NULL, NULL);
+    void* root = FugaGC_alloc_(gc, 16);
+    void* item = FugaGC_alloc_(gc, 16);
 
-    FugaGC_root(gc, root);
+    FugaGC_root(root);
 
-    TEST(FugaGCList_contains(&gc->root, _FUGAGCHEADER(root)));
-    TEST(FugaGCList_contains(&gc->white, _FUGAGCHEADER(item)));
+    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains(&gc->white, HEADER(item)));
     
-    FugaGC_mark(gc, root, root);
-    FugaGC_mark(gc, root, item);
+    FugaGC_mark_(root, root);
+    FugaGC_mark_(root, item);
 
-    TEST(FugaGCList_contains(&gc->root, _FUGAGCHEADER(root)));
-    TEST(FugaGCList_contains(&gc->white, _FUGAGCHEADER(item)));
+    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains(&gc->white, HEADER(item)));
 
     gc->pass += 1;
-    FugaGC_mark(gc, root, root);
-    FugaGC_mark(gc, root, item);
+    FugaGC_mark_(root, root);
+    FugaGC_mark_(root, item);
 
-    TEST(FugaGCList_contains(&gc->root, _FUGAGCHEADER(root)));
-    TEST(FugaGCList_contains(&gc->gray, _FUGAGCHEADER(item)));
+    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains(&gc->gray, HEADER(item)));
 
     // Try marking NULL -- should handle it gracefully, not crash.
-    FugaGC_mark(gc, root, NULL);
+    FugaGC_mark_(root, NULL);
 
     FugaGC_end(gc);
 }
 #endif
 
-void* FugaGC_alloc(
-    FugaGC*        gc,
-    size_t      size,
-    FugaGCFreeFn freeFn,
-    FugaGCMarkFn markFn
-) {
-    ALWAYS(gc);
+void FugaGC_onFree_(void* self, FugaGCFreeFn freeFn)
+{
+    ALWAYS(self);
+    HEADER(self)->freeFn = freeFn;
+}
+
+void FugaGC_onMark_(void* self, FugaGCMarkFn markFn)
+{
+    ALWAYS(self);
+    HEADER(self)->markFn = markFn;
+}
+
+void* FugaGC_alloc_(void* self, size_t size)
+{
+    ALWAYS(self);
     ALWAYS(size > 0);
-    FugaGCHeader *header = malloc(sizeof *header + size);
+    FugaGC* gc = HEADER(self)->gc;
+    FugaGCHeader *header = calloc(sizeof *header + size, 1);
     FugaGCList_pushFront(&gc->white, &header->list);
-    header->freeFn = freeFn ? freeFn : FugaGCFreeFn_default;
-    header->markFn = markFn ? markFn : FugaGCMarkFn_default;
+    gc->num_objects++;
+    header->freeFn = NULL;
+    header->markFn = NULL;
     header->size   = size;
     header->pass   = gc->pass;
     header->root   = 0;
-    gc->num_objects++;
+    header->gc     = gc;
     gc->size += sizeof *header + size;
     return header->data;
 }
@@ -209,61 +202,56 @@ TESTS(FugaGC_alloc) {
     FugaGC* gc = FugaGC_start();
     size_t size = gc->size;
     
-    FugaGC_alloc(gc, 16, NULL, NULL);
+    FugaGC_alloc_(gc, 16);
     TEST(gc->size == size + sizeof(FugaGCHeader) + 16);
     size = gc->size;
 
-    FugaGC_alloc(gc, 32, NULL, NULL);
+    FugaGC_alloc_(gc, 32);
     TEST(gc->size == size + sizeof(FugaGCHeader) + 32);
     size = gc->size;
     
-    FugaGCHeader *header = _FUGAGCHEADER(FugaGC_alloc(gc, 128, NULL, NULL));
-    TEST(!header->root)
+    FugaGCHeader *header = HEADER(FugaGC_alloc_(gc, 128));
+    TEST(!header->root);
 
     FugaGC_end(gc);
 }
 #endif
 
-void FugaGC_root(FugaGC* gc, void* data) {
-    ALWAYS(gc);
-    ALWAYS(data);
-    FugaGCHeader *header = (void*)((char*)data - sizeof *header);
-    header->root = TRUE;
-    FugaGCList_unlink(&header->list);
-    FugaGCList_pushBack(&gc->root, &header->list);
+void FugaGC_root(void* self) {
+    ALWAYS(self);
+    HEADER(self)->root = true;
+    FugaGCList_unlink(&HEADER(self)->list);
+    FugaGCList_pushBack(&HEADER(self)->gc->root, &HEADER(self)->list);
 }
 
 #ifdef TESTING
 TESTS(FugaGC_root) {
     FugaGC* gc = FugaGC_start();
+    void* item = FugaGC_alloc_(gc, 8);
 
-    void* item = FugaGC_alloc(gc, 8, NULL, NULL);
-
-    TEST(!FugaGCList_contains(&gc->root, _FUGAGCHEADER(item)));
-    FugaGC_root(gc, item);
-    TEST(FugaGCList_contains(&gc->root, _FUGAGCHEADER(item)));
+    TEST(!FugaGCList_contains(&gc->root, HEADER(item)));
+    FugaGC_root(item);
+    TEST( FugaGCList_contains(&gc->root, HEADER(item)));
 
     FugaGC_end(gc);
 }
 #endif
 
-void FugaGC_unroot(FugaGC* gc, void* data) {
-    ALWAYS(gc);
-    ALWAYS(data);
-    FugaGCHeader *header = (void*)((char*)data - sizeof *header);
-    header->root = FALSE;
-    FugaGCList_unlink(&header->list);
-    FugaGCList_pushBack(&gc->white, &header->list);
+void FugaGC_unroot(void* self) {
+    ALWAYS(self);
+    HEADER(self)->root = false;
+    FugaGCList_unlink(&HEADER(self)->list);
+    FugaGCList_pushBack(&HEADER(self)->gc->white, &HEADER(self)->list);
 }
 
 #ifdef TESTING
 TESTS(FugaGC_unroot) {
     FugaGC* gc = FugaGC_start();
 
-    void* item = FugaGC_alloc(gc, 8, NULL, NULL);
-    FugaGC_root(gc, item);
-    FugaGC_unroot(gc, item);
-    TEST(!FugaGCList_contains(&gc->root, _FUGAGCHEADER(item)));
+    void* item = FugaGC_alloc_(gc, 8);
+    FugaGC_root(item);
+    FugaGC_unroot(item);
+    TEST(!FugaGCList_contains(&gc->root, HEADER(item)));
 
     FugaGC_end(gc);
 }
@@ -278,28 +266,26 @@ typedef struct _FugaGCDummy {
 void _FugaGCFreeFn_dummy(void* data) {
     _FugaGCDummy* dummy = data;
     (*dummy->freecount)++;
-    FugaGCFreeFn_default(data);
 }
-void _FugaGCMarkFn_dummy(void* data, FugaGC* gc) {
+void _FugaGCMarkFn_dummy(void* data) {
     _FugaGCDummy* dummy = data;
     dummy->markcount++;
-    FugaGC_mark(gc, data, dummy->other);
+    FugaGC_mark_(dummy, dummy->other);
 }
-_FugaGCDummy* _FugaGC_mkDummy(FugaGC* gc, size_t* freecount) {
-    _FugaGCDummy* dummy = FugaGC_alloc(
-        gc,
-        sizeof*dummy,
-        _FugaGCFreeFn_dummy,
-        _FugaGCMarkFn_dummy
-    );
+_FugaGCDummy* _FugaGC_mkDummy(void* gc, size_t* freecount) {
+    _FugaGCDummy* dummy = FugaGC_alloc_(gc, sizeof *dummy);
+    FugaGC_onFree_(dummy, _FugaGCFreeFn_dummy);
+    FugaGC_onMark_(dummy, _FugaGCMarkFn_dummy);
+
     dummy->other     = NULL;
     dummy->markcount = 0;
     dummy->freecount = freecount;
     return dummy;
 }
 
-void FugaGC_collect(FugaGC* gc) {
-    ALWAYS(gc);
+void FugaGC_collect(void* self) {
+    ALWAYS(self);
+    FugaGC* gc = HEADER(self)->gc;
     FugaGCList *link = gc->root.next;
     gc->pass++;
 
@@ -309,7 +295,8 @@ void FugaGC_collect(FugaGC* gc) {
     for(link = gc->root.next; link != &gc->root; link = link->next) {
         FugaGCHeader* linkh = (FugaGCHeader*)link;
         linkh->pass = gc->pass;
-        linkh->markFn(linkh->data, gc);
+        if (linkh->markFn)
+            linkh->markFn(linkh->data);
     }
 
     for(link = gc->gray.next; link != &gc->gray; link = gc->gray.next) {
@@ -317,7 +304,8 @@ void FugaGC_collect(FugaGC* gc) {
         linkh->pass = gc->pass;
         FugaGCList_unlink(link);
         FugaGCList_pushBack(&gc->black, link);
-        linkh->markFn(linkh->data, gc);
+        if (linkh->markFn)
+            linkh->markFn(linkh->data);
     }
 
     for(link = gc->white.next; link != &gc->white; link = gc->white.next) {
@@ -327,7 +315,9 @@ void FugaGC_collect(FugaGC* gc) {
         gc->size -= linkh->size + sizeof(FugaGCHeader);
         // remove object
         FugaGCList_unlink(link);
-        linkh->freeFn(linkh->data);
+        if (linkh->freeFn)
+            linkh->freeFn(linkh->data);
+        free(linkh);
     }
 }
 
@@ -343,7 +333,7 @@ TESTS(FugaGC_collect) {
     dummy2 = _FugaGC_mkDummy(gc, &freecount);
     dummy3 = _FugaGC_mkDummy(gc, &freecount);
     TEST(gc->num_objects == 3);
-    TEST(gc->size == sizeof *gc +
+    TEST(gc->size == sizeof(FugaGCHeader) + sizeof *gc +
         (sizeof(FugaGCHeader) + sizeof *dummy1) * 3);
     FugaGC_collect(gc);
     TEST(freecount == 3); 
@@ -354,9 +344,9 @@ TESTS(FugaGC_collect) {
     dummy3 = _FugaGC_mkDummy(gc, &freecount);
     dummy1->other = dummy3;
     dummy2->other = dummy3;
-    FugaGC_root(gc, dummy1);
+    FugaGC_root(dummy1);
     TEST(gc->num_objects == 3);
-    TEST(gc->size == sizeof *gc +
+    TEST(gc->size == sizeof(FugaGCHeader) + sizeof *gc +
         (sizeof(FugaGCHeader) + sizeof *dummy1) * 3);
     FugaGC_collect(gc);
     TEST(freecount == 1); 
@@ -364,9 +354,9 @@ TESTS(FugaGC_collect) {
     TEST(dummy3->markcount == 1);
 
     freecount = 0;
-    FugaGC_unroot(gc, dummy1);
+    FugaGC_unroot(dummy1);
     TEST(gc->num_objects == 2);
-    TEST(gc->size == sizeof *gc +
+    TEST(gc->size == sizeof(FugaGCHeader) + sizeof *gc +
         (sizeof(FugaGCHeader) + sizeof *dummy1) * 2);
     FugaGC_collect(gc);
     TEST(freecount == 2);
@@ -385,9 +375,9 @@ TESTS(FugaGC_collect) {
         _FugaGC_mkDummy(gc, &freecount);
     dummy1->other = dummy2;
     dummy2->other = dummy3;
-    FugaGC_root(gc, dummy1);
+    FugaGC_root(dummy1);
     TEST(gc->num_objects == 1000003);
-    TEST(gc->size == sizeof *gc +
+    TEST(gc->size == sizeof(FugaGCHeader) + sizeof *gc +
         (sizeof(FugaGCHeader) + sizeof *dummy1) * 1000003);
     FugaGC_collect(gc);
     TEST(freecount == 1000000); 
@@ -396,7 +386,7 @@ TESTS(FugaGC_collect) {
     TEST(dummy3->markcount == 1);
 
     freecount = 0;
-    FugaGC_unroot(gc, dummy1);
+    FugaGC_unroot(dummy1);
     FugaGC_collect(gc);
     TEST(freecount == 3);
 
@@ -419,8 +409,8 @@ TESTS(FugaGC_collect) {
     dummy2->other = dummy1;
     dummy3->other = dummy4;
     dummy4->other = dummy4;
-    FugaGC_root(gc, dummy1);
-    FugaGC_root(gc, dummy3);
+    FugaGC_root(dummy1);
+    FugaGC_root(dummy3);
     FugaGC_collect(gc);
     TEST(freecount == 0); 
     TEST(dummy1->markcount == 1);
@@ -429,13 +419,13 @@ TESTS(FugaGC_collect) {
     TEST(dummy4->markcount == 1);
 
     freecount = 0;
-    FugaGC_unroot(gc, dummy1);
-    FugaGC_unroot(gc, dummy3);
+    FugaGC_unroot(dummy1);
+    FugaGC_unroot(dummy3);
     FugaGC_collect(gc);
     TEST(freecount == 4);
 
     TEST(gc->num_objects == 0);
-    TEST(gc->size == sizeof *gc);
+    TEST(gc->size == sizeof(FugaGCHeader) + sizeof *gc);
 
     FugaGC_end(gc);
 }

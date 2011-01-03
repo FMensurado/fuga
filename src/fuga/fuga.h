@@ -126,7 +126,6 @@ struct Fuga {
 *** ### FugaObject
 **/
 typedef struct FugaObject {
-    struct FugaGC* gc;
     FugaID id;
     struct FugaSymbols *symbols;
     Fuga* Prelude;

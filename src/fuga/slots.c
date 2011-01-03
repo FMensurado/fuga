@@ -25,11 +25,11 @@ struct _FugaSlotsList {
 *** Mark the list's dependencies. This is the FugaGCMarkFn for
 *** the _FugaSlotsList.
 **/
-void _FugaSlotsList_mark(void* self, FugaGC* gc) {
+void _FugaSlotsList_mark(void* self) {
     _FugaSlotsList* list = self;
-    if (list->next) FugaGC_mark(gc, list, list->next);
-    FugaGC_mark(gc, list, list->slot.name);
-    FugaGC_mark(gc, list, list->slot.value);
+    FugaGC_mark_(list, list->next);
+    FugaGC_mark_(list, list->slot.name);
+    FugaGC_mark_(list, list->slot.value);
 }
 
 /**
@@ -37,12 +37,11 @@ void _FugaSlotsList_mark(void* self, FugaGC* gc) {
 ***
 *** Return a new list, without any fields allocated.
 **/
-_FugaSlotsList* _FugaSlotsList_new(FugaGC* gc) {
+_FugaSlotsList* _FugaSlotsList_new(void* gc) {
     ALWAYS(gc);
-    return FugaGC_alloc(
-        gc, sizeof(_FugaSlotsList),
-        NULL, _FugaSlotsList_mark
-    );
+    _FugaSlotsList *list = FugaGC_alloc_(gc, sizeof(_FugaSlotsList));
+    FugaGC_onMark_(list, _FugaSlotsList_mark);
+    return list;
 }
 
 /**
@@ -130,11 +129,11 @@ TESTS(_FugaSlotsList_get) {
 **/
 _FugaSlotsList* _FugaSlotsList_set(
     _FugaSlotsList* oldlist,
-    FugaGC* gc,
     FugaSlotsIndex index,
     FugaSlot slot
 ) {
-    ALWAYS(gc);
+    ALWAYS(slot.name);
+    ALWAYS(slot.value);
 
     _FugaSlotsList* newlist;
     
@@ -145,7 +144,7 @@ _FugaSlotsList* _FugaSlotsList_set(
         }
     }
     
-    newlist = _FugaSlotsList_new(gc);
+    newlist = _FugaSlotsList_new(slot.name);
     newlist->next = oldlist;
     newlist->index = index;
     newlist->slot = slot;
@@ -156,17 +155,17 @@ _FugaSlotsList* _FugaSlotsList_set(
 TESTS(_FugaSlotsList_set) {
     FugaGC *gc = FugaGC_start();
 
-    FugaSlot slot = {NULL, NULL};
+    FugaSlot slot = {(void*)gc,(void*)gc};
 
     FugaSlotsIndex ia = FugaSlotsIndex_fromInt(0);
     FugaSlotsIndex ib = FugaSlotsIndex_fromInt(1);
     FugaSlotsIndex ic = FugaSlotsIndex_fromInt(2);
 
     _FugaSlotsList* a = NULL;
-    _FugaSlotsList* b = _FugaSlotsList_set(a, gc, ia, slot);
-    _FugaSlotsList* c = _FugaSlotsList_set(b, gc, ib, slot);
-    _FugaSlotsList* d = _FugaSlotsList_set(c, gc, ic, slot);
-    _FugaSlotsList* e = _FugaSlotsList_set(d, gc, ib, slot);
+    _FugaSlotsList* b = _FugaSlotsList_set(a, ia, slot);
+    _FugaSlotsList* c = _FugaSlotsList_set(b, ib, slot);
+    _FugaSlotsList* d = _FugaSlotsList_set(c, ic, slot);
+    _FugaSlotsList* e = _FugaSlotsList_set(d, ib, slot);
 
     TEST(b != NULL);
     TEST(_FugaSlotsList_has(b, ia));
@@ -201,10 +200,10 @@ struct FugaSlots {
 ***
 *** Mark `FugaSlots`'s references.
 **/
-void _FugaSlots_mark(void* self, FugaGC *gc) {
+void _FugaSlots_mark(void* self) {
     FugaSlots* slots = self;
-    FugaGC_mark(gc, self, slots->byIndex);
-    FugaGC_mark(gc, self, slots->bySymbol);
+    FugaGC_mark_(self, slots->byIndex);
+    FugaGC_mark_(self, slots->bySymbol);
 }
 
 /**
@@ -213,10 +212,10 @@ void _FugaSlots_mark(void* self, FugaGC *gc) {
 ***
 *** Create an empty `FugaSlots`.
 **/
-FugaSlots* FugaSlots_new(FugaGC* gc) {
+FugaSlots* FugaSlots_new(void* gc) {
     ALWAYS(gc);
-    FugaSlots* slots = FugaGC_alloc(gc, sizeof(FugaSlots),
-                                    NULL, _FugaSlots_mark);
+    FugaSlots* slots = FugaGC_alloc_(gc, sizeof(FugaSlots));
+    FugaGC_onMark_(slots, _FugaSlots_mark);
     slots->length = 0;
     slots->byIndex = NULL;
     slots->bySymbol = NULL;
@@ -294,13 +293,11 @@ FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, Fuga* symbol) {
 **/
 void FugaSlots_setByIndex(
     FugaSlots* slots,
-    FugaGC *gc,
     Fuga* name,
     Fuga* value,
     FugaSlotsIndex index
 ) {
     ALWAYS(slots);
-    ALWAYS(gc);
     ALWAYS(name);
     ALWAYS(value);
 
@@ -308,7 +305,7 @@ void FugaSlots_setByIndex(
     slot.name = name;
     slot.value = value;
 
-    slots->byIndex = _FugaSlotsList_set(slots->byIndex, gc, index, slot);
+    slots->byIndex = _FugaSlotsList_set(slots->byIndex, index, slot);
     if (FugaSlotsIndex_eq(index, FugaSlotsIndex_fromInt(slots->length))) {
         slots->length += 1;
         for (;;) {
@@ -323,9 +320,9 @@ void FugaSlots_setByIndex(
 TESTS(FugaSlots_setByIndex) {
     FugaGC* gc = FugaGC_start();
     FugaSlots* slots = FugaSlots_new(gc);
-    Fuga* name  = FugaGC_alloc(gc, 1, NULL, NULL);
-    Fuga* value1 = FugaGC_alloc(gc, 1, NULL, NULL);
-    Fuga* value2 = FugaGC_alloc(gc, 1, NULL, NULL);
+    Fuga* name  = FugaGC_alloc_(gc, 1);
+    Fuga* value1 = FugaGC_alloc_(gc, 1);
+    Fuga* value2 = FugaGC_alloc_(gc, 1);
 
     FugaSlotsIndex i0 = FugaSlotsIndex_fromInt(0);
     FugaSlotsIndex i1 = FugaSlotsIndex_fromInt(1);
@@ -337,7 +334,7 @@ TESTS(FugaSlots_setByIndex) {
     TEST(FugaSlots_length(slots) == 0);
     TEST(!FugaSlots_hasByIndex(slots, i0));
     TEST(FugaSlots_getByIndex(slots, i0) == NULL)
-    FugaSlots_setByIndex(slots, gc, name, value1, i0);
+    FugaSlots_setByIndex(slots, name, value1, i0);
     TEST(h = FugaSlots_hasByIndex(slots, i0));
     if (h) {
         TEST(FugaSlots_getByIndex(slots, i0)->value == value1)
@@ -346,18 +343,18 @@ TESTS(FugaSlots_setByIndex) {
 
     TEST(!FugaSlots_hasByIndex(slots, i1));
     TEST(FugaSlots_getByIndex(slots, i1) == NULL)
-    FugaSlots_setByIndex(slots, gc, name, value2, i1);
+    FugaSlots_setByIndex(slots, name, value2, i1);
     TEST(h = FugaSlots_hasByIndex(slots, i1));
     if (h) {
         TEST(FugaSlots_getByIndex(slots, i1)->value == value2)
-        FugaSlots_setByIndex(slots, gc, name, value1, i1);
+        FugaSlots_setByIndex(slots, name, value1, i1);
         TEST(FugaSlots_getByIndex(slots, i1)->value == value1)
     }
     TEST(FugaSlots_length(slots) == 2);
 
-    FugaSlots_setByIndex(slots, gc, name, value1, i3);
+    FugaSlots_setByIndex(slots, name, value1, i3);
     TEST(FugaSlots_length(slots) == 2);
-    FugaSlots_setByIndex(slots, gc, name, value1, i2);
+    FugaSlots_setByIndex(slots, name, value1, i2);
     TEST(FugaSlots_length(slots) == 4);
 
     FugaGC_end(gc);
@@ -371,12 +368,10 @@ TESTS(FugaSlots_setByIndex) {
 **/
 void FugaSlots_setBySymbol(
     FugaSlots* slots,
-    FugaGC *gc,
     Fuga* name,
     Fuga* value
 ) {
     ALWAYS(slots);
-    ALWAYS(gc);
     ALWAYS(name);
     ALWAYS(value);
 
@@ -386,23 +381,23 @@ void FugaSlots_setBySymbol(
 
     FugaSlotsIndex index = FugaSlotsIndex_fromPtr(name);
 
-    slots->bySymbol = _FugaSlotsList_set(slots->bySymbol, gc, index, slot);
+    slots->bySymbol = _FugaSlotsList_set(slots->bySymbol, index, slot);
 }
 
 #ifdef TESTING
 TESTS(FugaSlots_setBySymbol) {
     FugaGC* gc = FugaGC_start();
-    Fuga* name1 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* name2 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* value1 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* value2 = FugaGC_alloc(gc, 4, NULL, NULL);
+    Fuga* name1 = FugaGC_alloc_(gc, 4);
+    Fuga* name2 = FugaGC_alloc_(gc, 4);
+    Fuga* value1 = FugaGC_alloc_(gc, 4);
+    Fuga* value2 = FugaGC_alloc_(gc, 4);
     bool h;
 
     FugaSlots* slots = FugaSlots_new(gc);
 
     TEST(!FugaSlots_hasBySymbol(slots, name1));
     TEST(FugaSlots_getBySymbol(slots, name1) == NULL)
-    FugaSlots_setBySymbol(slots, gc, name1, value1);
+    FugaSlots_setBySymbol(slots, name1, value1);
     TEST(h = FugaSlots_hasBySymbol(slots, name1));
     if (h) {
         TEST(FugaSlots_getBySymbol(slots, name1)->value == value1)
@@ -410,12 +405,12 @@ TESTS(FugaSlots_setBySymbol) {
 
     TEST(!FugaSlots_hasBySymbol(slots, name2));
     TEST(FugaSlots_getBySymbol(slots, name2) == NULL)
-    FugaSlots_setBySymbol(slots, gc, name2, value2);
+    FugaSlots_setBySymbol(slots, name2, value2);
     TEST(h = FugaSlots_hasBySymbol(slots, name2));
     if (h) {
         TEST(FugaSlots_getBySymbol(slots, name2)->value == value2)
 
-        FugaSlots_setBySymbol(slots, gc, name2, value1);
+        FugaSlots_setBySymbol(slots, name2, value1);
         TEST(FugaSlots_getBySymbol(slots, name2)->value == value1)
     }
 

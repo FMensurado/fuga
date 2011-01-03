@@ -47,7 +47,7 @@ FugaGC* FugaGC_start();
 *** - Returns: void
 *** - See also: `FugaGC_start`
 **/
-void FugaGC_end(FugaGC* gc);
+void FugaGC_end(void* gc);
 
 /**
 *** ## Freeing Objects
@@ -81,24 +81,6 @@ void FugaGC_end(FugaGC* gc);
 typedef void (*FugaGCFreeFn)(void* object);
 
 /**
-*** ### FugaGC_free
-***
-*** Free a garbage collected object safely. This function is only meant to
-*** be called from within various FugaGCFreeFns, not from anywhere else. This
-*** functions is itself a FugaGCFreeFn, synechdochally.
-***
-*** If you accidentally use `free` instead of `FugaGC_free`, you'll get a
-*** sinister error. In AMD64 Linux/glibc, produces this is a core dump. I
-*** don't know for other platforms/libraries.
-***
-*** - Parameters:
-***     - `void* object`: the garbage collected object to free
-*** - Returns: void
-*** - See also: `FugaGCFreeFn`
-**/
-void FugaGC_free(void* object);
-
-/**
 *** ## Marking
 *** ### FugaGCMarkFn
 ***
@@ -115,7 +97,7 @@ void FugaGC_free(void* object);
 *** contains other GC'ed objects, you need to roll your own `markFn`.
 ***
 **/
-typedef void (*FugaGCMarkFn)(void*, FugaGC*);
+typedef void (*FugaGCMarkFn)(void*);
 
 /**
 *** ### FugaGC_mark
@@ -134,7 +116,7 @@ typedef void (*FugaGCMarkFn)(void*, FugaGC*);
 *** - Returns: void
 *** - See also: `FugaGCMarkFn`
 **/
-void FugaGC_mark(FugaGC* gc, void* parent, void* child);
+void FugaGC_mark_(void* parent, void* child);
 
 /**
 *** ### FugaGC_root
@@ -151,7 +133,7 @@ void FugaGC_mark(FugaGC* gc, void* parent, void* child);
 *** - Returns: void
 *** - See also: `FugaGC_unroot`
 **/
-void FugaGC_root   (FugaGC* gc, void* object);
+void FugaGC_root(void* object);
 
 /**
 *** ### FugaGC_unroot
@@ -165,7 +147,7 @@ void FugaGC_root   (FugaGC* gc, void* object);
 *** - Returns: void
 *** - See also: `FugaGC_root`
 **/
-void FugaGC_unroot (FugaGC* gc, void* object);
+void FugaGC_unroot(void* object);
 
 /**
 *** ## Allocation
@@ -175,7 +157,7 @@ void FugaGC_unroot (FugaGC* gc, void* object);
 *** `malloc`).
 ***
 *** - Parameters:
-***     - `FugaGC* gc`: The garbage collector.
+***     - `void* self`: An object in the GC environment.
 ***     - `size_t size`: The size of the new object.
 ***     - `FugaGCFreeFn`: Function that tells us how to free the object.
 ***     If NULL is passed, the default FreeFn is used.
@@ -184,7 +166,9 @@ void FugaGC_unroot (FugaGC* gc, void* object);
 *** - Returns: The new object.
 *** - See also: `FugaGCFreeFn`, `FugaGCMarkFn`
 **/
-void* FugaGC_alloc  (FugaGC* gc, size_t size, FugaGCFreeFn, FugaGCMarkFn);
+void* FugaGC_alloc_(void* self, size_t size);
+void FugaGC_onFree_(void* self, FugaGCFreeFn freeFn);
+void FugaGC_onMark_(void* self, FugaGCMarkFn markFn);
 
 /**
 *** ## Collection
@@ -195,10 +179,10 @@ void* FugaGC_alloc  (FugaGC* gc, size_t size, FugaGCFreeFn, FugaGCMarkFn);
 *** deallocated. In the future, this may happen over time instead.
 ***
 *** - Parameters:
-***     - `FugaGC* gc`: The garbage collector.
+***     - `void* self`: An object in the GC environment.
 *** - Returns: void.
 *** - See also: `FugaGC_root`, `FugaGC_unroot`
 **/
-void FugaGC_collect(FugaGC *gc);
+void FugaGC_collect(void *self);
 
 #endif

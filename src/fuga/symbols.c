@@ -6,17 +6,17 @@ struct FugaSymbols {
     FugaSymbols* tree[256];
 };
 
-void _FugaSymbols_mark(void* _self, FugaGC *gc) 
+void _FugaSymbols_mark(void* _self) 
 {
     FugaSymbols* self = _self;
     for (size_t i = 0; i < 256; i++)
-        FugaGC_mark(gc, self, self->tree[i]);
+        FugaGC_mark_(self, self->tree[i]);
 }
 
-FugaSymbols* FugaSymbols_new(FugaGC* gc)
+FugaSymbols* FugaSymbols_new(void* gc)
 {
-    FugaSymbols* self = FugaGC_alloc(gc, sizeof(FugaSymbols),
-                                     NULL, _FugaSymbols_mark);
+    FugaSymbols* self = FugaGC_alloc_(gc, sizeof(FugaSymbols));
+    FugaGC_onMark_(self, _FugaSymbols_mark);
     memset(self, sizeof(FugaSymbols), 0);
     return self;
 }
@@ -36,7 +36,6 @@ Fuga* FugaSymbols_get(FugaSymbols* self, const char* name)
 
 void FugaSymbols_set(
     FugaSymbols* self,
-    FugaGC *gc,
     const char* name,
     Fuga* value
 ) {
@@ -46,7 +45,7 @@ void FugaSymbols_set(
 
     for (; *name; name++) {
         if (!self->tree[(size_t)*name])
-            self = self->tree[(size_t)*name] = FugaSymbols_new(gc);
+            self = self->tree[(size_t)*name] = FugaSymbols_new(self);
         else
             self = self->tree[(size_t)*name];
     }
@@ -63,25 +62,25 @@ TESTS(FugaSymbols) {
     const char* str3 = "";
     const char* str4 = "definitely";
     
-    Fuga* sym1 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* sym2 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* sym3 = FugaGC_alloc(gc, 4, NULL, NULL);
-    Fuga* sym4 = FugaGC_alloc(gc, 4, NULL, NULL);
+    Fuga* sym1 = FugaGC_alloc_(gc, 4);
+    Fuga* sym2 = FugaGC_alloc_(gc, 4);
+    Fuga* sym3 = FugaGC_alloc_(gc, 4);
+    Fuga* sym4 = FugaGC_alloc_(gc, 4);
 
     TEST(FugaSymbols_get(self, str1) == NULL);
-    FugaSymbols_set(self, gc, str1, sym1);
+    FugaSymbols_set(self, str1, sym1);
     TEST(FugaSymbols_get(self, str1) == sym1);
 
     TEST(FugaSymbols_get(self, str2) == NULL);
-    FugaSymbols_set(self, gc, str2, sym2);
+    FugaSymbols_set(self, str2, sym2);
     TEST(FugaSymbols_get(self, str2) == sym2);
 
     TEST(FugaSymbols_get(self, str3) == NULL);
-    FugaSymbols_set(self, gc, str3, sym3);
+    FugaSymbols_set(self, str3, sym3);
     TEST(FugaSymbols_get(self, str3) == sym3);
 
     TEST(FugaSymbols_get(self, str4) == NULL);
-    FugaSymbols_set(self, gc, str4, sym4);
+    FugaSymbols_set(self, str4, sym4);
     TEST(FugaSymbols_get(self, str4) == sym4);
 
     TEST(FugaSymbols_get(self, str1) == sym1);

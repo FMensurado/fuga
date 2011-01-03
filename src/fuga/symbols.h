@@ -10,11 +10,9 @@ typedef struct Fuga Fuga;
 
 typedef struct FugaSymbols FugaSymbols;
 
-FugaSymbols* FugaSymbols_new(FugaGC* gc);
-
+FugaSymbols* FugaSymbols_new(void* gc);
 Fuga* FugaSymbols_get(FugaSymbols* self, const char* name);
-
-void FugaSymbols_set(FugaSymbols* self, FugaGC* gc,
+void FugaSymbols_set(FugaSymbols* self,
     const char* name,
     Fuga* value
 );
