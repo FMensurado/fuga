@@ -197,14 +197,14 @@ to test every possible condition.
 To actually test code, we must develop unit tests. Tests are organized
 into suites. The general syntax / schematic for a test suite is:
 
-    TESTSUITE(suite_name) {
+    TESTS(suite_name) {
         // set things up
         int a = 10;
         int b = a+10;
         int c = b/2;
         int *x = malloc(sizeof *x);
         // run tests
-        TEST(a == c, "a needs to be the same as b");
+        TEST(a == c);
         // perform clean up
         free(x);
     }
@@ -212,17 +212,17 @@ into suites. The general syntax / schematic for a test suite is:
 Test suites are to be located within the implementation file. To declare
 a suite in a header file, use
 
-    TESTSUITE(suite_name);
+    TESTS(suite_name);
 
 Most suites need not be declared in header files, however.
 
 To call a test suite from another suite, use:
 
-    TESTSUITE_CALL(suite_name);
+    TESTS_CALL(suite_name);
 
 To call a test suite from outside, use:
 
-    TESTSUITE_RUN(suite_name);
+    TESTS_RUN(suite_name);
 
 You can run all test suites in a file or directory in src by passing those
 to tools/test, or you can run all test suites.
