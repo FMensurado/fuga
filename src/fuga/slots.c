@@ -62,32 +62,23 @@ TESTS(_FugaSlotsList_has) {
     _FugaSlotsList *a = _FugaSlotsList_new(gc);
     _FugaSlotsList *b = _FugaSlotsList_new(gc);
 
-    TEST(!_FugaSlotsList_has(NULL, FugaSlotsIndex_fromInt(0)),
-         "Empty list should not contain 0.");
-    TEST(!_FugaSlotsList_has(NULL, FugaSlotsIndex_fromInt(1)),
-         "Empty list should not contain 1.");
+    TEST(!_FugaSlotsList_has(NULL, FugaSlotsIndex_fromInt(0)));
+    TEST(!_FugaSlotsList_has(NULL, FugaSlotsIndex_fromInt(1)));
 
     a->next = NULL;
     a->index = FugaSlotsIndex_fromInt(1);
-    TEST(!_FugaSlotsList_has(a, FugaSlotsIndex_fromInt(0)),
-         "list(1) should not contain 0.");
-    TEST(_FugaSlotsList_has(a, FugaSlotsIndex_fromInt(1)),
-         "list(1) should contain 1.");
+    TEST(!_FugaSlotsList_has(a, FugaSlotsIndex_fromInt(0)));
+    TEST(_FugaSlotsList_has(a, FugaSlotsIndex_fromInt(1)));
 
     b->next = NULL;
     b->index = 0;
-    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(0)),
-         "list(0) should contain 0.");
-    TEST(!_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(1)),
-         "list(1) should not contain 1.");
+    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(0)));
+    TEST(!_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(1)));
     
     b->next = a;
-    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(0)),
-         "list(0, 1) should contain 0.");
-    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(1)),
-         "list(0, 1) should contain 1.");
-    TEST(!_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(2)),
-         "list(0, 1) should not contain 2.");
+    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(0)));
+    TEST(_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(1)));
+    TEST(!_FugaSlotsList_has(b, FugaSlotsIndex_fromInt(2)));
 
     FugaGC_end(gc);
 }
@@ -110,32 +101,23 @@ TESTS(_FugaSlotsList_get) {
     _FugaSlotsList *a = _FugaSlotsList_new(gc);
     _FugaSlotsList *b = _FugaSlotsList_new(gc);
 
-    TEST(_FugaSlotsList_get(NULL, FugaSlotsIndex_fromInt(0)) == NULL,
-         "Empty list should not contain 0.");
-    TEST(_FugaSlotsList_get(NULL, FugaSlotsIndex_fromInt(1)) == NULL,
-         "Empty list should not contain 1.");
+    TEST(_FugaSlotsList_get(NULL, FugaSlotsIndex_fromInt(0)) == NULL);
+    TEST(_FugaSlotsList_get(NULL, FugaSlotsIndex_fromInt(1)) == NULL);
 
     a->next = NULL;
     a->index = FugaSlotsIndex_fromInt(1);
-    TEST(_FugaSlotsList_get(a, FugaSlotsIndex_fromInt(0)) == NULL,
-         "list(1) should not contain 0.");
-    TEST(_FugaSlotsList_get(a, FugaSlotsIndex_fromInt(1)) == &a->slot,
-         "list(1) should contain 1.");
+    TEST(_FugaSlotsList_get(a, FugaSlotsIndex_fromInt(0)) == NULL);
+    TEST(_FugaSlotsList_get(a, FugaSlotsIndex_fromInt(1)) == &a->slot);
 
     b->next = NULL;
     b->index = 0;
-    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(0)) == &b->slot,
-         "list(0) should contain 0.");
-    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(1)) == NULL,
-         "list(0) should not contain 1.");
+    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(0)) == &b->slot);
+    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(1)) == NULL);
     
     b->next = a;
-    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(0)) == &b->slot,
-         "list(0, 1) should contain 0.");
-    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(1)) == &a->slot,
-         "list(0, 1) should contain 1.");
-    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(2)) == NULL,
-         "list(0, 1) should not contain 2.");
+    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(0)) == &b->slot);
+    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(1)) == &a->slot);
+    TEST(_FugaSlotsList_get(b, FugaSlotsIndex_fromInt(2)) == NULL);
 
     FugaGC_end(gc);
 }
@@ -186,29 +168,19 @@ TESTS(_FugaSlotsList_set) {
     _FugaSlotsList* d = _FugaSlotsList_set(c, gc, ic, slot);
     _FugaSlotsList* e = _FugaSlotsList_set(d, gc, ib, slot);
 
-    TEST(b != NULL, "Inserting into empty list must result in a "
-                    "non-empty list.");
-    TEST(_FugaSlotsList_has(b, ia), "New key should be present after "
-                                    "insertion.");
+    TEST(b != NULL);
+    TEST(_FugaSlotsList_has(b, ia));
 
-    TEST(c != b, "Inserting a new key into list must result in a "
-                 "new list.");
-    TEST(_FugaSlotsList_has(c, ia), "Old key should be present after "
-                                    "insertion.");
-    TEST(_FugaSlotsList_has(c, ib), "New key should be present after "
-                                    "insertion.");
+    TEST(c != b);
+    TEST(_FugaSlotsList_has(c, ia));
+    TEST(_FugaSlotsList_has(c, ib));
 
-    TEST(d != c, "Inserting a new key into list must result in a "
-                 "new list.");
-    TEST(_FugaSlotsList_has(d, ia), "Old key #1 should be present after "
-                                    "insertion.");
-    TEST(_FugaSlotsList_has(d, ib), "Old key #2 should be present after "
-                                    "insertion.");
-    TEST(_FugaSlotsList_has(d, ic), "New key should be present after "
-                                    "insertion.");
+    TEST(d != c);
+    TEST(_FugaSlotsList_has(d, ia));
+    TEST(_FugaSlotsList_has(d, ib));
+    TEST(_FugaSlotsList_has(d, ic));
 
-    TEST(e == d, "Inserting an existing keyi into list must modify the "
-                 "list, not create a new one");
+    TEST(e == d);
 
     FugaGC_end(gc);
 }
@@ -362,42 +334,31 @@ TESTS(FugaSlots_setByIndex) {
 
     bool h;
 
-    TEST(FugaSlots_length(slots) == 0, "empty slots should have length 0.");
-    TEST(!FugaSlots_hasByIndex(slots, i0),
-         "slots should not have index before insertion.");
-    TEST(FugaSlots_getByIndex(slots, i0) == NULL,
-         "there should be no slot before insertion")
+    TEST(FugaSlots_length(slots) == 0);
+    TEST(!FugaSlots_hasByIndex(slots, i0));
+    TEST(FugaSlots_getByIndex(slots, i0) == NULL)
     FugaSlots_setByIndex(slots, gc, name, value1, i0);
-    TEST(h = FugaSlots_hasByIndex(slots, i0),
-         "slots should have symbol after insertion.");
+    TEST(h = FugaSlots_hasByIndex(slots, i0));
     if (h) {
-        TEST(FugaSlots_getByIndex(slots, i0)->value == value1,
-             "slot should have the value assigned to it")
+        TEST(FugaSlots_getByIndex(slots, i0)->value == value1)
     }
-    TEST(FugaSlots_length(slots) == 1, "(do) should have length 1.");
+    TEST(FugaSlots_length(slots) == 1);
 
-    TEST(!FugaSlots_hasByIndex(slots, i1),
-         "slots should not have index before insertion.");
-    TEST(FugaSlots_getByIndex(slots, i1) == NULL,
-         "there should be no slot before insertion")
+    TEST(!FugaSlots_hasByIndex(slots, i1));
+    TEST(FugaSlots_getByIndex(slots, i1) == NULL)
     FugaSlots_setByIndex(slots, gc, name, value2, i1);
-    TEST(h = FugaSlots_hasByIndex(slots, i1),
-         "slots should have symbol after insertion.");
+    TEST(h = FugaSlots_hasByIndex(slots, i1));
     if (h) {
-        TEST(FugaSlots_getByIndex(slots, i1)->value == value2,
-             "slot should have the value assigned to it")
+        TEST(FugaSlots_getByIndex(slots, i1)->value == value2)
         FugaSlots_setByIndex(slots, gc, name, value1, i1);
-        TEST(FugaSlots_getByIndex(slots, i1)->value == value1,
-             "slot should have the new value assigned to it")
+        TEST(FugaSlots_getByIndex(slots, i1)->value == value1)
     }
-    TEST(FugaSlots_length(slots) == 2, "(do, re) should have length 2.");
+    TEST(FugaSlots_length(slots) == 2);
 
     FugaSlots_setByIndex(slots, gc, name, value1, i3);
-    TEST(FugaSlots_length(slots) == 2, "(do, re, 3=mi) should have "
-                                       "length 2.");
+    TEST(FugaSlots_length(slots) == 2);
     FugaSlots_setByIndex(slots, gc, name, value1, i2);
-    TEST(FugaSlots_length(slots) == 4, "(do, re, fa, mi) should have "
-                                       "length 4.");
+    TEST(FugaSlots_length(slots) == 4);
 
     FugaGC_end(gc);
 }
@@ -439,32 +400,23 @@ TESTS(FugaSlots_setBySymbol) {
 
     FugaSlots* slots = FugaSlots_new(gc);
 
-    TEST(!FugaSlots_hasBySymbol(slots, name1),
-         "slots should not have symbol before insertion.");
-    TEST(FugaSlots_getBySymbol(slots, name1) == NULL,
-         "there should be no slot before insertion")
+    TEST(!FugaSlots_hasBySymbol(slots, name1));
+    TEST(FugaSlots_getBySymbol(slots, name1) == NULL)
     FugaSlots_setBySymbol(slots, gc, name1, value1);
-    TEST(h = FugaSlots_hasBySymbol(slots, name1),
-         "slots should have symbol after insertion.");
+    TEST(h = FugaSlots_hasBySymbol(slots, name1));
     if (h) {
-        TEST(FugaSlots_getBySymbol(slots, name1)->value == value1,
-             "slot should have the value assigned to it")
+        TEST(FugaSlots_getBySymbol(slots, name1)->value == value1)
     }
 
-    TEST(!FugaSlots_hasBySymbol(slots, name2),
-         "slots should not have symbol before insertion.");
-    TEST(FugaSlots_getBySymbol(slots, name2) == NULL,
-         "there should be no slot before insertion")
+    TEST(!FugaSlots_hasBySymbol(slots, name2));
+    TEST(FugaSlots_getBySymbol(slots, name2) == NULL)
     FugaSlots_setBySymbol(slots, gc, name2, value2);
-    TEST(h = FugaSlots_hasBySymbol(slots, name2),
-         "slots should have symbol after insertion.");
+    TEST(h = FugaSlots_hasBySymbol(slots, name2));
     if (h) {
-        TEST(FugaSlots_getBySymbol(slots, name2)->value == value2,
-             "slot should have the value assigned to it")
+        TEST(FugaSlots_getBySymbol(slots, name2)->value == value2)
 
         FugaSlots_setBySymbol(slots, gc, name2, value1);
-        TEST(FugaSlots_getBySymbol(slots, name2)->value == value1,
-             "slot should have the new value assigned to it")
+        TEST(FugaSlots_getBySymbol(slots, name2)->value == value1)
     }
 
     FugaGC_end(gc);

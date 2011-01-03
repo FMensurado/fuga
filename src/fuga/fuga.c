@@ -79,18 +79,18 @@ Fuga* Fuga_new() {
 TESTS(Fuga_new) {
     Fuga* self = Fuga_new();
 
-    TEST(self, "need self");
-    TEST(FUGA_Object, "need Object");
-    TEST(FUGA_Object->id == FUGA_ID_OBJECT, "Object must have id 1");
-    TEST(FUGA_Object->data.OBJECT->gc, "need gc");
-    TEST(FUGA_Object->data.OBJECT->symbols, "need symbol map");
+    TEST(self);
+    TEST(FUGA_Object);
+    TEST(FUGA_Object->id == FUGA_ID_OBJECT);
+    TEST(FUGA_Object->data.OBJECT->gc);
+    TEST(FUGA_Object->data.OBJECT->symbols);
 
-    TEST(FUGA_Prelude,  "must initialize Prelude");
-    TEST(FUGA_Number,   "must initialize Number");
-    TEST(FUGA_Int,      "must initialize Int");
-    TEST(FUGA_Real,     "must initialize Real");
-    TEST(FUGA_String,   "must initialize String");
-    TEST(FUGA_Symbol,   "must initialize Symbol");
+    TEST(FUGA_Prelude);
+    TEST(FUGA_Number);
+    TEST(FUGA_Int);
+    TEST(FUGA_Real);
+    TEST(FUGA_String);
+    TEST(FUGA_Symbol);
     
     Fuga_free(self);
 }
@@ -142,19 +142,19 @@ TESTS(Fuga_clone) {
     Fuga* self2 = Fuga_clone(Object);
     Fuga* self3 = Fuga_clone(self);
 
-    TEST(self != Object, "self should not be the same as proto");
+    TEST(self != Object);
 
-    TEST(self->proto == Object, "proto set incorrectly");
-    TEST(self2->proto == Object, "proto set incorrectly");
-    TEST(self3->proto == self, "proto set incorrectly");
+    TEST(self->proto == Object);
+    TEST(self2->proto == Object);
+    TEST(self3->proto == self);
 
-    TEST(self->Object == Object, "Object set incorrectly");
-    TEST(self2->Object == Object, "Object set incorrectly");
-    TEST(self3->Object == Object, "Object set incorrectly");
+    TEST(self->Object == Object);
+    TEST(self2->Object == Object);
+    TEST(self3->Object == Object);
     
-    TEST(!self->slots, "slots should be NULL (no slots)");
-    TEST(!self2->slots, "slots should be NULL (no slots)");
-    TEST(!self3->slots, "slots should be NULL (no slots)");
+    TEST(!self->slots);
+    TEST(!self2->slots);
+    TEST(!self3->slots);
 
     Fuga_free(Object);
 }

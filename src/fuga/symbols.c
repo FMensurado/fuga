@@ -68,38 +68,26 @@ TESTS(FugaSymbols) {
     Fuga* sym3 = FugaGC_alloc(gc, 4, NULL, NULL);
     Fuga* sym4 = FugaGC_alloc(gc, 4, NULL, NULL);
 
-    TEST(FugaSymbols_get(self, str1) == NULL,
-         "shouldn't have symbol before it's set");
+    TEST(FugaSymbols_get(self, str1) == NULL);
     FugaSymbols_set(self, gc, str1, sym1);
-    TEST(FugaSymbols_get(self, str1) == sym1,
-         "should have symbol after it's set");
+    TEST(FugaSymbols_get(self, str1) == sym1);
 
-    TEST(FugaSymbols_get(self, str2) == NULL,
-         "shouldn't have symbol before it's set");
+    TEST(FugaSymbols_get(self, str2) == NULL);
     FugaSymbols_set(self, gc, str2, sym2);
-    TEST(FugaSymbols_get(self, str2) == sym2,
-         "should have symbol after it's set");
+    TEST(FugaSymbols_get(self, str2) == sym2);
 
-    TEST(FugaSymbols_get(self, str3) == NULL,
-         "shouldn't have symbol before it's set");
+    TEST(FugaSymbols_get(self, str3) == NULL);
     FugaSymbols_set(self, gc, str3, sym3);
-    TEST(FugaSymbols_get(self, str3) == sym3,
-         "should have symbol after it's set");
+    TEST(FugaSymbols_get(self, str3) == sym3);
 
-    TEST(FugaSymbols_get(self, str4) == NULL,
-         "shouldn't have symbol before it's set");
+    TEST(FugaSymbols_get(self, str4) == NULL);
     FugaSymbols_set(self, gc, str4, sym4);
-    TEST(FugaSymbols_get(self, str4) == sym4,
-         "should have symbol after it's set");
+    TEST(FugaSymbols_get(self, str4) == sym4);
 
-    TEST(FugaSymbols_get(self, str1) == sym1,
-         "should retain symbol after it's set");
-    TEST(FugaSymbols_get(self, str2) == sym2,
-         "should retain symbol after it's set");
-    TEST(FugaSymbols_get(self, str3) == sym3,
-         "should retain symbol after it's set");
-    TEST(FugaSymbols_get(self, str4) == sym4,
-         "should retain symbol after it's set");
+    TEST(FugaSymbols_get(self, str1) == sym1);
+    TEST(FugaSymbols_get(self, str2) == sym2);
+    TEST(FugaSymbols_get(self, str3) == sym3);
+    TEST(FugaSymbols_get(self, str4) == sym4);
 
     FugaGC_end(gc);
 }

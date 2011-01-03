@@ -11,8 +11,8 @@ void FugaGCList_init(FugaGCList* list) {
 TESTS(FugaGCList_init) {
     FugaGCList a;
     FugaGCList_init(&a);
-    TEST(a.next == &a, "For 0 item lists, dummy->next should == dummy.");
-    TEST(a.prev == &a, "For 0 item lists, dummy->prev should == dummy.");
+    TEST(a.next == &a); 
+    TEST(a.prev == &a);
 }
 #endif
 
@@ -30,17 +30,17 @@ TESTS(FugaGCList_pushBack) {
     FugaGCList a, b, c;
     FugaGCList_init(&a);
     FugaGCList_pushBack(&a, &b);
-    TEST(a.next == &b, "For 1 item lists, dummy->next should == item");
-    TEST(a.prev == &b, "For 1 item lists, dummy->prev should == item");
-    TEST(b.next == &a, "For 1 item lists, item->next should == dummy");
-    TEST(b.prev == &a, "For 1 item lists, item->prev should == dummy");
+    TEST(a.next == &b);
+    TEST(a.prev == &b);
+    TEST(b.next == &a);
+    TEST(b.prev == &a);
     FugaGCList_pushBack(&a, &c);
-    TEST(a.next == &b, "For 2 item lists, dummy->next should == item1");
-    TEST(b.next == &c, "For 2 item lists, item1->next should == item2");
-    TEST(c.next == &a, "For 2 item lists, item2->next should == dummy");
-    TEST(a.prev == &c, "For 2 item lists, dummy->prev should == item2");
-    TEST(c.prev == &b, "For 2 item lists, item2->prev should == item1");
-    TEST(b.prev == &a, "For 2 item lists, item1->prev should == dummy");
+    TEST(a.next == &b);
+    TEST(b.next == &c);
+    TEST(c.next == &a);
+    TEST(a.prev == &c);
+    TEST(c.prev == &b);
+    TEST(b.prev == &a);
 }
 #endif
 
@@ -58,17 +58,17 @@ TESTS(FugaGCList_pushFront) {
     FugaGCList a, b, c;
     FugaGCList_init(&a);
     FugaGCList_pushFront(&a, &c);
-    TEST(a.next == &c, "For 1 item lists, dummy->next should == item");
-    TEST(a.prev == &c, "For 1 item lists, dummy->prev should == item");
-    TEST(c.next == &a, "For 1 item lists, item->next should == dummy");
-    TEST(c.prev == &a, "For 1 item lists, item->prev should == dummy");
+    TEST(a.next == &c);
+    TEST(a.prev == &c);
+    TEST(c.next == &a);
+    TEST(c.prev == &a);
     FugaGCList_pushFront(&a, &b);
-    TEST(a.next == &b, "For 2 item lists, dummy->next should == item1");
-    TEST(b.next == &c, "For 2 item lists, item1->next should == item2");
-    TEST(c.next == &a, "For 2 item lists, item2->next should == dummy");
-    TEST(a.prev == &c, "For 2 item lists, dummy->prev should == item2");
-    TEST(c.prev == &b, "For 2 item lists, item2->prev should == item1");
-    TEST(b.prev == &a, "For 2 item lists, item1->prev should == dummy");
+    TEST(a.next == &b);
+    TEST(b.next == &c);
+    TEST(c.next == &a);
+    TEST(a.prev == &c);
+    TEST(c.prev == &b);
+    TEST(b.prev == &a);
 }
 #endif
 
@@ -86,13 +86,13 @@ TESTS(FugaGCList_unlink) {
     FugaGCList_pushBack(&a, &b);
     FugaGCList_pushBack(&a, &c);
     FugaGCList_unlink(&c);
-    TEST(a.next == &b, "For 1 item lists, dummy->next should == item");
-    TEST(a.prev == &b, "For 1 item lists, dummy->prev should == item");
-    TEST(b.next == &a, "For 1 item lists, item->next should == dummy");
-    TEST(b.prev == &a, "For 1 item lists, item->prev should == dummy");
+    TEST(a.next == &b);
+    TEST(a.prev == &b);
+    TEST(b.next == &a);
+    TEST(b.prev == &a);
     FugaGCList_unlink(&b);
-    TEST(a.next == &a, "For 0 item lists, dummy->next should == dummy.");
-    TEST(a.prev == &a, "For 0 item lists, dummy->prev should == dummy.");
+    TEST(a.next == &a);
+    TEST(a.prev == &a);
 }
 #endif
 
@@ -110,16 +110,14 @@ TESTS(FugaGCList_popFront) {
     FugaGCList_init(&a);
     FugaGCList_pushBack(&a, &b);
     FugaGCList_pushBack(&a, &c);
-    TEST(FugaGCList_popFront(&a) == &b,
-        "Should return the first item (for 2 item list).");
-    TEST(a.next == &c, "For 1 item lists, dummy->next should == item");
-    TEST(a.prev == &c, "For 1 item lists, dummy->prev should == item");
-    TEST(c.next == &a, "For 1 item lists, item->next should == dummy");
-    TEST(c.prev == &a, "For 1 item lists, item->prev should == dummy");
-    TEST(FugaGCList_popFront(&a) == &c,
-        "Should return the first item (for 1 item list).");
-    TEST(a.next == &a, "For 0 item lists, dummy->next should == dummy.");
-    TEST(a.prev == &a, "For 0 item lists, dummy->prev should == dummy.");
+    TEST(FugaGCList_popFront(&a) == &b);
+    TEST(a.next == &c);
+    TEST(a.prev == &c);
+    TEST(c.next == &a);
+    TEST(c.prev == &a);
+    TEST(FugaGCList_popFront(&a) == &c);
+    TEST(a.next == &a);
+    TEST(a.prev == &a);
 }
 #endif
 
@@ -137,16 +135,14 @@ TESTS(FugaGCList_popBack) {
     FugaGCList_init(&a);
     FugaGCList_pushBack(&a, &b);
     FugaGCList_pushBack(&a, &c);
-    TEST(FugaGCList_popBack(&a) == &c,
-        "Should return the first item (for 2 item list).");
-    TEST(a.next == &b, "For 1 item lists, dummy->next should == item");
-    TEST(a.prev == &b, "For 1 item lists, dummy->prev should == item");
-    TEST(b.next == &a, "For 1 item lists, item->next should == dummy");
-    TEST(b.prev == &a, "For 1 item lists, item->prev should == dummy");
-    TEST(FugaGCList_popBack(&a) == &b,
-        "Should return the first item (for 1 item list).");
-    TEST(a.next == &a, "For 0 item lists, dummy->next should == dummy.");
-    TEST(a.prev == &a, "For 0 item lists, dummy->prev should == dummy.");
+    TEST(FugaGCList_popBack(&a) == &c);
+    TEST(a.next == &b);
+    TEST(a.prev == &b);
+    TEST(b.next == &a);
+    TEST(b.prev == &a);
+    TEST(FugaGCList_popBack(&a) == &b);
+    TEST(a.next == &a);
+    TEST(a.prev == &a);
 }
 #endif
 
@@ -172,33 +168,33 @@ TESTS(FugaGCList_appendFront) {
     FugaGCList_pushBack(&d2, &i2);
     FugaGCList_pushBack(&d1, &i3);
     FugaGCList_appendFront(&d1, &d2);
-    TEST(d2.next == &d2, "src list not re-initialized correctly.");
-    TEST(d2.prev == &d2, "src list not re-initialized correctly.");
-    TEST(d1.next == &i1, "d1.next != &i1 -- but it should!");
-    TEST(i1.next == &i2, "i1.next != &i2 -- but it should!");
-    TEST(i2.next == &i3, "i2.next != &i3 -- but it should!");
-    TEST(i3.next == &d1, "i3.next != &d1 -- but it should!");
-    TEST(d1.prev == &i3, "d1.prev != &i3 -- but it should!");
-    TEST(i3.prev == &i2, "i3.prev != &i2 -- but it should!");
-    TEST(i2.prev == &i1, "i2.prev != &i1 -- but it should!");
-    TEST(i1.prev == &d1, "i1.prev != &d1 -- but it should!");
+    TEST(d2.next == &d2);
+    TEST(d2.prev == &d2);
+    TEST(d1.next == &i1);
+    TEST(i1.next == &i2);
+    TEST(i2.next == &i3);
+    TEST(i3.next == &d1);
+    TEST(d1.prev == &i3);
+    TEST(i3.prev == &i2);
+    TEST(i2.prev == &i1);
+    TEST(i1.prev == &d1);
 
     // now with empty lists
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
     FugaGCList_appendFront(&d1, &d2);
-    TEST(d1.next == &d1, "appending two empty lists - d.next should == d")
-    TEST(d1.prev == &d1, "appending two empty lists - d.prev should == d")
+    TEST(d1.next == &d1);
+    TEST(d1.prev == &d1);
 
     // now with a single list.
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
     FugaGCList_pushFront(&d2, &i1);
     FugaGCList_appendFront(&d1, &d2);
-    TEST(d1.next == &i1, "for single list, d.next != i -- but it should")
-    TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
-    TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
-    TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
+    TEST(d1.next == &i1);
+    TEST(d1.prev == &i1);
+    TEST(i1.next == &d1);
+    TEST(i1.prev == &d1);
 
     // now with an empty list on the right
     FugaGCList_init(&d1);
@@ -206,12 +202,12 @@ TESTS(FugaGCList_appendFront) {
     FugaGCList_pushFront(&d1, &i2);
     FugaGCList_pushFront(&d1, &i1);
     FugaGCList_appendFront(&d1, &d2);
-    TEST(d1.next == &i1, "failed at appending empty list on the right")
-    TEST(d1.prev == &i2, "failed at appending empty list on the right")
-    TEST(i1.next == &i2, "failed at appending empty list on the right")
-    TEST(i1.prev == &d1, "failed at appending empty list on the right")
-    TEST(i2.next == &d1, "failed at appending empty list on the right")
-    TEST(i2.prev == &i1, "failed at appending empty list on the right")
+    TEST(d1.next == &i1);
+    TEST(d1.prev == &i2);
+    TEST(i1.next == &i2);
+    TEST(i1.prev == &d1);
+    TEST(i2.next == &d1);
+    TEST(i2.prev == &i1);
 
     // now with an empty list on the left
     FugaGCList_init(&d1);
@@ -219,12 +215,12 @@ TESTS(FugaGCList_appendFront) {
     FugaGCList_pushFront(&d2, &i2);
     FugaGCList_pushFront(&d2, &i1);
     FugaGCList_appendFront(&d1, &d2);
-    TEST(d1.next == &i1, "failed at appending empty list on the left")
-    TEST(d1.prev == &i2, "failed at appending empty list on the left")
-    TEST(i1.next == &i2, "failed at appending empty list on the left")
-    TEST(i1.prev == &d1, "failed at appending empty list on the left")
-    TEST(i2.next == &d1, "failed at appending empty list on the left")
-    TEST(i2.prev == &i1, "failed at appending empty list on the lef")
+    TEST(d1.next == &i1);
+    TEST(d1.prev == &i2);
+    TEST(i1.next == &i2);
+    TEST(i1.prev == &d1);
+    TEST(i2.next == &d1);
+    TEST(i2.prev == &i1);
 }
 #endif
 
@@ -250,33 +246,33 @@ TESTS(FugaGCList_appendBack) {
     FugaGCList_pushBack(&d2, &i2);
     FugaGCList_pushBack(&d2, &i3);
     FugaGCList_appendBack(&d1, &d2);
-    TEST(d2.next == &d2, "src list not re-initialized correctly.");
-    TEST(d2.prev == &d2, "src list not re-initialized correctly.");
-    TEST(d1.next == &i1, "d1.next != &i1 -- but it should!");
-    TEST(i1.next == &i2, "i1.next != &i2 -- but it should!");
-    TEST(i2.next == &i3, "i2.next != &i3 -- but it should!");
-    TEST(i3.next == &d1, "i3.next != &d1 -- but it should!");
-    TEST(d1.prev == &i3, "d1.prev != &i3 -- but it should!");
-    TEST(i3.prev == &i2, "i3.prev != &i2 -- but it should!");
-    TEST(i2.prev == &i1, "i2.prev != &i1 -- but it should!");
-    TEST(i1.prev == &d1, "i1.prev != &d1 -- but it should!");
+    TEST(d2.next == &d2);
+    TEST(d2.prev == &d2);
+    TEST(d1.next == &i1);
+    TEST(i1.next == &i2);
+    TEST(i2.next == &i3);
+    TEST(i3.next == &d1);
+    TEST(d1.prev == &i3);
+    TEST(i3.prev == &i2);
+    TEST(i2.prev == &i1);
+    TEST(i1.prev == &d1);
 
     // now with empty lists
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
     FugaGCList_appendBack(&d1, &d2);
-    TEST(d1.next == &d1, "appending two empty lists - d.next should == d")
-    TEST(d1.prev == &d1, "appending two empty lists - d.prev should == d")
+    TEST(d1.next == &d1)
+    TEST(d1.prev == &d1)
 
     // now with a single list.
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
     FugaGCList_pushFront(&d2, &i1);
     FugaGCList_appendBack(&d1, &d2);
-    TEST(d1.next == &i1, "for single list, d.next != i -- but it should")
-    TEST(d1.prev == &i1, "for single list, d.prev != i -- but it should")
-    TEST(i1.next == &d1, "for single list, i.next != d -- but it should")
-    TEST(i1.prev == &d1, "for single list, i.prev != d -- but it should")
+    TEST(d1.next == &i1)
+    TEST(d1.prev == &i1)
+    TEST(i1.next == &d1)
+    TEST(i1.prev == &d1)
 
     // now with an empty list on the right
     FugaGCList_init(&d1);
@@ -284,12 +280,12 @@ TESTS(FugaGCList_appendBack) {
     FugaGCList_pushFront(&d1, &i2);
     FugaGCList_pushFront(&d1, &i1);
     FugaGCList_appendBack(&d1, &d2);
-    TEST(d1.next == &i1, "failed at appending empty list on the right")
-    TEST(d1.prev == &i2, "failed at appending empty list on the right")
-    TEST(i1.next == &i2, "failed at appending empty list on the right")
-    TEST(i1.prev == &d1, "failed at appending empty list on the right")
-    TEST(i2.next == &d1, "failed at appending empty list on the right")
-    TEST(i2.prev == &i1, "failed at appending empty list on the right")
+    TEST(d1.next == &i1)
+    TEST(d1.prev == &i2)
+    TEST(i1.next == &i2)
+    TEST(i1.prev == &d1)
+    TEST(i2.next == &d1)
+    TEST(i2.prev == &i1)
 
     // now with an empty list on the left
     FugaGCList_init(&d1);
@@ -297,12 +293,12 @@ TESTS(FugaGCList_appendBack) {
     FugaGCList_pushFront(&d2, &i2);
     FugaGCList_pushFront(&d2, &i1);
     FugaGCList_appendBack(&d1, &d2);
-    TEST(d1.next == &i1, "failed at appending empty list on the left")
-    TEST(d1.prev == &i2, "failed at appending empty list on the left")
-    TEST(i1.next == &i2, "failed at appending empty list on the left")
-    TEST(i1.prev == &d1, "failed at appending empty list on the left")
-    TEST(i2.next == &d1, "failed at appending empty list on the left")
-    TEST(i2.prev == &i1, "failed at appending empty list on the lef")
+    TEST(d1.next == &i1)
+    TEST(d1.prev == &i2)
+    TEST(i1.next == &i2)
+    TEST(i1.prev == &d1)
+    TEST(i2.next == &d1)
+    TEST(i2.prev == &i1)
 }
 #endif
 
@@ -315,9 +311,9 @@ bool FugaGCList_empty(FugaGCList *list) {
 TESTS(FugaGCList_empty) {
     FugaGCList d1, i1;
     FugaGCList_init(&d1);
-    TEST( FugaGCList_empty(&d1), "empty list should be empty!");
+    TEST( FugaGCList_empty(&d1));
     FugaGCList_pushBack(&d1, &i1);
-    TEST(!FugaGCList_empty(&d1), "single list shouldn't be empty...");
+    TEST(!FugaGCList_empty(&d1));
 }
 #endif
 
@@ -335,19 +331,17 @@ TESTS(FugaGCList_contains) {
     FugaGCList d1, i1, i2;
     FugaGCList_init(&d1);
 
-    TEST(!FugaGCList_contains(&d1, &i1), "empty list should be empty!");
-    TEST(!FugaGCList_contains(&d1, &i2), "empty list should be empty!");
-    TEST(!FugaGCList_contains(&d1, &d1),
-         "empty list shouldn't contain itself!");
+    TEST(!FugaGCList_contains(&d1, &i1));
+    TEST(!FugaGCList_contains(&d1, &i2));
+    TEST(!FugaGCList_contains(&d1, &d1));
     FugaGCList_pushBack(&d1, &i1);
-    TEST( FugaGCList_contains(&d1, &i1), "faulty contains for single list");
-    TEST(!FugaGCList_contains(&d1, &i2), "faulty contains for single list");
-    TEST(!FugaGCList_contains(&d1, &d1),
-         "single list shouldn't contain itself!");
+    TEST( FugaGCList_contains(&d1, &i1));
+    TEST(!FugaGCList_contains(&d1, &i2));
+    TEST(!FugaGCList_contains(&d1, &d1));
     FugaGCList_pushBack(&d1, &i2);
-    TEST( FugaGCList_contains(&d1, &i1), "faulty contains for 2-list");
-    TEST( FugaGCList_contains(&d1, &i2), "faulty contains for 2-list");
-    TEST(!FugaGCList_contains(&d1, &d1), "list shouldn't contain itself!");
+    TEST( FugaGCList_contains(&d1, &i1));
+    TEST( FugaGCList_contains(&d1, &i2));
+    TEST(!FugaGCList_contains(&d1, &d1));
 }
 #endif
 

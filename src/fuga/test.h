@@ -179,15 +179,14 @@
 **/
 
 #ifdef TESTING_COVERAGE
-# define TEST(assertion, message) (assertion)
+# define TEST(assertion) (assertion)
 #else
-# define TEST(assertion, message)                                          \
+# define TEST(assertion)                                                   \
     if (!(assertion)) {                                                    \
         printf("--------------------------------------");                  \
         printf("--------------------------------------\n");                \
         printf("[%s] in %s, line %d\n", _suite_name, __FILE__, __LINE__);  \
         printf("    Test: %s\n", #assertion);                              \
-        printf("    Msg:  %s\n", message);                                 \
     }
 #endif
 
