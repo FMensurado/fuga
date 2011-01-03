@@ -85,9 +85,9 @@ void FugaGC_end(void* self) {
     FugaGC *gc = HEADER(self)->gc;
     FugaGCList *link;
 
-    FugaGCList_appendFront(&gc->white, &gc->root);
-    FugaGCList_appendFront(&gc->white, &gc->black);
-    FugaGCList_appendFront(&gc->white, &gc->gray);
+    FugaGCList_append_(&gc->white, &gc->root);
+    FugaGCList_append_(&gc->white, &gc->black);
+    FugaGCList_append_(&gc->white, &gc->gray);
 
     for(link = gc->white.next; link != &gc->white; link = gc->white.next) {
         FugaGCList_unlink(link);
@@ -131,7 +131,7 @@ void FugaGC_mark_(void* parent, void* child) {
         HEADER(child)->pass = gc->pass;
         if (!HEADER(child)->root) {
             FugaGCList_unlink(&HEADER(child)->list);
-            FugaGCList_pushFront(&gc->gray, &HEADER(child)->list);
+            FugaGCList_push_(&gc->gray, &HEADER(child)->list);
         }
     }
 }
@@ -144,21 +144,21 @@ TESTS(FugaGC_mark_) {
 
     FugaGC_root(root);
 
-    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
-    TEST(FugaGCList_contains(&gc->white, HEADER(item)));
+    TEST(FugaGCList_contains_(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains_(&gc->white, HEADER(item)));
     
     FugaGC_mark_(root, root);
     FugaGC_mark_(root, item);
 
-    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
-    TEST(FugaGCList_contains(&gc->white, HEADER(item)));
+    TEST(FugaGCList_contains_(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains_(&gc->white, HEADER(item)));
 
     gc->pass += 1;
     FugaGC_mark_(root, root);
     FugaGC_mark_(root, item);
 
-    TEST(FugaGCList_contains(&gc->root, HEADER(root)));
-    TEST(FugaGCList_contains(&gc->gray, HEADER(item)));
+    TEST(FugaGCList_contains_(&gc->root, HEADER(root)));
+    TEST(FugaGCList_contains_(&gc->gray, HEADER(item)));
 
     // Try marking NULL -- should handle it gracefully, not crash.
     FugaGC_mark_(root, NULL);
@@ -185,7 +185,7 @@ void* FugaGC_alloc_(void* self, size_t size)
     ALWAYS(size > 0);
     FugaGC* gc = HEADER(self)->gc;
     FugaGCHeader *header = calloc(sizeof *header + size, 1);
-    FugaGCList_pushFront(&gc->white, &header->list);
+    FugaGCList_push_(&gc->white, &header->list);
     gc->num_objects++;
     header->freeFn = NULL;
     header->markFn = NULL;
@@ -221,7 +221,7 @@ void FugaGC_root(void* self) {
     ALWAYS(self);
     HEADER(self)->root = true;
     FugaGCList_unlink(&HEADER(self)->list);
-    FugaGCList_pushBack(&HEADER(self)->gc->root, &HEADER(self)->list);
+    FugaGCList_push_(&HEADER(self)->gc->root, &HEADER(self)->list);
 }
 
 #ifdef TESTING
@@ -229,9 +229,9 @@ TESTS(FugaGC_root) {
     FugaGC* gc = FugaGC_start();
     void* item = FugaGC_alloc_(gc, 8);
 
-    TEST(!FugaGCList_contains(&gc->root, HEADER(item)));
+    TEST(!FugaGCList_contains_(&gc->root, HEADER(item)));
     FugaGC_root(item);
-    TEST( FugaGCList_contains(&gc->root, HEADER(item)));
+    TEST( FugaGCList_contains_(&gc->root, HEADER(item)));
 
     FugaGC_end(gc);
 }
@@ -241,7 +241,7 @@ void FugaGC_unroot(void* self) {
     ALWAYS(self);
     HEADER(self)->root = false;
     FugaGCList_unlink(&HEADER(self)->list);
-    FugaGCList_pushBack(&HEADER(self)->gc->white, &HEADER(self)->list);
+    FugaGCList_push_(&HEADER(self)->gc->white, &HEADER(self)->list);
 }
 
 #ifdef TESTING
@@ -251,7 +251,7 @@ TESTS(FugaGC_unroot) {
     void* item = FugaGC_alloc_(gc, 8);
     FugaGC_root(item);
     FugaGC_unroot(item);
-    TEST(!FugaGCList_contains(&gc->root, HEADER(item)));
+    TEST(!FugaGCList_contains_(&gc->root, HEADER(item)));
 
     FugaGC_end(gc);
 }
@@ -289,8 +289,8 @@ void FugaGC_collect(void* self) {
     FugaGCList *link = gc->root.next;
     gc->pass++;
 
-    FugaGCList_appendFront(&gc->white, &gc->black);
-    FugaGCList_appendFront(&gc->white, &gc->gray);
+    FugaGCList_append_(&gc->white, &gc->black);
+    FugaGCList_append_(&gc->white, &gc->gray);
 
     for(link = gc->root.next; link != &gc->root; link = link->next) {
         FugaGCHeader* linkh = (FugaGCHeader*)link;
@@ -303,7 +303,7 @@ void FugaGC_collect(void* self) {
         FugaGCHeader* linkh = (FugaGCHeader*)link;
         linkh->pass = gc->pass;
         FugaGCList_unlink(link);
-        FugaGCList_pushBack(&gc->black, link);
+        FugaGCList_push_(&gc->black, link);
         if (linkh->markFn)
             linkh->markFn(linkh->data);
     }

@@ -48,18 +48,6 @@ void FugaGCList_init (FugaGCList* list);
 
 /**
 *** ## Adding Items
-*** ### FugaGCList_pushBack
-***
-*** Place an item at the end of the list.
-***
-*** - Parameters:
-***     - `FugaGCList* list`: pointer to the dummy of the list.
-***     - `FugaGCList* item`: the item to be placed at the end.
-*** - See also: `FugaGCList_pushFront`
-**/
-void FugaGCList_pushBack(FugaGCList* list, FugaGCList* item);
-
-/**
 *** ### FugaGCList_pushFront
 ***
 *** Place an item at the start of the list.
@@ -69,7 +57,7 @@ void FugaGCList_pushBack(FugaGCList* list, FugaGCList* item);
 ***     - `FugaGCList* item`: the item to be placed at the start.
 *** - See also: `FugaGCList_pushBack`
 **/
-void FugaGCList_pushFront(FugaGCList* list, FugaGCList* item);
+void FugaGCList_push_(FugaGCList* list, FugaGCList* item);
 
 /**
 *** ## Removing Items
@@ -83,7 +71,7 @@ void FugaGCList_pushFront(FugaGCList* list, FugaGCList* item);
 *** - Returns: void
 *** - See also: `FugaGCList_popFront`, `FugaGCList_popBack`
 **/
-void FugaGCList_unlink (FugaGCList* item);
+void FugaGCList_unlink(FugaGCList* item);
 
 /**
 *** ### FugaGCList_popFront
@@ -97,21 +85,7 @@ void FugaGCList_unlink (FugaGCList* item);
 *** - Returns: a pointer to the removed item with `next` and `prev` unchanged.
 *** - See Also: `FugaGCList_popBack`, `FugaGCList_unlink`
 **/
-FugaGCList* FugaGCList_popFront(FugaGCList* list);
-
-/**
-*** ### FugaGCList_popBack
-***
-*** Remove the last item from the list, returning it. Note that the returned
-*** item's `next` and `prev` remain unchanged, so they are both wrong 
-*** (usually).
-***
-*** - Parameters:
-***     - `FugaGCList* list`: The list from which to remove the lastt item.
-*** - Returns: a pointer to the removed item with `next` and `prev` unchanged.
-*** - See Also: `FugaGCList_popFront`, `FugaGCList_unlink`
-**/
-FugaGCList* FugaGCList_popBack(FugaGCList* list);
+FugaGCList* FugaGCList_pop(FugaGCList* list);
 
 /**
 *** ## Appending
@@ -127,22 +101,7 @@ FugaGCList* FugaGCList_popBack(FugaGCList* list);
 *** - Returns: void
 *** - See Also: `FugaGCList_appendBack`
 **/
-void FugaGCList_appendFront(FugaGCList* dest, FugaGCList* src);
-
-/**
-*** ### FugaGCList_appendBack
-***
-*** Concatenate the `dest` list with the `src` list (in that order), putting
-*** the result in `dest`, and leaving the `src` list empty.
-***
-*** - Parameters:
-***     - `FugaGCList* dest`: The destination list, which ends up with `src`
-***     concatenated at the end.
-***     - `FugaGCList* src`: The source list, which ends up empty.
-*** - Returns: void
-*** - See Also: `FugaGCList_appendFront`
-**/
-void FugaGCList_appendBac(FugaGCList* dest, FugaGCList* src);
+void FugaGCList_append_(FugaGCList* dest, FugaGCList* src);
 
 /**
 *** ## Properties
@@ -166,7 +125,7 @@ bool FugaGCList_empty(FugaGCList* list);
 ***     - `void* data`: the item to search for.
 *** - Returns: true if the item is in the list, false otherwise.
 **/
-bool FugaGCList_contains(FugaGCList* list, void* data);
+bool FugaGCList_contains_(FugaGCList* list, void* data);
 
 #endif
 
