@@ -2,11 +2,7 @@
 #ifndef FUGA_SYMBOLS_H
 #define FUGA_SYMBOLS_H
 
-#include "gc.h"
-
-#ifndef FUGA_FUGA_TYPEDEF
-typedef struct Fuga Fuga;
-#endif
+#include "common.h"
 
 typedef struct FugaSymbols FugaSymbols;
 

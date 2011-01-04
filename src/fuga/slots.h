@@ -6,10 +6,7 @@
 *** # FugaSlots
 **/
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include "gc.h"
+#include "common.h"
 
 /**
 *** ## Types
@@ -31,31 +28,10 @@ typedef struct FugaSlots FugaSlots;
 *** Represents an individual slot. That is, a (name, value) pair.
 **/
 typedef struct FugaSlot FugaSlot;
-#ifndef FUGA_FUGA_TYPEDEF
-#define FUGA_FUGA_TYPEDEF
-typedef struct Fuga Fuga;
-#endif
 struct FugaSlot {
     Fuga* name;
     Fuga* value;
 };
-
-/**
-*** ### FugaSlotsIndex
-***
-*** Represents an index of a FugaSlots object. A FugaSlotsIndex can be
-*** positive OR negative. For the sake of practicality, we restrict 
-*** FugaSlotsIndex's to 64bit integers. We might choose to change this
-*** later, so it's important to abstract out the functionality of
-*** FugaSlotsIndex that we're going to need.
-**/
-
-typedef int64_t FugaSlotsIndex;
-
-#define FugaSlotsIndex_fromInt(n) ((FugaSlotsIndex)(n))
-#define FugaSlotsIndex_fromPtr(p) ((FugaSlotsIndex)(p))
-#define FugaSlotsIndex_eq(a,b) ((a) == (b))
-#define FugaSlotsIndex_lt(a,b) ((a) <  (b))
 
 /**
 *** ## Constructors
@@ -80,7 +56,7 @@ size_t FugaSlots_length(FugaSlots* slots);
 ***
 *** Determine whether there is a slot with the given index.
 **/
-bool FugaSlots_hasByIndex(FugaSlots* slots, FugaSlotsIndex index);
+bool FugaSlots_hasByIndex(FugaSlots* slots, FugaIndex index);
 
 /**
 *** ### FugaSlots_hasBySymbol
@@ -95,14 +71,14 @@ bool FugaSlots_hasBySymbol(FugaSlots* slots, Fuga* symbol);
 ***
 *** Get the slot associated with a given index.
 **/
-FugaSlot* FugaSlots_getByIndex  (FugaSlots* slots, FugaSlotsIndex index);
+FugaSlot* FugaSlots_getByIndex(FugaSlots* slots, FugaIndex index);
 
 /**
 *** ### FugaSlots_getBySymbol
 ***
 *** Get the slot associated with a given symbol.
 **/
-FugaSlot* FugaSlots_getBySymbol (FugaSlots* slots, Fuga* name);
+FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, Fuga* name);
 
 /**
 *** ## Set
@@ -115,23 +91,15 @@ FugaSlot* FugaSlots_getBySymbol (FugaSlots* slots, Fuga* name);
 *** be garbage-collected, so FugaSlots can't fabricate its own Fuga
 *** object for the name.
 **/
-void FugaSlots_setByIndex(
-    FugaSlots* slots,
-    Fuga* name,
-    Fuga* value,
-    FugaSlotsIndex index
-);
+void FugaSlots_setByIndex(FugaSlots* slots, FugaIndex index, FugaSlot slot);
 
 /**
 *** ### FugaSlots_setBySymbol
 ***
 *** Set or update the slot associated with a given symbol.
 **/
-void FugaSlots_setBySymbol(
-    FugaSlots* slots,
-    Fuga* name,
-    Fuga* value
-);
+void FugaSlots_setBySymbol(FugaSlots* slots, Fuga* name, FugaSlot slot);
+
 
 #endif
 

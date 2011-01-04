@@ -4,9 +4,7 @@
 *** # Fuga, a homoiconic object-oriented programming language.
 **/
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include "common.h"
 
 /**
 *** ### FugaData
@@ -106,10 +104,6 @@ typedef uint32_t FugaID;
 ***
 **/
 
-#ifndef FUGA_FUGA_TYPEDEF
-#define FUGA_FUGA_TYPEDEF
-typedef struct Fuga Fuga;
-#endif
 struct Fuga {
     Fuga* Object;
     Fuga* proto;

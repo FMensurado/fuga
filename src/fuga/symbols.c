@@ -1,5 +1,6 @@
 #include "symbols.h"
 #include "test.h"
+#include "gc.h"
 #include <string.h>
 
 struct FugaSymbols {
