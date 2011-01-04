@@ -27,9 +27,9 @@ struct _FugaSlotsList {
 **/
 void _FugaSlotsList_mark(void* self) {
     _FugaSlotsList* list = self;
-    FugaGC_mark_(list, list->next);
-    FugaGC_mark_(list, list->slot.name);
-    FugaGC_mark_(list, list->slot.value);
+    FugaGC_mark(list, list->next);
+    FugaGC_mark(list, list->slot.name);
+    FugaGC_mark(list, list->slot.value);
 }
 
 /**
@@ -39,8 +39,8 @@ void _FugaSlotsList_mark(void* self) {
 **/
 _FugaSlotsList* _FugaSlotsList_new(void* gc) {
     ALWAYS(gc);
-    _FugaSlotsList *list = FugaGC_alloc_(gc, sizeof(_FugaSlotsList));
-    FugaGC_onMark_(list, _FugaSlotsList_mark);
+    _FugaSlotsList *list = FugaGC_alloc(gc, sizeof(_FugaSlotsList));
+    FugaGC_onMark(list, _FugaSlotsList_mark);
     return list;
 }
 
@@ -202,8 +202,8 @@ struct FugaSlots {
 **/
 void _FugaSlots_mark(void* self) {
     FugaSlots* slots = self;
-    FugaGC_mark_(self, slots->byIndex);
-    FugaGC_mark_(self, slots->bySymbol);
+    FugaGC_mark(self, slots->byIndex);
+    FugaGC_mark(self, slots->bySymbol);
 }
 
 /**
@@ -214,8 +214,8 @@ void _FugaSlots_mark(void* self) {
 **/
 FugaSlots* FugaSlots_new(void* gc) {
     ALWAYS(gc);
-    FugaSlots* slots = FugaGC_alloc_(gc, sizeof(FugaSlots));
-    FugaGC_onMark_(slots, _FugaSlots_mark);
+    FugaSlots* slots = FugaGC_alloc(gc, sizeof(FugaSlots));
+    FugaGC_onMark(slots, _FugaSlots_mark);
     slots->length = 0;
     slots->byIndex = NULL;
     slots->bySymbol = NULL;
@@ -320,9 +320,9 @@ void FugaSlots_setByIndex(
 TESTS(FugaSlots_setByIndex) {
     FugaGC* gc = FugaGC_start();
     FugaSlots* slots = FugaSlots_new(gc);
-    Fuga* name  = FugaGC_alloc_(gc, 1);
-    Fuga* value1 = FugaGC_alloc_(gc, 1);
-    Fuga* value2 = FugaGC_alloc_(gc, 1);
+    Fuga* name  = FugaGC_alloc(gc, 1);
+    Fuga* value1 = FugaGC_alloc(gc, 1);
+    Fuga* value2 = FugaGC_alloc(gc, 1);
 
     FugaSlotsIndex i0 = FugaSlotsIndex_fromInt(0);
     FugaSlotsIndex i1 = FugaSlotsIndex_fromInt(1);
@@ -387,10 +387,10 @@ void FugaSlots_setBySymbol(
 #ifdef TESTING
 TESTS(FugaSlots_setBySymbol) {
     FugaGC* gc = FugaGC_start();
-    Fuga* name1 = FugaGC_alloc_(gc, 4);
-    Fuga* name2 = FugaGC_alloc_(gc, 4);
-    Fuga* value1 = FugaGC_alloc_(gc, 4);
-    Fuga* value2 = FugaGC_alloc_(gc, 4);
+    Fuga* name1 = FugaGC_alloc(gc, 4);
+    Fuga* name2 = FugaGC_alloc(gc, 4);
+    Fuga* value1 = FugaGC_alloc(gc, 4);
+    Fuga* value2 = FugaGC_alloc(gc, 4);
     bool h;
 
     FugaSlots* slots = FugaSlots_new(gc);

@@ -116,7 +116,7 @@ typedef void (*FugaGCMarkFn)(void*);
 *** - Returns: void
 *** - See also: `FugaGCMarkFn`
 **/
-void FugaGC_mark_(void* parent, void* child);
+void FugaGC_mark(void* parent, void* child);
 
 /**
 *** ### FugaGC_root
@@ -166,9 +166,9 @@ void FugaGC_unroot(void* object);
 *** - Returns: The new object.
 *** - See also: `FugaGCFreeFn`, `FugaGCMarkFn`
 **/
-void* FugaGC_alloc_(void* self, size_t size);
-void FugaGC_onFree_(void* self, FugaGCFreeFn freeFn);
-void FugaGC_onMark_(void* self, FugaGCMarkFn markFn);
+void* FugaGC_alloc(void* self, size_t size);
+void FugaGC_onFree(void* self, FugaGCFreeFn freeFn);
+void FugaGC_onMark(void* self, FugaGCMarkFn markFn);
 
 /**
 *** ## Collection

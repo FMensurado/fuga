@@ -31,16 +31,16 @@ void _Fuga_markFn(void* _self) {
         break;
 
     case FUGA_TYPE_OBJECT:
-        FugaGC_mark_(self, self->data.OBJECT->symbols);
-        FugaGC_mark_(self, FUGA_Prelude);
-        FugaGC_mark_(self, FUGA_Int);
-        FugaGC_mark_(self, FUGA_Real);
-        FugaGC_mark_(self, FUGA_String);
-        FugaGC_mark_(self, FUGA_Symbol);
+        FugaGC_mark(self, self->data.OBJECT->symbols);
+        FugaGC_mark(self, FUGA_Prelude);
+        FugaGC_mark(self, FUGA_Int);
+        FugaGC_mark(self, FUGA_Real);
+        FugaGC_mark(self, FUGA_String);
+        FugaGC_mark(self, FUGA_Symbol);
         break;
 
     default:
-        FugaGC_mark_(self, self->data.data);
+        FugaGC_mark(self, self->data.data);
     }
 }
 
@@ -49,9 +49,9 @@ void _Fuga_markFn(void* _self) {
 **/
 Fuga* Fuga_new() {
     FugaGC* gc = FugaGC_start();
-    Fuga* self = FugaGC_alloc_(gc, sizeof(Fuga));
-    FugaGC_onFree_(self, _Fuga_freeFn);
-    FugaGC_onMark_(self, _Fuga_markFn);
+    Fuga* self = FugaGC_alloc(gc, sizeof(Fuga));
+    FugaGC_onFree(self, _Fuga_freeFn);
+    FugaGC_onMark(self, _Fuga_markFn);
     
     self->Object = self;
     self->proto  = NULL;
@@ -119,9 +119,9 @@ void Fuga_free(Fuga* self) {
 Fuga* Fuga_clone(Fuga* self) {
     ALWAYS(self);
 
-    Fuga* result = FugaGC_alloc_(self, sizeof(Fuga));
-    FugaGC_onFree_(result, _Fuga_freeFn);
-    FugaGC_onMark_(result, _Fuga_markFn);
+    Fuga* result = FugaGC_alloc(self, sizeof(Fuga));
+    FugaGC_onFree(result, _Fuga_freeFn);
+    FugaGC_onMark(result, _Fuga_markFn);
 
     result->Object = FUGA_Object;
     result->proto  = self;

@@ -10,13 +10,13 @@ void _FugaSymbols_mark(void* _self)
 {
     FugaSymbols* self = _self;
     for (size_t i = 0; i < 256; i++)
-        FugaGC_mark_(self, self->tree[i]);
+        FugaGC_mark(self, self->tree[i]);
 }
 
 FugaSymbols* FugaSymbols_new(void* gc)
 {
-    FugaSymbols* self = FugaGC_alloc_(gc, sizeof(FugaSymbols));
-    FugaGC_onMark_(self, _FugaSymbols_mark);
+    FugaSymbols* self = FugaGC_alloc(gc, sizeof(FugaSymbols));
+    FugaGC_onMark(self, _FugaSymbols_mark);
     memset(self, sizeof(FugaSymbols), 0);
     return self;
 }
@@ -62,10 +62,10 @@ TESTS(FugaSymbols) {
     const char* str3 = "";
     const char* str4 = "definitely";
     
-    Fuga* sym1 = FugaGC_alloc_(gc, 4);
-    Fuga* sym2 = FugaGC_alloc_(gc, 4);
-    Fuga* sym3 = FugaGC_alloc_(gc, 4);
-    Fuga* sym4 = FugaGC_alloc_(gc, 4);
+    Fuga* sym1 = FugaGC_alloc(gc, 4);
+    Fuga* sym2 = FugaGC_alloc(gc, 4);
+    Fuga* sym3 = FugaGC_alloc(gc, 4);
+    Fuga* sym4 = FugaGC_alloc(gc, 4);
 
     TEST(FugaSymbols_get(self, str1) == NULL);
     FugaSymbols_set(self, str1, sym1);
