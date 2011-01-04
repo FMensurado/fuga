@@ -57,7 +57,7 @@ void FugaGCList_init (FugaGCList* list);
 ***     - `FugaGCList* item`: the item to be placed at the start.
 *** - See also: `FugaGCList_pushBack`
 **/
-void FugaGCList_push_(FugaGCList* list, FugaGCList* item);
+void FugaGCList_push(FugaGCList* list, FugaGCList* item);
 
 /**
 *** ## Removing Items
@@ -101,7 +101,7 @@ FugaGCList* FugaGCList_pop(FugaGCList* list);
 *** - Returns: void
 *** - See Also: `FugaGCList_appendBack`
 **/
-void FugaGCList_append_(FugaGCList* dest, FugaGCList* src);
+void FugaGCList_append(FugaGCList* dest, FugaGCList* src);
 
 /**
 *** ## Properties
@@ -125,7 +125,7 @@ bool FugaGCList_empty(FugaGCList* list);
 ***     - `void* data`: the item to search for.
 *** - Returns: true if the item is in the list, false otherwise.
 **/
-bool FugaGCList_contains_(FugaGCList* list, void* data);
+bool FugaGCList_contains(FugaGCList* list, void* data);
 
 #endif
 
