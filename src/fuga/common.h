@@ -7,6 +7,8 @@
 
 typedef struct Fuga Fuga;
 typedef int64_t FugaIndex;
+typedef int64_t FugaInt;
+typedef uint32_t FugaID;
 
 #endif
 

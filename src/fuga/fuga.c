@@ -3,24 +3,25 @@
 #include "test.h"
 #include "gc.h"
 #include "symbols.h"
-
+#include <string.h>
 
 /**
-***
+*** This should only be used for LONG, STRING, OBJECT, or SYMBOL
 **/
 void _Fuga_freeFn(void* _self) {
     Fuga* self = _self;
-    switch (Fuga_type(self)) {
-    case FUGA_TYPE_LONG:   case FUGA_TYPE_STRING:
-    case FUGA_TYPE_SYMBOL: case FUGA_TYPE_OBJECT:
-        if (self->data.data) free(self->data.data);
-        break;
-    }
+    ALWAYS(self->type == FUGA_TYPE_LONG ||
+           self->type == FUGA_TYPE_SYMBOL ||
+           self->type == FUGA_TYPE_STRING ||
+           self->type == FUGA_TYPE_OBJECT);
+    free(self->data.data);
 }
-
 
 void _Fuga_markFn(void* _self) {
     Fuga* self = _self;
+    FugaGC_mark(self, self->slots);
+
+
     switch (Fuga_type(self)) {
     case FUGA_TYPE_NONE:
     case FUGA_TYPE_INT: case FUGA_TYPE_LONG:
@@ -44,6 +45,29 @@ void _Fuga_markFn(void* _self) {
     }
 }
 
+void _Fuga_markFnMsg(void* _self) {
+    Fuga* self = _self;
+    FugaGC_mark(self, self->slots);
+    FugaGC_mark(self, self->data.MSG);
+}
+
+void _Fuga_markFnObject(void* _self) {
+    Fuga* self = _self;
+    ALWAYS(self->type == FUGA_TYPE_OBJECT);
+    FugaGC_mark(self, self->slots);
+    FugaGC_mark(self, self->data.OBJECT->symbols);
+    FugaGC_mark(self, FUGA_Prelude);
+    FugaGC_mark(self, FUGA_Number);
+    FugaGC_mark(self, FUGA_Int);
+    FugaGC_mark(self, FUGA_Real);
+    FugaGC_mark(self, FUGA_String);
+    FugaGC_mark(self, FUGA_Symbol);
+    FugaGC_mark(self, FUGA_Bool);
+    FugaGC_mark(self, FUGA_true);
+    FugaGC_mark(self, FUGA_false);
+    FugaGC_mark(self, FUGA_nil);
+}
+
 /**
 *** ### Fuga_new
 **/
@@ -51,13 +75,13 @@ Fuga* Fuga_new() {
     FugaGC* gc = FugaGC_start();
     Fuga* self = FugaGC_alloc(gc, sizeof(Fuga));
     FugaGC_onFree(self, _Fuga_freeFn);
-    FugaGC_onMark(self, _Fuga_markFn);
+    FugaGC_onMark(self, _Fuga_markFnObject);
     
     self->Object = self;
     self->proto  = NULL;
     self->slots  = FugaSlots_new(gc);
     self->id     = FUGA_ID_OBJECT;
-    self->_type  = FUGA_TYPE_OBJECT;
+    self->type  = FUGA_TYPE_OBJECT;
     self->size   = sizeof(FugaObject);
     
     self->data.OBJECT = calloc(sizeof(FugaObject), 1);
@@ -70,6 +94,19 @@ Fuga* Fuga_new() {
     FUGA_Real    = Fuga_clone(FUGA_Number);
     FUGA_String  = Fuga_clone(self);
     FUGA_Symbol  = Fuga_clone(self);
+    FUGA_Msg     = Fuga_clone(self);
+    FUGA_Bool    = Fuga_clone(self);
+
+    FUGA_true = Fuga_clone(FUGA_Bool);
+    FUGA_true->type = FUGA_TYPE_TRUE;
+    FUGA_true->data.BOOL = true;
+
+    FUGA_false = Fuga_clone(FUGA_Bool);
+    FUGA_false->type = FUGA_TYPE_FALSE;
+    FUGA_false->data.BOOL = false;
+
+    FUGA_nil = Fuga_clone(self);
+    FUGA_nil->type = FUGA_TYPE_NIL;
 
     return self;
 }
@@ -89,7 +126,14 @@ TESTS(Fuga_new) {
     TEST(FUGA_Real);
     TEST(FUGA_String);
     TEST(FUGA_Symbol);
+    TEST(FUGA_Msg);
+
+    TEST(FUGA_Bool);
+    TEST(FUGA_true);  TEST(FUGA_true->proto  == FUGA_Bool);
+    TEST(FUGA_false); TEST(FUGA_false->proto == FUGA_Bool);
     
+    TEST(FUGA_nil);
+
     Fuga_free(self);
 }
 #endif
@@ -120,14 +164,13 @@ Fuga* Fuga_clone(Fuga* self) {
     ALWAYS(self);
 
     Fuga* result = FugaGC_alloc(self, sizeof(Fuga));
-    FugaGC_onFree(result, _Fuga_freeFn);
     FugaGC_onMark(result, _Fuga_markFn);
 
     result->Object = FUGA_Object;
     result->proto  = self;
     result->slots  = NULL;
     result->id     = ++FUGA_Object->data.OBJECT->id;
-    result->_type  = FUGA_TYPE_NONE;
+    result->type  = FUGA_TYPE_NONE;
     result->size   = 0;
     result->data.data = NULL;
 
@@ -160,120 +203,647 @@ TESTS(Fuga_clone) {
 #endif
 
 /**
-*** ## Properties
-*** ### Fuga_length
-***
-*** Return the number of canonical slots in self. 
-***
-*** - Params:
-***     - `Fuga* self`
-*** - Returns: `
+*** # Primitives
 **/
 
-/**
-*** ### Fuga_type
-***
-*** Determine the primitive type of the object.
-***
-*** - Params:
-***     - `Fuga* obj`
-*** - Returns: the primitive type of `obj`
-**/
-#define Fuga_type(obj)  (((obj)->_type) & ~FUGA_FLAG_ERROR)
-
-/**
-*** ### Fuga_error
-***
-*** Determine whether an error was raised.
-***
-*** - Params:
-***     - `Fuga* obj`
-*** - Returns: true if `obj` is a raised error, false otherwise.
-**/
-#define Fuga_error(obj) (((obj)->_type) & FUGA_FLAG_ERROR)
-
-
-/**
-*** ## Slot Manipulation
-*** ### Fuga_rawHas
-**/
-
-bool Fuga_rawHas(Fuga* self, Fuga* name)
-{
+Fuga* Fuga_bool(Fuga* self, bool value) {
     ALWAYS(self);
-    switch (Fuga_type(name)) {
-    case FUGA_TYPE_STRING: case FUGA_TYPE_MSG:
-        return Fuga_rawHass(self, name->data.STRING);
-    case FUGA_TYPE_INT:
-        return Fuga_rawHasi(self, name->data.INT);
-    case FUGA_TYPE_SYMBOL:
-        return self->slots && FugaSlots_hasBySymbol(self->slots, name);
-    default:
-        return false; // should raise error :-(
+    return value ? FUGA_true : FUGA_false;
+}
+#ifdef TESTING
+TESTS(Fuga_bool) {
+    Fuga *self = Fuga_new();
+    TEST(FUGA_BOOL(true) == FUGA_true);
+    TEST(FUGA_BOOL(false) == FUGA_false);
+    Fuga_free(self);
+}
+#endif
+
+Fuga* Fuga_int(Fuga* self, FugaIndex index) {    
+    ALWAYS(self);
+    Fuga* value = Fuga_clone(FUGA_Int);
+    value->type = FUGA_TYPE_INT;
+    value->data.INT = index;
+    return value;
+}
+#ifdef TESTING
+TESTS(Fuga_int) {
+    Fuga *self = Fuga_new();
+
+    Fuga *value = FUGA_INT(0);
+    TEST(value);
+    if (value) {
+        TEST(value->type == FUGA_TYPE_INT);
+        TEST(value->data.INT == 0);
     }
+
+    value = FUGA_INT(10);
+    TEST(value);
+    if (value) {
+        TEST(value->type == FUGA_TYPE_INT);
+        TEST(value->data.INT == 10);
+    }
+
+    value = FUGA_INT(-1024);
+    TEST(value);
+    if (value) {
+        TEST(value->type == FUGA_TYPE_INT);
+        TEST(value->data.INT == -1024);
+    }
+
+    Fuga_free(self);
+}
+#endif
+
+Fuga* Fuga_string(Fuga* self, const char* str) {
+    ALWAYS(self);
+    Fuga* value = Fuga_clone(FUGA_String);
+    value->type = FUGA_TYPE_STRING;
+    value->size = strlen(str)+1;
+    value->data.STRING = malloc(value->size);
+    memcpy(value->data.STRING, str, value->size);
+    FugaGC_onFree(value, _Fuga_freeFn);
+    return value;
 }
 
-bool Fuga_rawHasi(Fuga* self, int64_t index) {
+Fuga* Fuga_symbol(Fuga* self, const char* str) {
+    ALWAYS(self);
+    Fuga* value = FugaSymbols_get(FUGA_Object->data.OBJECT->symbols, str);
+    if (!value) {
+        value = Fuga_clone(FUGA_Symbol);
+        value->type = FUGA_TYPE_SYMBOL;
+        value->size = strlen(str)+1;
+        value->data.STRING = malloc(value->size);
+        memcpy(value->data.STRING, str, value->size);
+        FugaGC_onFree(value, _Fuga_freeFn);
+        FugaSymbols_set(FUGA_Object->data.OBJECT->symbols, str, value);
+    }
+    return value;
+}
+
+#ifdef TESTING
+TESTS(Fuga_symbol) {
+    Fuga* self = Fuga_new();
+
+    Fuga* foo = FUGA_SYMBOL("foo");
+
+    TEST(foo);
+    if (foo) {
+        TEST(foo->proto == FUGA_Symbol);
+        TEST(foo->type == FUGA_TYPE_SYMBOL);
+        TEST(foo == FUGA_SYMBOL("foo"));
+        TEST(foo == FUGA_SYMBOL("foo"));
+        FUGA_SYMBOL("bar");
+        TEST(foo == FUGA_SYMBOL("foo"));
+    }
+
+    Fuga_free(self);
+}
+#endif
+
+Fuga* Fuga_msg(Fuga* self) {
+    ALWAYS(self);
+    Fuga* value = Fuga_clone(FUGA_Msg);
+    FugaGC_onMark(value, _Fuga_markFnMsg);
+    value->type = FUGA_TYPE_MSG;
+    value->data.MSG = self;
+    return value;
+}
+
+Fuga* Fuga_msg1(Fuga* self, Fuga* arg0) {
+    ALWAYS(self); ALWAYS(arg0);
+    Fuga* value = Fuga_clone(FUGA_Msg);
+    FugaGC_onMark(value, _Fuga_markFnMsg);
+    value->type = FUGA_TYPE_MSG;
+    value->data.MSG = self;
+    Fuga_setByIndex(value, 0, arg0);
+    return value;
+}
+
+Fuga* Fuga_msg2(Fuga* self, Fuga* arg0, Fuga* arg1) {
+    ALWAYS(self); ALWAYS(arg0); ALWAYS(arg1);
+    Fuga* value = Fuga_clone(FUGA_Msg);
+    FugaGC_onMark(value, _Fuga_markFnMsg);
+    value->type = FUGA_TYPE_MSG;
+    value->data.MSG = self;
+    Fuga_setByIndex(value, 0, arg0);
+    Fuga_setByIndex(value, 1, arg1);
+    return value;
+}
+
+Fuga* Fuga_msg3(Fuga* self, Fuga* arg0, Fuga* arg1, Fuga* arg2) {
+    ALWAYS(self); ALWAYS(arg0); ALWAYS(arg1); ALWAYS(arg2);
+    Fuga* value = Fuga_clone(FUGA_Msg);
+    FugaGC_onMark(value, _Fuga_markFnMsg);
+    value->type = FUGA_TYPE_MSG;
+    value->data.MSG = self;
+    Fuga_setByIndex(value, 0, arg0);
+    Fuga_setByIndex(value, 1, arg1);
+    Fuga_setByIndex(value, 2, arg2);
+    return value;
+}
+
+Fuga* Fuga_msg4(
+    Fuga* self,
+    Fuga* arg0,
+    Fuga* arg1,
+    Fuga* arg2,
+    Fuga* arg3
+) {
+    ALWAYS(self);
+    ALWAYS(arg0); ALWAYS(arg1); ALWAYS(arg2); ALWAYS(arg3);
+    Fuga* value = Fuga_clone(FUGA_Msg);
+    FugaGC_onMark(value, _Fuga_markFnMsg);
+    value->type = FUGA_TYPE_MSG;
+    value->data.MSG = self;
+    Fuga_setByIndex(value, 0, arg0);
+    Fuga_setByIndex(value, 1, arg1);
+    Fuga_setByIndex(value, 2, arg2);
+    Fuga_setByIndex(value, 3, arg3);
+    return value;
+}
+
+#ifdef TESTING
+TESTS(Fuga_msg) {
+    Fuga* self = Fuga_new();
+
+    TEST(FUGA_MSG("HELLO")->proto == FUGA_Msg);
+    TEST(FUGA_MSG("HELLO")->type == FUGA_TYPE_MSG);
+    TEST(FUGA_MSG("HELLO")->data.MSG->type == FUGA_TYPE_SYMBOL);
+
+    Fuga_free(self);
+}
+#endif
+
+Fuga* Fuga_raise(Fuga* self) {
+    ALWAYS(self);
+    self->type |= FUGA_ERROR;
+    return self;
+}
+
+/**
+*** # Slot Operations
+*** ## Has
+**/
+bool Fuga_rawHasByIndex(Fuga* self, FugaIndex index) {
     ALWAYS(self);
     return self->slots && FugaSlots_hasByIndex(self->slots, index);
 }
 
-bool Fuga_rawHass(Fuga* self, const char* name) {
-    ALWAYS(self);
-    return false;
+bool Fuga_hasByIndex(Fuga* self, FugaIndex index) {
+    return Fuga_rawHasByIndex(self, index);
 }
+
+bool Fuga_rawHasBySymbol(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    ALWAYS(name->type == FUGA_TYPE_SYMBOL);
+    return self->slots && FugaSlots_hasBySymbol(self->slots, name);
+}
+
+bool Fuga_hasBySymbol(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    ALWAYS(name->type == FUGA_TYPE_SYMBOL);
+    return Fuga_rawHasBySymbol(self, name) ||
+        (self->proto && Fuga_hasBySymbol(self->proto, name));
+}
+
+bool Fuga_rawHasByString(Fuga* self, const char* str) {
+    ALWAYS(self); ALWAYS(str);
+    return Fuga_rawHasBySymbol(self, FUGA_SYMBOL(str));
+}
+
+bool Fuga_hasByString(Fuga* self, const char* str) {
+    ALWAYS(self); ALWAYS(str);
+    return Fuga_hasBySymbol(self, FUGA_SYMBOL(str));
+}
+
+Fuga* Fuga_rawHas(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    switch (name->type) {
+    case FUGA_TYPE_SYMBOL:
+        return FUGA_BOOL(Fuga_rawHasBySymbol(self, name));
+    case FUGA_TYPE_MSG:
+        return FUGA_BOOL(Fuga_rawHasBySymbol(self, name->data.MSG));
+    case FUGA_TYPE_STRING:
+        return FUGA_BOOL(Fuga_rawHasByString(self, name->data.STRING));
+    case FUGA_TYPE_INT:
+        return FUGA_BOOL(Fuga_rawHasByIndex(self, name->data.INT));
+    case FUGA_TYPE_LONG:
+        FUGA_RAISE(
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("rawHas: index is too positive or"
+                            " too negative.")
+            )
+        );
+    default:
+        FUGA_RAISE(
+            FUGA_MSG1("TypeError",
+                FUGA_STRING("rawHas: name must be a primitive symbol,"
+                            " msg, string, or int.")
+            )
+        );
+    }
+}
+
+Fuga* Fuga_has(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    switch (name->type) {
+    case FUGA_TYPE_SYMBOL:
+        return FUGA_BOOL(Fuga_hasBySymbol(self, name));
+    case FUGA_TYPE_MSG:
+        return FUGA_BOOL(Fuga_hasBySymbol(self, name->data.MSG));
+    case FUGA_TYPE_STRING:
+        return FUGA_BOOL(Fuga_hasByString(self, name->data.STRING));
+    case FUGA_TYPE_INT:
+        return FUGA_BOOL(Fuga_hasByIndex(self, name->data.INT));
+    case FUGA_TYPE_LONG:
+        FUGA_RAISE(
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("has: index is too positive or too negative.")
+            )
+        );
+    default:
+        FUGA_RAISE(
+            FUGA_MSG1("TypeError",
+                FUGA_STRING("has: name must be a primitive symbol,"
+                            " msg, string, or int.")
+            )
+        );
+    }
+}
+
+
+#ifdef TESTING
+TESTS(Fuga_has) {
+    Fuga* self = Fuga_new();
+    Fuga* obj1 = Fuga_clone(FUGA_Object);
+    Fuga* obj2 = Fuga_clone(obj1);
+
+    Fuga_setByIndex  (obj1, 0, obj1);
+    Fuga_setByIndex  (obj2, 1, obj1);
+    Fuga_setByString (obj1, "foo", obj1);
+    Fuga_setByString (obj2, "bar", obj1);
+    Fuga_setBySymbol (obj1, FUGA_SYMBOL("do"), obj1);
+    Fuga_setBySymbol (obj2, FUGA_SYMBOL("re"), obj1);
+
+    TEST( Fuga_rawHasByIndex  (obj1, 0));
+    TEST(!Fuga_rawHasByIndex  (obj2, 0));
+    TEST(!Fuga_rawHasByIndex  (obj1, 1));
+    TEST( Fuga_rawHasByIndex  (obj2, 1));
+    TEST(!Fuga_rawHasByIndex  (obj1, 2));
+    TEST(!Fuga_rawHasByIndex  (obj2, 2));
+    TEST( Fuga_rawHasByString (obj1, "foo"));
+    TEST(!Fuga_rawHasByString (obj2, "foo"));
+    TEST(!Fuga_rawHasByString (obj1, "bar"));
+    TEST( Fuga_rawHasByString (obj2, "bar"));
+    TEST(!Fuga_rawHasByString (obj1, "baz"));
+    TEST(!Fuga_rawHasByString (obj2, "baz"));
+    TEST( Fuga_rawHasBySymbol (obj1, FUGA_SYMBOL("do")));
+    TEST(!Fuga_rawHasBySymbol (obj2, FUGA_SYMBOL("do")));
+    TEST(!Fuga_rawHasBySymbol (obj1, FUGA_SYMBOL("re")));
+    TEST( Fuga_rawHasBySymbol (obj2, FUGA_SYMBOL("re")));
+    TEST(!Fuga_rawHasBySymbol (obj1, FUGA_SYMBOL("mi")));
+    TEST(!Fuga_rawHasBySymbol (obj2, FUGA_SYMBOL("mi")));
+
+    TEST(FUGA_true  == Fuga_rawHas(obj1, FUGA_INT(0)));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_INT(0)));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_INT(1)));
+    TEST(FUGA_true  == Fuga_rawHas(obj2, FUGA_INT(1)));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_INT(2)));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_INT(2)));
+    TEST(FUGA_true  == Fuga_rawHas(obj1, FUGA_STRING("foo")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_STRING("foo")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_STRING("bar")));
+    TEST(FUGA_true  == Fuga_rawHas(obj2, FUGA_STRING("bar")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_STRING("baz")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_STRING("baz")));
+    TEST(FUGA_true  == Fuga_rawHas(obj1, FUGA_SYMBOL("do")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_SYMBOL("do")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_SYMBOL("re")));
+    TEST(FUGA_true  == Fuga_rawHas(obj2, FUGA_SYMBOL("re")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_SYMBOL("mi")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_SYMBOL("mi")));
+    TEST(FUGA_true  == Fuga_rawHas(obj1, FUGA_MSG("do")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_MSG("do")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_MSG("re")));
+    TEST(FUGA_true  == Fuga_rawHas(obj2, FUGA_MSG("re")));
+    TEST(FUGA_false == Fuga_rawHas(obj1, FUGA_MSG("mi")));
+    TEST(FUGA_false == Fuga_rawHas(obj2, FUGA_MSG("mi")));
+    TEST(Fuga_error(Fuga_rawHas(obj1, obj1)));
+    TEST(Fuga_error(Fuga_rawHas(obj1, FUGA_Object)));
+
+    TEST( Fuga_hasByIndex  (obj1, 0));
+    TEST(!Fuga_hasByIndex  (obj2, 0));
+    TEST(!Fuga_hasByIndex  (obj1, 1));
+    TEST( Fuga_hasByIndex  (obj2, 1));
+    TEST(!Fuga_hasByIndex  (obj1, 2));
+    TEST(!Fuga_hasByIndex  (obj2, 2));
+    TEST( Fuga_hasByString (obj1, "foo"));
+    TEST( Fuga_hasByString (obj2, "foo"));
+    TEST(!Fuga_hasByString (obj1, "bar"));
+    TEST( Fuga_hasByString (obj2, "bar"));
+    TEST(!Fuga_hasByString (obj1, "baz"));
+    TEST(!Fuga_hasByString (obj2, "baz"));
+    TEST( Fuga_hasBySymbol (obj1, FUGA_SYMBOL("do")));
+    TEST( Fuga_hasBySymbol (obj2, FUGA_SYMBOL("do")));
+    TEST(!Fuga_hasBySymbol (obj1, FUGA_SYMBOL("re")));
+    TEST( Fuga_hasBySymbol (obj2, FUGA_SYMBOL("re")));
+    TEST(!Fuga_hasBySymbol (obj1, FUGA_SYMBOL("mi")));
+    TEST(!Fuga_hasBySymbol (obj2, FUGA_SYMBOL("mi")));
+
+    TEST(FUGA_true  == Fuga_has(obj1, FUGA_INT(0)));
+    TEST(FUGA_false == Fuga_has(obj2, FUGA_INT(0)));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_INT(1)));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_INT(1)));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_INT(2)));
+    TEST(FUGA_false == Fuga_has(obj2, FUGA_INT(2)));
+    TEST(FUGA_true  == Fuga_has(obj1, FUGA_STRING("foo")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_STRING("foo")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_STRING("bar")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_STRING("bar")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_STRING("baz")));
+    TEST(FUGA_false == Fuga_has(obj2, FUGA_STRING("baz")));
+    TEST(FUGA_true  == Fuga_has(obj1, FUGA_SYMBOL("do")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_SYMBOL("do")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_SYMBOL("re")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_SYMBOL("re")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_SYMBOL("mi")));
+    TEST(FUGA_false == Fuga_has(obj2, FUGA_SYMBOL("mi")));
+    TEST(FUGA_true  == Fuga_has(obj1, FUGA_MSG("do")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_MSG("do")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_MSG("re")));
+    TEST(FUGA_true  == Fuga_has(obj2, FUGA_MSG("re")));
+    TEST(FUGA_false == Fuga_has(obj1, FUGA_MSG("mi")));
+    TEST(FUGA_false == Fuga_has(obj2, FUGA_MSG("mi")));
+    TEST(Fuga_error(Fuga_rawHas(obj1, obj1)));
+    TEST(Fuga_error(Fuga_rawHas(obj1, FUGA_Object)));
+
+    Fuga_free(self);
+}
+#endif
 
 
 /**
-*** ### Fuga_has
+*** ## Get
 **/
-bool Fuga_has(Fuga* self, Fuga* name) {
-    ALWAYS(self);
-    return false;
-}
 
-bool Fuga_hasi(Fuga* self, int64_t index) {
+Fuga* Fuga_rawGetByIndex(Fuga* self, FugaIndex index) {
     ALWAYS(self);
-    return Fuga_rawHasi(self, index) || (
-        self->proto && Fuga_hasi(self, index)
+    if (self->slots) {
+        FugaSlot* slot = FugaSlots_getByIndex(self->slots, index);
+        if (slot)
+            return slot->value;
+    }
+    FUGA_RAISE(
+        FUGA_MSG2("SlotError",
+            FUGA_STRING("rawGet: no slot with index"),
+            FUGA_INT(index)
+        )
     );
 }
 
-bool Fuga_hass(Fuga* self, const char* name) {
-    ALWAYS(self);
-    return false;
+Fuga* Fuga_rawGetBySymbol(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    if (self->slots) {
+        FugaSlot* slot = FugaSlots_getBySymbol(self->slots, name);
+        if (slot)
+            return slot->value;
+    }
+    FUGA_RAISE(
+        FUGA_MSG2("SlotError",
+            FUGA_STRING("rawGet: no slot with name"),
+            name 
+        )
+    );
 }
 
-/**
-*** ### Fuga_get
-*** 
-*** Return the value associated with a given name in a given object. If
-*** there is no such slot, raise a SlotError.
-***
-*** - Params:
-***     - `Fuga* self`: object to look in
-***     - `name` or `index`: name or index of the slot to look for
-*** - Returns: the value of the slot, or SlotError.
-**/
-Fuga* Fuga_get(Fuga* self, Fuga* name);
-Fuga* Fuga_geti(Fuga* self, int64_t index);
-Fuga* Fuga_gets(Fuga* self, const char* name);
+Fuga* Fuga_rawGetByString(Fuga* self, const char* str) {
+    ALWAYS(self); ALWAYS(str);
+    return Fuga_rawGetBySymbol(self, FUGA_SYMBOL(str));
+}
+
+Fuga* Fuga_rawGet(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    switch (name->type) {
+    case FUGA_TYPE_SYMBOL:
+        return Fuga_rawGetBySymbol(self, name);
+    case FUGA_TYPE_MSG:
+        return Fuga_rawGetBySymbol(self, name->data.MSG);
+    case FUGA_TYPE_STRING:
+        return Fuga_rawGetByString(self, name->data.STRING);
+    case FUGA_TYPE_INT:
+        return Fuga_rawGetByIndex(self, name->data.INT);
+    case FUGA_TYPE_LONG:
+        FUGA_RAISE(
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("rawGet: index is too positive"
+                            " or too negative.")
+            )
+        );
+    default:
+        FUGA_RAISE(
+            FUGA_MSG1("TypeError",
+                FUGA_STRING("rawGet: name must be a primitive symbol,"
+                            " msg, string, or int.")
+            )
+        );
+    }
+}
+
+Fuga* Fuga_getByIndex(Fuga* self, FugaIndex index) {
+    ALWAYS(self);
+    if (self->slots) {
+        FugaSlot* slot = FugaSlots_getByIndex(self->slots, index);
+        if (slot)
+            return slot->value;
+    }
+    FUGA_RAISE(
+        FUGA_MSG2("SlotError",
+            FUGA_STRING("get: no slot with index"),
+            FUGA_INT(index)
+        )
+    );
+}
+
+Fuga* Fuga_getBySymbol(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+
+    if (self->slots) {
+        FugaSlot* slot = FugaSlots_getBySymbol(self->slots, name);
+        if (slot)
+            return slot->value;
+    }
+
+    if (self->proto)
+        return Fuga_getBySymbol(self->proto, name);
+
+    FUGA_RAISE(
+        FUGA_MSG2("SlotError",
+            FUGA_STRING("get: no slot with name"),
+            name 
+        )
+    );
+}
+
+Fuga* Fuga_getByString(Fuga* self, const char* str) {
+    ALWAYS(self); ALWAYS(str);
+    return Fuga_getBySymbol(self, FUGA_SYMBOL(str));
+}
+
+Fuga* Fuga_get(Fuga* self, Fuga* name) {
+    ALWAYS(self); ALWAYS(name);
+    switch (name->type) {
+    case FUGA_TYPE_SYMBOL:
+        return Fuga_getBySymbol(self, name);
+    case FUGA_TYPE_MSG:
+        return Fuga_getBySymbol(self, name->data.MSG);
+    case FUGA_TYPE_STRING:
+        return Fuga_getByString(self, name->data.STRING);
+    case FUGA_TYPE_INT:
+        return Fuga_getByIndex(self, name->data.INT);
+    case FUGA_TYPE_LONG:
+        FUGA_RAISE(
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("get: index is too positive"
+                            " or too negative.")
+            )
+        );
+    default:
+        FUGA_RAISE(
+            FUGA_MSG1("TypeError",
+                FUGA_STRING("set: name must be a primitive symbol,"
+                            " msg, string, or int.")
+            )
+        );
+    }
+}
+
+#ifdef TESTING
+TESTS(Fuga_get) {
+    Fuga* self = Fuga_new();
+    Fuga* obj1 = Fuga_clone(FUGA_Object);
+    Fuga* obj2 = Fuga_clone(obj1);
+
+    Fuga_setByIndex  (obj1, 0, obj1);
+    Fuga_setByIndex  (obj2, 1, obj1);
+    Fuga_setByIndex  (obj1, 2, obj1);
+    Fuga_setByIndex  (obj2, 2, obj2);
+    Fuga_setByString (obj1, "foo", obj1);
+    Fuga_setByString (obj2, "bar", obj1);
+    Fuga_setByString (obj1, "baz", obj1);
+    Fuga_setByString (obj2, "baz", obj2);
+    Fuga_setBySymbol (obj1, FUGA_SYMBOL("do"), obj1);
+    Fuga_setBySymbol (obj2, FUGA_SYMBOL("re"), obj1);
+    Fuga_setBySymbol (obj1, FUGA_SYMBOL("mi"), obj1);
+    Fuga_setBySymbol (obj2, FUGA_SYMBOL("mi"), obj2);
+    
+    TEST(obj1 ==    Fuga_rawGetByIndex(obj1, 0) );
+    TEST(Fuga_error(Fuga_rawGetByIndex(obj2, 0)));
+    TEST(Fuga_error(Fuga_rawGetByIndex(obj1, 1)));
+    TEST(obj1 ==    Fuga_rawGetByIndex(obj2, 1) );
+    TEST(obj1 ==    Fuga_rawGetByIndex(obj1, 2) );
+    TEST(obj2 ==    Fuga_rawGetByIndex(obj2, 2) );
+    TEST(Fuga_error(Fuga_rawGetByIndex(obj1, 3)));
+    TEST(Fuga_error(Fuga_rawGetByIndex(obj2, 3)));
+    TEST(obj1 ==    Fuga_rawGetByString(obj1, "foo") );
+    TEST(Fuga_error(Fuga_rawGetByString(obj2, "foo")));
+    TEST(Fuga_error(Fuga_rawGetByString(obj1, "bar")));
+    TEST(obj1 ==    Fuga_rawGetByString(obj2, "bar") );
+    TEST(obj1 ==    Fuga_rawGetByString(obj1, "baz") );
+    TEST(obj2 ==    Fuga_rawGetByString(obj2, "baz") );
+    TEST(Fuga_error(Fuga_rawGetByString(obj1, "bif")));
+    TEST(Fuga_error(Fuga_rawGetByString(obj2, "bif")));
+    TEST(obj1 ==    Fuga_rawGetBySymbol(obj1, FUGA_SYMBOL("do")) );
+    TEST(Fuga_error(Fuga_rawGetBySymbol(obj2, FUGA_SYMBOL("do"))));
+    TEST(Fuga_error(Fuga_rawGetBySymbol(obj1, FUGA_SYMBOL("re"))));
+    TEST(obj1 ==    Fuga_rawGetBySymbol(obj2, FUGA_SYMBOL("re")) );
+    TEST(obj1 ==    Fuga_rawGetBySymbol(obj1, FUGA_SYMBOL("mi")) );
+    TEST(obj2 ==    Fuga_rawGetBySymbol(obj2, FUGA_SYMBOL("mi")) );
+    TEST(Fuga_error(Fuga_rawGetBySymbol(obj1, FUGA_SYMBOL("fa"))));
+    TEST(Fuga_error(Fuga_rawGetBySymbol(obj2, FUGA_SYMBOL("fa"))));
+
+    TEST(obj1 ==    Fuga_getByIndex(obj1, 0) );
+    TEST(Fuga_error(Fuga_getByIndex(obj2, 0)));
+    TEST(Fuga_error(Fuga_getByIndex(obj1, 1)));
+    TEST(obj1 ==    Fuga_getByIndex(obj2, 1) );
+    TEST(obj1 ==    Fuga_getByIndex(obj1, 2) );
+    TEST(obj2 ==    Fuga_getByIndex(obj2, 2) );
+    TEST(Fuga_error(Fuga_getByIndex(obj1, 3)));
+    TEST(Fuga_error(Fuga_getByIndex(obj2, 3)));
+    TEST(obj1 ==    Fuga_getByString(obj1, "foo") );
+    TEST(obj1 ==    Fuga_getByString(obj2, "foo") );
+    TEST(Fuga_error(Fuga_getByString(obj1, "bar")));
+    TEST(obj1 ==    Fuga_getByString(obj2, "bar") );
+    TEST(obj1 ==    Fuga_getByString(obj1, "baz") );
+    TEST(obj2 ==    Fuga_getByString(obj2, "baz") );
+    TEST(Fuga_error(Fuga_getByString(obj1, "bif")));
+    TEST(Fuga_error(Fuga_getByString(obj2, "bif")));
+    TEST(obj1 ==    Fuga_getBySymbol(obj1, FUGA_SYMBOL("do")) );
+    TEST(obj1 ==    Fuga_getBySymbol(obj2, FUGA_SYMBOL("do")) );
+    TEST(Fuga_error(Fuga_getBySymbol(obj1, FUGA_SYMBOL("re"))));
+    TEST(obj1 ==    Fuga_getBySymbol(obj2, FUGA_SYMBOL("re")) );
+    TEST(obj1 ==    Fuga_getBySymbol(obj1, FUGA_SYMBOL("mi")) );
+    TEST(obj2 ==    Fuga_getBySymbol(obj2, FUGA_SYMBOL("mi")) );
+    TEST(Fuga_error(Fuga_getBySymbol(obj1, FUGA_SYMBOL("fa"))));
+    TEST(Fuga_error(Fuga_getBySymbol(obj2, FUGA_SYMBOL("fa"))));
+}
+#endif
 
 /**
-*** ### Fuga_set
-***
-*** Associate a value with a name in an object. If there is already such a
-*** slot, or the index is too large, raise a SlotError.
-***
-*** - Params:
-***     - `Fuga* self`: object to modify
-***     - `name` or `index`: name of slot to add. If NULL, will insert
-***     value in the first available index.
-***     - `value`: the value of the slot to add.
-*** - Returns: NULL on success, SlotError on failure.
+*** ## Set
 **/
 
-Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value);
-Fuga* Fuga_seti(Fuga* self, int64_t index, Fuga* value);
-Fuga* Fuga_sets(Fuga* self, const char* name, Fuga* value);
+void Fuga_setByIndex(Fuga* self, FugaIndex index, Fuga* value) { 
+    ALWAYS(self); ALWAYS(value);
+    if (!self->slots)
+        self->slots = FugaSlots_new(self);
+    FugaSlot slot = { FUGA_INT(index), value };
+    FugaSlots_setByIndex(self->slots, index, slot);
+}
+
+void Fuga_setBySymbol(Fuga* self, Fuga* name, Fuga* value) {
+    ALWAYS(self); ALWAYS(name); ALWAYS(value);
+    ALWAYS(name->type == FUGA_TYPE_SYMBOL);
+    if (!self->slots)
+        self->slots = FugaSlots_new(self);
+    FugaSlot slot = { name, value };
+    FugaSlots_setBySymbol(self->slots, name, slot);
+}
+
+void Fuga_setByString(Fuga* self, const char* name, Fuga* value) {
+    ALWAYS(self); ALWAYS(name); ALWAYS(value);
+    Fuga_setBySymbol(self, FUGA_SYMBOL(name), value);
+}
+
+Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
+    ALWAYS(self); ALWAYS(name);
+    switch (name->type) {
+    case FUGA_TYPE_SYMBOL:
+        Fuga_setBySymbol(self, name, value);
+        return FUGA_nil;
+    case FUGA_TYPE_MSG:
+        Fuga_setBySymbol(self, name->data.MSG, value);
+        return FUGA_nil;
+    case FUGA_TYPE_STRING:
+        Fuga_setByString(self, name->data.STRING, value);
+        return FUGA_nil;
+    case FUGA_TYPE_INT:
+        Fuga_setByIndex(self, name->data.INT, value);
+        return FUGA_nil;
+    case FUGA_TYPE_LONG:
+        FUGA_RAISE(
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("get: index is too positive"
+                            " or too negative.")
+            )
+        );
+    default:
+        FUGA_RAISE(
+            FUGA_MSG1("TypeError",
+                FUGA_STRING("set: name must be a primitive symbol,"
+                            " msg, string, or int.")
+            )
+        );
+    }
+}
 

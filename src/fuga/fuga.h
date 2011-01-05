@@ -15,12 +15,12 @@
 **/
 typedef union FugaData {
     struct FugaObject* OBJECT;
-    int64_t   INT;
+    FugaIndex INT;
     uint64_t* LONG;
     double    REAL;
     char*     SYMBOL;
     char*     STRING;
-    char*     MSG;
+    Fuga*     MSG;
     bool      BOOL;
     void*     data;
 } FugaData;
@@ -29,22 +29,6 @@ typedef union FugaData {
 *** ### FUGA_TYPE 
 ***
 *** This is an 8bit value that tells whether 
-***
-*** - Values:
-***     - `FUGA_TYPE_NONE`: for objects that aren't primitive
-***     - `FUGA_TYPE_INT`: for small primitive ints
-***     - `FUGA_TYPE_LONG`: for big primitive ints
-***     - `FUGA_TYPE_REAL`: for floating point numbers
-***     - `FUGA_TYPE_STRING`: for primitive strings
-***     - `FUGA_TYPE_SYMBOL`: for primitive symbols
-***     - `FUGA_TYPE_MSG`: for primitive messages
-***     - `FUGA_TYPE_METHOD`: for primitive methods
-***     - `FUGA_TYPE_OBJECT`: for the root object (Object)
-***     - `FUGA_TYPE_NIL`: for the `nil` object (indicating a lack of value)
-***     - `FUGA_TYPE_TRUE`: for the `true` object
-***     - `FUGA_TYPE_FALSE`: for the `false` object
-*** - Flags:
-***     - `FUGA_FLAG_ERROR`: a raised error
 **/
 
 typedef uint8_t FugaType;
@@ -65,18 +49,17 @@ typedef uint8_t FugaType;
 #define FUGA_TYPE_FALSE  0x0B  // type of false
 
 // flags
-#define FUGA_FLAG_ERROR  0x80
+#define FUGA_ERROR  0x80
 
 /**
 *** ### FugaID
 ***
 *** Unique identifier for each 
 **/
-typedef uint32_t FugaID;
 
-#define FUGA_ID_LAZY    ((uint32_t)0)
-#define FUGA_ID_NEEDED  ((uint32_t)0xFFFFFFFF)
-#define FUGA_ID_OBJECT  ((uint32_t)1)
+#define FUGA_ID_LAZY    ((FugaID)0)
+#define FUGA_ID_NEEDED  ((FugaID)0xFFFFFFFF)
+#define FUGA_ID_OBJECT  ((FugaID)1)
 
 /**
 *** ### Fuga
@@ -111,7 +94,7 @@ struct Fuga {
     FugaID id;
 
     // primitive type
-    FugaType _type;
+    FugaType type;
     uint32_t size:24;
     FugaData data;
 };
@@ -128,6 +111,11 @@ typedef struct FugaObject {
     Fuga* Real;
     Fuga* String;
     Fuga* Symbol;
+    Fuga* Msg;
+    Fuga* Bool;
+    Fuga* _true;
+    Fuga* _false;
+    Fuga* nil;
 } FugaObject;
 
 #define FUGA_Object  (self->Object)
@@ -138,6 +126,11 @@ typedef struct FugaObject {
 #define FUGA_Real    (self->Object->data.OBJECT->Real)
 #define FUGA_String  (self->Object->data.OBJECT->String)
 #define FUGA_Symbol  (self->Object->data.OBJECT->Symbol)
+#define FUGA_Msg     (self->Object->data.OBJECT->Msg)
+#define FUGA_Bool    (self->Object->data.OBJECT->Bool)
+#define FUGA_true    (self->Object->data.OBJECT->_true)
+#define FUGA_false   (self->Object->data.OBJECT->_false)
+#define FUGA_nil     (self->Object->data.OBJECT->nil)
 
 /**
 *** ## Constructors and Destructors
@@ -198,7 +191,9 @@ Fuga* Fuga_clone(Fuga* proto);
 ***     - `Fuga* obj`
 *** - Returns: the primitive type of `obj`
 **/
-#define Fuga_type(obj)  (((obj)->_type) & ~FUGA_FLAG_ERROR)
+#define Fuga_type(obj)  (((obj)->type) & ~FUGA_ERROR)
+
+#define Fuga_data(obj)  ((obj)->data)
 
 /**
 *** ### Fuga_error
@@ -209,8 +204,46 @@ Fuga* Fuga_clone(Fuga* proto);
 ***     - `Fuga* obj`
 *** - Returns: true if `obj` is a raised error, false otherwise.
 **/
-#define Fuga_error(obj) (((obj)->_type) & FUGA_FLAG_ERROR)
+#define Fuga_error(obj) (((obj)->type) & FUGA_ERROR)
 
+
+
+/**
+*** # Primitives
+**/
+
+Fuga* Fuga_bool(Fuga* self, bool value);
+Fuga* Fuga_int (Fuga* self, FugaIndex index);
+Fuga* Fuga_real(Fuga* self, double);
+Fuga* Fuga_string(Fuga* self, const char*);
+Fuga* Fuga_symbol(Fuga* self, const char*);
+
+#define FUGA_BOOL(x)    (Fuga_bool(self, (x)))
+#define FUGA_INT(x)     (Fuga_int(self, (x)))
+#define FUGA_REAL(x)    (Fuga_real(self, (x)))
+#define FUGA_STRING(x)     (Fuga_string(self, (x)))
+#define FUGA_SYMBOL(x)     (Fuga_symbol(self, (x)))
+
+Fuga* Fuga_msg (Fuga* self);
+Fuga* Fuga_msg1(Fuga* self, Fuga* arg0);
+Fuga* Fuga_msg2(Fuga* self, Fuga* arg0, Fuga* arg1);
+Fuga* Fuga_msg3(Fuga* self, Fuga* arg0, Fuga* arg1, Fuga* arg2);
+Fuga* Fuga_msg4(Fuga* self, Fuga* arg0, Fuga* arg1, Fuga* arg2, Fuga* arg3);
+
+#define FUGA_MSG(x)          (Fuga_msg(FUGA_SYMBOL((x))))
+#define FUGA_MSG1(x,a)       (Fuga_msg1(FUGA_SYMBOL(x), (a)))
+#define FUGA_MSG2(x,a,b)     (Fuga_msg2(FUGA_SYMBOL(x), (a), (b)))
+#define FUGA_MSG3(x,a,b,c)   (Fuga_msg3(FUGA_SYMBOL(x), (a), (b), (c)))
+#define FUGA_MSG4(x,a,b,c,d) (Fuga_msg4(FUGA_SYMBOL(x), (a), (b), (c), (d)))
+
+/**
+*** ### Fuga_raise
+***
+*** Raise an error.
+**/
+Fuga* Fuga_raise(Fuga*);
+
+#define FUGA_RAISE(f) return Fuga_raise(f)
 
 /**
 *** ## Slot Manipulation
@@ -225,12 +258,16 @@ Fuga* Fuga_clone(Fuga* proto);
 ***     - `name` or `index`: name or index of the slot to look for 
 *** - Returns: true if there is such a slot, false otherwise.
 **/
-bool Fuga_rawHas(Fuga* self, Fuga* name);
-bool Fuga_rawHasi(Fuga* self, int64_t index);
-bool Fuga_rawHass(Fuga* self, const char* name);
-bool Fuga_has(Fuga* self, Fuga* name);
-bool Fuga_hasi(Fuga* self, int64_t index);
-bool Fuga_hass(Fuga* self, const char* name);
+
+bool  Fuga_rawHasByIndex  (Fuga* self, FugaIndex index);
+bool  Fuga_rawHasByString (Fuga* self, const char* name);
+bool  Fuga_rawHasBySymbol (Fuga* self, Fuga* name);
+Fuga* Fuga_rawHas         (Fuga* self, Fuga* name);
+
+bool  Fuga_hasByIndex     (Fuga* self, FugaIndex index);
+bool  Fuga_hasByString    (Fuga* self, const char* name);
+bool  Fuga_hasBySymbol    (Fuga* self, Fuga* name);
+Fuga* Fuga_has            (Fuga* self, Fuga* name);
 
 /**
 *** ### Fuga_get
@@ -243,9 +280,16 @@ bool Fuga_hass(Fuga* self, const char* name);
 ***     - `name` or `index`: name or index of the slot to look for
 *** - Returns: the value of the slot, or SlotError.
 **/
-Fuga* Fuga_get(Fuga* self, Fuga* name);
-Fuga* Fuga_geti(Fuga* self, int64_t index);
-Fuga* Fuga_gets(Fuga* self, const char* name);
+
+Fuga* Fuga_rawGetByIndex  (Fuga* self, FugaIndex index);
+Fuga* Fuga_rawGetByString (Fuga* self, const char* name);
+Fuga* Fuga_rawGetBySymbol (Fuga* self, Fuga* name);
+Fuga* Fuga_rawGet         (Fuga* self, Fuga* name);
+
+Fuga* Fuga_getByIndex     (Fuga* self, FugaIndex index);
+Fuga* Fuga_getByString    (Fuga* self, const char* name);
+Fuga* Fuga_getBySymbol    (Fuga* self, Fuga* name);
+Fuga* Fuga_get            (Fuga* self, Fuga* name);
 
 /**
 *** ### Fuga_set
@@ -261,8 +305,9 @@ Fuga* Fuga_gets(Fuga* self, const char* name);
 *** - Returns: NULL on success, SlotError on failure.
 **/
 
-Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value);
-Fuga* Fuga_seti(Fuga* self, int64_t index, Fuga* value);
-Fuga* Fuga_sets(Fuga* self, const char* name, Fuga* value);
+void  Fuga_setByIndex   (Fuga* self, FugaIndex index,  Fuga* value);
+void  Fuga_setByString  (Fuga* self, const char* name, Fuga* value);
+void  Fuga_setBySymbol  (Fuga* self, Fuga* name,       Fuga* value);
+Fuga* Fuga_set          (Fuga* self, Fuga* name,       Fuga* value);
 
 #endif
