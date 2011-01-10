@@ -205,13 +205,25 @@ Fuga* Fuga_clone(Fuga* proto);
 *** - Returns: true if `obj` is a raised error, false otherwise.
 **/
 #define Fuga_error(obj) (((obj)->type) & FUGA_ERROR)
+#define FUGA_(obj, expr) Fuga* obj = expr; if(Fuga_error(obj)) return obj
 
-
+/**\
+*** ### Fuga_is
+***
+*** Determine whether two objects are the same object.
+**/
+Fuga* Fuga_is(Fuga* self, Fuga* other);
 
 /**
-*** # Primitives
+*** ### Fuga_isa
+***
+*** Determine whether self's parents include an object.
 **/
+Fuga* Fuga_isa(Fuga* self, Fuga* code);
 
+/**
+*** ## Primitives
+**/
 Fuga* Fuga_bool(Fuga* self, bool value);
 Fuga* Fuga_int (Fuga* self, FugaIndex index);
 Fuga* Fuga_real(Fuga* self, double);
@@ -310,4 +322,50 @@ void  Fuga_setByString  (Fuga* self, const char* name, Fuga* value);
 void  Fuga_setBySymbol  (Fuga* self, Fuga* name,       Fuga* value);
 Fuga* Fuga_set          (Fuga* self, Fuga* name,       Fuga* value);
 
+/**
+*** ## Thunks
+*** ### Fuga_thunk
+***
+*** Avoids evaluating code until it's necessary.
+**/
+
+Fuga* Fuga_thunk(Fuga* self, Fuga* receiver, Fuga* scope);
+
+/**
+*** ### Fuga_need
+***
+*** Force evaluation of a thunk. You only need to call this if you need
+*** to access any of the self's data directly, or if you want to force
+*** evaluation. Return self if self evaluates succesfully. If self raises
+*** an error, return the error and reset the thunk.
+**/
+Fuga* Fuga_need(Fuga* self);
+#define FUGA_NEED(self) FUGA_(self, Fuga_need(self))
+
+/**
+*** ### Fuga_slots
+***
+*** Return the slots associated with the object or thunk. If self is a
+*** thunk, does not evaluate the slots -- returns the slots as thunks.
+**/
+Fuga* Fuga_slots(Fuga* self);
+
+/**
+*** ## Evaluation
+*** ### Fuga_eval
+***
+*** Evaluate code. This does not generate thunks -- it generates evaluated
+*** code. Usually, scope and receiver will be the same. If scope is NULL,
+*** receiver is used. Return the evaluated object.
+**/
+
+Fuga* Fuga_eval(Fuga* self, Fuga* receiver, Fuga* scope);
+
+/**
+*** ### Fuga_evalSlots
+***
+*** Evaluate code according to its slots, not according to its type.
+**/
+
 #endif
+

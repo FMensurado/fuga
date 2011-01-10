@@ -847,3 +847,29 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
     }
 }
 
+
+/**
+*** ## Properties
+*** ### Fuga_is
+**/
+Fuga* Fuga_is(Fuga* self, Fuga* other) {
+    FUGA_NEED(self);
+    FUGA_NEED(other);
+    return FUGA_BOOL(self->id == other->id);
+}
+
+/**
+*** ### Fuga_isa
+**/
+Fuga* Fuga_isa(Fuga* self) {
+    FUGA_NEED(self);
+    for (; other; other = other->proto) {
+        FUGA_(result, Fuga_is(self->proto, other));
+        if (result == FUGA_true) return FUGA_true;
+        ALWAYS(result == FUGA_false);
+    }
+    return FUGA_false;
+}
+
+
+
