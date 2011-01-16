@@ -218,7 +218,7 @@ Fuga* Fuga_clone(Fuga* proto);
 **/
 Fuga* Fuga_is(Fuga* self, Fuga* other);
 #define Fuga_isTrue(self)  (Fuga_is(self, FUGA_true)  == FUGA_true)
-#define Fuga_isFalse(self) (Fuga_is(self, FUGA_false) == FUGA_false)
+#define Fuga_isFalse(self) (Fuga_is(self, FUGA_false) == FUGA_true)
 
 /**
 *** ### Fuga_isa
