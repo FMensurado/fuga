@@ -61,6 +61,9 @@ typedef uint8_t FugaType;
 #define FUGA_ID_NEEDED  ((FugaID)0xFFFFFFFF)
 #define FUGA_ID_OBJECT  ((FugaID)1)
 
+#define FUGA_READY(obj) (!(((obj)->id == FUGA_ID_LAZY  ) || \
+                           ((obj)->id == FUGA_ID_NEEDED)))
+
 /**
 *** ### Fuga
 ***
@@ -204,15 +207,18 @@ Fuga* Fuga_clone(Fuga* proto);
 ***     - `Fuga* obj`
 *** - Returns: true if `obj` is a raised error, false otherwise.
 **/
-#define Fuga_error(obj) (((obj)->type) & FUGA_ERROR)
-#define FUGA_(obj, expr) Fuga* obj = expr; if(Fuga_error(obj)) return obj
+#define Fuga_isError(obj) (((obj)->type) & FUGA_ERROR)
+#define FUGA_SET(obj, expr) obj = expr; if(Fuga_isError(obj)) return obj
+#define FUGA_DECL(obj, expr) Fuga* FUGA_SET(obj, expr)
 
-/**\
+/**
 *** ### Fuga_is
 ***
 *** Determine whether two objects are the same object.
 **/
 Fuga* Fuga_is(Fuga* self, Fuga* other);
+#define Fuga_isTrue(self)  (Fuga_is(self, FUGA_true)  == FUGA_true)
+#define Fuga_isFalse(self) (Fuga_is(self, FUGA_false) == FUGA_false)
 
 /**
 *** ### Fuga_isa
@@ -340,7 +346,7 @@ Fuga* Fuga_thunk(Fuga* self, Fuga* receiver, Fuga* scope);
 *** an error, return the error and reset the thunk.
 **/
 Fuga* Fuga_need(Fuga* self);
-#define FUGA_NEED(self) FUGA_(self, Fuga_need(self))
+#define FUGA_NEED(self) FUGA_SET(self, Fuga_need(self))
 
 /**
 *** ### Fuga_slots
