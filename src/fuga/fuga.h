@@ -331,8 +331,7 @@ Fuga* Fuga_set          (Fuga* self, Fuga* name,       Fuga* value);
 ***
 *** Avoids evaluating code until it's necessary.
 **/
-
-Fuga* Fuga_thunk(Fuga* self, Fuga* receiver, Fuga* scope);
+Fuga* Fuga_thunk(Fuga* self, Fuga* scope);
 
 /**
 *** ### Fuga_need
@@ -346,29 +345,56 @@ Fuga* Fuga_need(Fuga* self);
 #define FUGA_NEED(self) FUGA_SET(self, Fuga_need(self))
 
 /**
-*** ### Fuga_slots
+*** ### Fuga_thunkSlots
 ***
-*** Return the slots associated with the object or thunk. If self is a
-*** thunk, does not evaluate the slots -- returns the slots as thunks.
+*** Return the slots associated with the thunk, without first evaluating
+*** them.
 **/
-Fuga* Fuga_slots(Fuga* self);
+Fuga* Fuga_slots(
+    Fuga* self,
+    enum FugaEvalMode mode
+);
 
 /**
 *** ## Evaluation
+*** ### FugaEvalMode
+***
+*** Determines what kind of evaluation mode is used. There are three:
+***
+*** - normal: Slots definitions do not affect the evaluation.
+*** - reflect: Slot definitions affect evaluation, but do not affect
+*** the containing scope.
+*** - write: Slot definitions affect evaluation and the containing
+*** scope.
+**/
+typedef enum FugaEvalMode {
+    FugaEvalMode_normal,
+    FugaEvalMode_reflect,
+    FugaEvalMode_write
+} FugaEvalMode;
+
+/**
 *** ### Fuga_eval
 ***
-*** Evaluate code. This does not generate thunks -- it generates evaluated
-*** code. Usually, scope and receiver will be the same. If scope is NULL,
-*** receiver is used. Return the evaluated object.
+*** Evaluate code. This does not generate thunks. Usually, scope and
+*** receiver will be the same. If scope is NULL, receiver is used.
+*** Return the evaluated object.
 **/
-
 Fuga* Fuga_eval(Fuga* self, Fuga* receiver, Fuga* scope);
+Fuga* Fuga_eval_(
+    Fuga* self,
+    Fuga* receiver,
+    Fuga* scope,
+    FugaEvalMode mode
+);
 
 /**
 *** ### Fuga_evalSlots
 ***
 *** Evaluate code according to its slots, not according to its type.
 **/
+Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope);
+Fuga* Fuga_evalSlots_(Fuga* self, Fuga* scope, FugaEvalMode mode);
 
 #endif
 

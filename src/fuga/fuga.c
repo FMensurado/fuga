@@ -838,6 +838,9 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
 **/
 FugaIndex Fuga_length(Fuga* self) {
     ALWAYS(self);
+    TESTCASE(!FUGA_READY(self));
+    TESTCASE( Fuga_isError(self));
+    FUGA_NEED(self);
     TESTCASE(self->slots);
     TESTCASE(!self->slots);
     if (self->slots)
@@ -890,7 +893,18 @@ Fuga* Fuga_isa(Fuga* self, Fuga* other) {
 
 
 /**
-*** ### Thunks
+*** ## Thunks
+*** ### Fuga_thunk
+**/
+Fuga* Fuga_thunk(Fuga* self, Fuga* scope) {
+    ALWAYS(self);
+    ALWAYS(scope);
+
+    // TODO: implement.
+}
+
+/**
+*** ### Fuga_need
 **/
 Fuga* Fuga_need(Fuga* self) {
     // TODO: implement. This isn't supposed to be a no-op.
