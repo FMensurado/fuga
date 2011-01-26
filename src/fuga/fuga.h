@@ -178,12 +178,9 @@ Fuga* Fuga_clone(Fuga* proto);
 *** ## Properties
 *** ### Fuga_length
 ***
-*** Return the number of canonical slots in self. 
-***
-*** - Params:
-***     - `Fuga* self`
-*** - Returns: `
+*** Number of slots in self.
 **/
+FugaIndex Fuga_length(Fuga* self);
 
 /**
 *** ### Fuga_type

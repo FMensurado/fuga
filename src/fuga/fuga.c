@@ -20,29 +20,6 @@ void _Fuga_freeFn(void* _self) {
 void _Fuga_markFn(void* _self) {
     Fuga* self = _self;
     FugaGC_mark(self, self->slots);
-
-
-    switch (Fuga_type(self)) {
-    case FUGA_TYPE_NONE:
-    case FUGA_TYPE_INT: case FUGA_TYPE_LONG:
-    case FUGA_TYPE_REAL: case FUGA_TYPE_STRING:
-    case FUGA_TYPE_SYMBOL: case FUGA_TYPE_METHOD:
-    case FUGA_TYPE_NIL: case FUGA_TYPE_TRUE:
-    case FUGA_TYPE_FALSE:
-        break;
-
-    case FUGA_TYPE_OBJECT:
-        FugaGC_mark(self, self->data.OBJECT->symbols);
-        FugaGC_mark(self, FUGA_Prelude);
-        FugaGC_mark(self, FUGA_Int);
-        FugaGC_mark(self, FUGA_Real);
-        FugaGC_mark(self, FUGA_String);
-        FugaGC_mark(self, FUGA_Symbol);
-        break;
-
-    default:
-        FugaGC_mark(self, self->data.data);
-    }
 }
 
 void _Fuga_markFnMsg(void* _self) {
@@ -823,8 +800,17 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
         return FUGA_nil;
     case FUGA_TYPE_INT:
         if (name->data.INT > Fuga_length(self)) {
-            FUGA_MSG1("ValueError",
-                FUGA_STRING("set: index is too large")
+            FUGA_RAISE(
+                FUGA_MSG1("ValueError",
+                    FUGA_STRING("set: index is too large")
+                )
+            );
+        }
+        if (name->data.INT < 0) {
+            FUGA_RAISE(
+                FUGA_MSG1("ValueError",
+                    FUGA_STRING("set: index is negative")
+                )
             );
         }
         Fuga_setByIndex(self, name->data.INT, value);
@@ -848,6 +834,39 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
 
 /**
 *** ## Properties
+*** ### Fuga_length
+**/
+FugaIndex Fuga_length(Fuga* self) {
+    ALWAYS(self);
+    TESTCASE(self->slots);
+    TESTCASE(!self->slots);
+    if (self->slots)
+        return FugaSlots_length(self->slots);
+    else
+        return 0;
+}
+#ifdef TESTING
+TESTS(Fuga_length) {
+    Fuga* self = Fuga_new();
+
+    TEST(0 == Fuga_length(self));
+    Fuga_setByString(self, "foo", self);
+    TEST(1 == Fuga_length(self));
+    Fuga_setByString(self, "bar", self);
+    TEST(2 == Fuga_length(self));
+    Fuga_setByString(self, "foo", self);
+    TEST(2 == Fuga_length(self));
+    Fuga_setByString(self, "baz", self);
+    TEST(3 == Fuga_length(self));
+    Fuga_setByIndex(self, 3, self);
+    TEST(4 == Fuga_length(self));
+
+    Fuga_free(self);
+}
+#endif
+
+
+/**
 *** ### Fuga_is
 **/
 Fuga* Fuga_is(Fuga* self, Fuga* other) {
