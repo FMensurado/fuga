@@ -487,20 +487,19 @@ TESTS(Fuga_has) {
     Fuga* self = Fuga_new();
     Fuga* obj1 = Fuga_clone(FUGA_Object);
     Fuga* obj2 = Fuga_clone(obj1);
+    Fuga* iobj1 = Fuga_clone(FUGA_Object);
+    Fuga* iobj2 = Fuga_clone(iobj1);
 
-    Fuga_setByIndex  (obj1, 0, obj1);
-    Fuga_setByIndex  (obj2, 1, obj1);
+    Fuga_setByIndex  (iobj1, 0, iobj1);
     Fuga_setByString (obj1, "foo", obj1);
     Fuga_setByString (obj2, "bar", obj1);
     Fuga_setBySymbol (obj1, FUGA_SYMBOL("do"), obj1);
     Fuga_setBySymbol (obj2, FUGA_SYMBOL("re"), obj1);
 
-    TEST( Fuga_rawHasByIndex  (obj1, 0));
-    TEST(!Fuga_rawHasByIndex  (obj2, 0));
-    TEST(!Fuga_rawHasByIndex  (obj1, 1));
-    TEST( Fuga_rawHasByIndex  (obj2, 1));
-    TEST(!Fuga_rawHasByIndex  (obj1, 2));
-    TEST(!Fuga_rawHasByIndex  (obj2, 2));
+    TEST( Fuga_rawHasByIndex  (iobj1, 0));
+    TEST(!Fuga_rawHasByIndex  (iobj2, 0));
+    TEST(!Fuga_rawHasByIndex  (iobj1, 1));
+    TEST(!Fuga_rawHasByIndex  (iobj2, 1));
     TEST( Fuga_rawHasByString (obj1, "foo"));
     TEST(!Fuga_rawHasByString (obj2, "foo"));
     TEST(!Fuga_rawHasByString (obj1, "bar"));
@@ -514,12 +513,6 @@ TESTS(Fuga_has) {
     TEST(!Fuga_rawHasBySymbol (obj1, FUGA_SYMBOL("mi")));
     TEST(!Fuga_rawHasBySymbol (obj2, FUGA_SYMBOL("mi")));
 
-    TEST(Fuga_isTrue (Fuga_rawHas(obj1, FUGA_INT(0))));
-    TEST(Fuga_isFalse(Fuga_rawHas(obj2, FUGA_INT(0))));
-    TEST(Fuga_isFalse(Fuga_rawHas(obj1, FUGA_INT(1))));
-    TEST(Fuga_isTrue (Fuga_rawHas(obj2, FUGA_INT(1))));
-    TEST(Fuga_isFalse(Fuga_rawHas(obj1, FUGA_INT(2))));
-    TEST(Fuga_isFalse(Fuga_rawHas(obj2, FUGA_INT(2))));
     TEST(Fuga_isTrue (Fuga_rawHas(obj1, FUGA_STRING("foo"))));
     TEST(Fuga_isFalse(Fuga_rawHas(obj2, FUGA_STRING("foo"))));
     TEST(Fuga_isFalse(Fuga_rawHas(obj1, FUGA_STRING("bar"))));
@@ -541,12 +534,6 @@ TESTS(Fuga_has) {
     TEST(Fuga_isError(Fuga_rawHas(obj1, obj1)));
     TEST(Fuga_isError(Fuga_rawHas(obj1, FUGA_Object)));
 
-    TEST( Fuga_hasByIndex  (obj1, 0));
-    TEST(!Fuga_hasByIndex  (obj2, 0));
-    TEST(!Fuga_hasByIndex  (obj1, 1));
-    TEST( Fuga_hasByIndex  (obj2, 1));
-    TEST(!Fuga_hasByIndex  (obj1, 2));
-    TEST(!Fuga_hasByIndex  (obj2, 2));
     TEST( Fuga_hasByString (obj1, "foo"));
     TEST( Fuga_hasByString (obj2, "foo"));
     TEST(!Fuga_hasByString (obj1, "bar"));
@@ -560,12 +547,6 @@ TESTS(Fuga_has) {
     TEST(!Fuga_hasBySymbol (obj1, FUGA_SYMBOL("mi")));
     TEST(!Fuga_hasBySymbol (obj2, FUGA_SYMBOL("mi")));
 
-    TEST(Fuga_isTrue (Fuga_has(obj1, FUGA_INT(0))));
-    TEST(Fuga_isFalse(Fuga_has(obj2, FUGA_INT(0))));
-    TEST(Fuga_isFalse(Fuga_has(obj1, FUGA_INT(1))));
-    TEST(Fuga_isTrue (Fuga_has(obj2, FUGA_INT(1))));
-    TEST(Fuga_isFalse(Fuga_has(obj1, FUGA_INT(2))));
-    TEST(Fuga_isFalse(Fuga_has(obj2, FUGA_INT(2))));
     TEST(Fuga_isTrue (Fuga_has(obj1, FUGA_STRING("foo"))));
     TEST(Fuga_isTrue (Fuga_has(obj2, FUGA_STRING("foo"))));
     TEST(Fuga_isFalse(Fuga_has(obj1, FUGA_STRING("bar"))));
@@ -740,11 +721,12 @@ TESTS(Fuga_get) {
     Fuga* self = Fuga_new();
     Fuga* obj1 = Fuga_clone(FUGA_Object);
     Fuga* obj2 = Fuga_clone(obj1);
+    Fuga* iobj1 = Fuga_clone(FUGA_Object);
+    Fuga* iobj2 = Fuga_clone(iobj1);
 
-    Fuga_setByIndex  (obj1, 0, obj1);
-    Fuga_setByIndex  (obj2, 1, obj1);
-    Fuga_setByIndex  (obj1, 2, obj1);
-    Fuga_setByIndex  (obj2, 2, obj2);
+    Fuga_setByIndex  (iobj1, 0, iobj1);
+    Fuga_setByIndex  (iobj1, 1, iobj2);
+    Fuga_setByIndex  (iobj2, 0, iobj2);
     Fuga_setByString (obj1, "foo", obj1);
     Fuga_setByString (obj2, "bar", obj1);
     Fuga_setByString (obj1, "baz", obj1);
@@ -754,14 +736,13 @@ TESTS(Fuga_get) {
     Fuga_setBySymbol (obj1, FUGA_SYMBOL("mi"), obj1);
     Fuga_setBySymbol (obj2, FUGA_SYMBOL("mi"), obj2);
     
-    TEST(obj1 ==    Fuga_rawGetByIndex(obj1, 0) );
-    TEST(Fuga_isError(Fuga_rawGetByIndex(obj2, 0)));
-    TEST(Fuga_isError(Fuga_rawGetByIndex(obj1, 1)));
-    TEST(obj1 ==    Fuga_rawGetByIndex(obj2, 1) );
-    TEST(obj1 ==    Fuga_rawGetByIndex(obj1, 2) );
-    TEST(obj2 ==    Fuga_rawGetByIndex(obj2, 2) );
-    TEST(Fuga_isError(Fuga_rawGetByIndex(obj1, 3)));
-    TEST(Fuga_isError(Fuga_rawGetByIndex(obj2, 3)));
+    TEST(iobj1 ==     Fuga_rawGetByIndex(iobj1, 0) );
+    TEST(iobj2 ==     Fuga_rawGetByIndex(iobj2, 0) );
+    TEST(iobj2 ==     Fuga_rawGetByIndex(iobj1, 1) );
+    TEST(Fuga_isError(Fuga_rawGetByIndex(iobj2, 1)));
+    TEST(Fuga_isError(Fuga_rawGetByIndex(iobj1, 2)));
+    TEST(Fuga_isError(Fuga_rawGetByIndex(iobj2, 2)));
+
     TEST(obj1 ==    Fuga_rawGetByString(obj1, "foo") );
     TEST(Fuga_isError(Fuga_rawGetByString(obj2, "foo")));
     TEST(Fuga_isError(Fuga_rawGetByString(obj1, "bar")));
@@ -779,14 +760,6 @@ TESTS(Fuga_get) {
     TEST(Fuga_isError(Fuga_rawGetBySymbol(obj1, FUGA_SYMBOL("fa"))));
     TEST(Fuga_isError(Fuga_rawGetBySymbol(obj2, FUGA_SYMBOL("fa"))));
 
-    TEST(obj1 ==    Fuga_getByIndex(obj1, 0) );
-    TEST(Fuga_isError(Fuga_getByIndex(obj2, 0)));
-    TEST(Fuga_isError(Fuga_getByIndex(obj1, 1)));
-    TEST(obj1 ==    Fuga_getByIndex(obj2, 1) );
-    TEST(obj1 ==    Fuga_getByIndex(obj1, 2) );
-    TEST(obj2 ==    Fuga_getByIndex(obj2, 2) );
-    TEST(Fuga_isError(Fuga_getByIndex(obj1, 3)));
-    TEST(Fuga_isError(Fuga_getByIndex(obj2, 3)));
     TEST(obj1 ==    Fuga_getByString(obj1, "foo") );
     TEST(obj1 ==    Fuga_getByString(obj2, "foo") );
     TEST(Fuga_isError(Fuga_getByString(obj1, "bar")));
@@ -815,7 +788,7 @@ void Fuga_setByIndex(Fuga* self, FugaIndex index, Fuga* value) {
     ALWAYS(FUGA_READY(self));
     if (!self->slots)
         self->slots = FugaSlots_new(self);
-    FugaSlot slot = { FUGA_INT(index), value };
+    FugaSlot slot = { .name = NULL, .value = value, .doc = NULL };
     FugaSlots_setByIndex(self->slots, index, slot);
 }
 
@@ -825,7 +798,7 @@ void Fuga_setBySymbol(Fuga* self, Fuga* name, Fuga* value) {
     ALWAYS(name->type == FUGA_TYPE_SYMBOL);
     if (!self->slots)
         self->slots = FugaSlots_new(self);
-    FugaSlot slot = { name, value };
+    FugaSlot slot = { .name = name, .value = value, .doc = NULL };
     FugaSlots_setBySymbol(self->slots, name, slot);
 }
 
@@ -849,13 +822,17 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value) {
         Fuga_setByString(self, name->data.STRING, value);
         return FUGA_nil;
     case FUGA_TYPE_INT:
+        if (name->data.INT > Fuga_length(self)) {
+            FUGA_MSG1("ValueError",
+                FUGA_STRING("set: index is too large")
+            );
+        }
         Fuga_setByIndex(self, name->data.INT, value);
         return FUGA_nil;
     case FUGA_TYPE_LONG:
         FUGA_RAISE(
             FUGA_MSG1("ValueError",
-                FUGA_STRING("get: index is too positive"
-                            " or too negative.")
+                FUGA_STRING("get: index is too large")
             )
         );
     default:

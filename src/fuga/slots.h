@@ -29,8 +29,10 @@ typedef struct FugaSlots FugaSlots;
 **/
 typedef struct FugaSlot FugaSlot;
 struct FugaSlot {
-    Fuga* name;
     Fuga* value;
+    Fuga* name;
+    Fuga* doc;
+    FugaIndex index;
 };
 
 /**
@@ -84,12 +86,7 @@ FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, Fuga* name);
 *** ## Set
 *** ### FugaSlots_setByIndex
 ***
-*** Set or update the slot associated with a given index. You still
-*** need to pass in a Fuga* object for the name because FugaSlots is
-*** completely Fuga-agnostic. It doesn't know anything about Fuga
-*** objects other than their addresses, and the fact that they need to
-*** be garbage-collected, so FugaSlots can't fabricate its own Fuga
-*** object for the name.
+*** Set or update the slot associated with a given index.
 **/
 void FugaSlots_setByIndex(FugaSlots* slots, FugaIndex index, FugaSlot slot);
 
