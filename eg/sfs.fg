@@ -1,0 +1,24 @@
+
+SuperBlock = struct(
+    reserved1      = bytes(11 + 21 + 372)
+    timestamp      = uint64     :: Time since x was y.
+    dataBlocks     = uint64     :: Number of blocks in data area.
+    indexBytes     = uint64     :: Number of bytes in index area.
+    magic          = bytes(3)   :: Signature = 0x536453
+    version        = uint8      :: Version   = 0x10
+    totalBlocks    = uint64     :: Total number of blocks in drive.
+    reservedBlocks = uint32     :: Number of reserved blocks.
+    blockSizePower = uint8      :: p in `blockSize = 128 << p`
+    checksum       = uint8      :: Checksum from magic to blockSizePower.
+    reserved2      = bytes(64 + 2)
+)
+
+:: The size (in bytes) of a block.
+SuperBlock    blockSize            { 128 << self blockSizePower }
+SuperBlock setBlockSize(blockSize) {
+    self blockSizePower = 1
+    while(self blockSize < blockSize) do(
+        self blockSizePower += 1
+    )
+}
+
