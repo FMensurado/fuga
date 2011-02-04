@@ -82,6 +82,9 @@ FugaSlot* FugaSlots_getByIndex(FugaSlots* slots, FugaIndex index);
 **/
 FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, Fuga* name);
 
+
+void FugaSlots_append(FugaSlots* slots, FugaSlot value);
+
 /**
 *** ## Set
 *** ### FugaSlots_setByIndex

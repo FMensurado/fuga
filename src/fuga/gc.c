@@ -8,6 +8,8 @@
 #include "test.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -24,16 +26,18 @@ struct FugaGC {
     size_t pass;
 };
 
-typedef struct FugaGCHeader {
+typedef struct FugaGCHeader FugaGCHeader;
+
+struct FugaGCHeader {
     FugaGCList list;
     FugaGC *gc;
     FugaGCFreeFn freeFn;
     FugaGCMarkFn markFn;
-    unsigned char pass;
-    unsigned char root;
+    size_t pass;
+    size_t root;
     size_t size;
     char data[];
-} FugaGCHeader;
+} __attribute__((__packed__));
 
 #define HEADER(obj) ((FugaGCHeader*)((char*)(obj)-sizeof(FugaGCHeader)))
 #define DATA(obj)   ((void*)(((FugaGCHeader*)(obj))->data))

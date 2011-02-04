@@ -177,7 +177,7 @@ def main():
         del sys.argv[sys.argv.index('--test')]
         global CC
         global BIN
-        CC  += ' -DTESTING'
+        CC  += ' -g -DTESTING'
         BIN += '/test'
 
     if len(sys.argv) not in [2,3,4]:

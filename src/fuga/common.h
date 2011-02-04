@@ -5,10 +5,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define FUGA_SIZE 64
+
 typedef struct Fuga Fuga;
-typedef int64_t FugaIndex;
-typedef int64_t FugaInt;
-typedef uint32_t FugaID;
+typedef uint64_t FugaIndex;
 
 #endif
 
