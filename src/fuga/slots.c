@@ -303,12 +303,49 @@ void FugaSlots_append(
 
     self->length++;
     if (self->capacity < self->length) {
-        self->capacity <<= 1;
-        self->slots = realloc(self->slots, self->capacity);
+        self->capacity *= 2;
+        self->slots = realloc(self->slots, sizeof(FugaSlot)
+                                         * self->capacity);
+        ALWAYS(self->capacity >= self->length);
     }
     self->slots[self->length-1] = slot;
     self->slots[self->length-1].index = self->length-1;
 }
+
+#ifdef TESTING
+TESTS(FugaSlots_append) {
+    void* gc = FugaGC_start();
+    FugaSlots* slots = FugaSlots_new(gc);
+    FugaSlot slot = {
+        .name = NULL,
+        .value = FugaGC_alloc(gc, 4),
+        .doc = NULL
+    };
+
+    TEST(slots->length == 0); TEST(slots->capacity == 4);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 1); TEST(slots->capacity == 4);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 2); TEST(slots->capacity == 4);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 3); TEST(slots->capacity == 4);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 4); TEST(slots->capacity == 4);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 5); TEST(slots->capacity == 8);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 6); TEST(slots->capacity == 8);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 7); TEST(slots->capacity == 8);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 8); TEST(slots->capacity == 8);
+    FugaSlots_append(slots, slot);
+    TEST(slots->length == 9); TEST(slots->capacity == 16);
+
+    FugaGC_end(gc);
+}
+#endif
+
 
 /**
 *** ## Set

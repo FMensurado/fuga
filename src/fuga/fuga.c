@@ -381,6 +381,10 @@ Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value)
             FUGA_RAISE(FUGA->ValueError,
                 "set: index out of bounds (too large)"
             );
+        if (index < 0)
+            FUGA_RAISE(FUGA->ValueError,
+                "set: index out of bounds (negative)"
+            );
         FugaSlots_setByIndex(self->slots, index, slot);
     } else {
         FugaSlots_setBySymbol(self->slots, name, slot);
@@ -403,7 +407,7 @@ TESTS(Fuga_set) {
     TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(-1), a)) );
 
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("a"), a)) );
-/*  TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("b"), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("b"), a)) );
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("a"), a)) );
 
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_STRING("x"), a)) );
@@ -412,9 +416,6 @@ TESTS(Fuga_set) {
     TEST( Fuga_isRaised (Fuga_set(Fuga_raise(a), FUGA_INT(0), a)) );
     TEST( Fuga_isRaised (Fuga_set(a, Fuga_raise(FUGA_INT(0)), a)) );
     TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(0), Fuga_raise(a))) );
-*/
-
-    FUGA_SYMBOL("a");
 
     Fuga_quit(self);
 }
