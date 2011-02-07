@@ -249,6 +249,7 @@ TESTS(Fuga_rawHas) {
     TEST( Fuga_isFalse (Fuga_rawHas(b, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_rawHas(c, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_rawHas(a, FUGA_INT(42))));
+    TEST( Fuga_isFalse (Fuga_rawHas(a, FUGA_INT(-1))));
 
     TEST( Fuga_isTrue  (Fuga_rawHas(a, FUGA_SYMBOL("a"))));
     TEST( Fuga_isFalse (Fuga_rawHas(b, FUGA_SYMBOL("a"))));
@@ -294,7 +295,9 @@ TESTS(Fuga_rawHas) {
 Fuga* Fuga_has(Fuga* self, Fuga* name)
 {
     ALWAYS(self); ALWAYS(name);
-    // FIXME: typecheck name
+    FUGA_CHECK(self);
+    name = Fuga_toName(name);
+    FUGA_CHECK(name);
 
     Fuga* result = Fuga_rawHas(self, name);
     FUGA_CHECK(result);
@@ -305,11 +308,173 @@ Fuga* Fuga_has(Fuga* self, Fuga* name)
             "has: Expected boolean from rawHas"
         );
 
-    if (self->proto)
+    if (self->proto && Fuga_isSymbol(name))
         return Fuga_has(self->proto, name);
 
     return FUGA->False;
 }
+
+#ifdef TESTING
+TESTS(Fuga_has) {
+    Fuga* self = Fuga_init();
+    
+    Fuga* a = Fuga_clone(FUGA->Object);
+    Fuga* b = Fuga_clone(a);
+    Fuga* c = Fuga_clone(b);
+
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, a)));
+
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_INT(0))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(1))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(42))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(-1))));
+
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_SYMBOL("c"))));
+
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_STRING("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_STRING("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_STRING("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_STRING("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_STRING("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_STRING("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_STRING("c"))));
+
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_MSG("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_MSG("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_MSG("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_MSG("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_MSG("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_MSG("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_MSG("c"))));
+
+    TEST( Fuga_isRaised(Fuga_has(a, a)));
+    TEST( Fuga_isRaised(Fuga_has(a, FUGA->Int)));
+    TEST( Fuga_isRaised(Fuga_has(a, FUGA_STRING(""))));
+    TEST( Fuga_isRaised(Fuga_has(Fuga_raise(a), FUGA_INT(10))));
+    TEST( Fuga_isRaised(Fuga_has(a, Fuga_raise(FUGA_INT(10)))));
+}
+#endif
+
+
+/**
+ * Get the slot associated with a given name. Return NULL if no such
+ * slot. Do not pass raised exceptions to this function. name must 
+ * be a FugaInt or a FugaSymbol.
+ */
+FugaSlot* Fuga_rawGetSlot(Fuga* self, Fuga* name) 
+{
+    ALWAYS(self); ALWAYS(name);
+    ALWAYS(!Fuga_isRaised(self));
+    ALWAYS(!Fuga_isRaised(name));
+
+    if (self->slots) {
+        if (Fuga_isInt(name)) {
+            long index = FugaInt_value(name);
+            return FugaSlots_getByIndex(self->slots, index);
+        } else {
+            return FugaSlots_getBySymbol(self->slots, name);
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Get the value of a slot, without looking in proto.
+ */
+Fuga* Fuga_rawGet(Fuga* self, Fuga* name)
+{
+    ALWAYS(self); ALWAYS(name);
+    FUGA_CHECK(self);
+    name = Fuga_toName(name);
+    FUGA_CHECK(name);
+
+    FugaSlot* slot = Fuga_rawGetSlot(self, name);
+    if (slot)
+        return slot->value;
+
+    // FIXME: give better error message
+    FUGA_RAISE(FUGA->SlotError,
+        "rawGet: No slot with given name."
+    );
+}
+
+#ifdef TESTING
+TESTS(Fuga_rawGet) {
+    Fuga* self = Fuga_init();
+    
+    Fuga* a = Fuga_clone(FUGA->Object);
+    Fuga* b = Fuga_clone(a);
+    Fuga* c = Fuga_clone(b);
+
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), b)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, c)));
+
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_INT(0))));
+    TEST( b  ==        (Fuga_rawGet(b, FUGA_INT(0))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_INT(0))));
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_INT(1))));
+    TEST( c  ==        (Fuga_rawGet(b, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_INT(42))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_INT(-1))));
+
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_rawGet(b, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_SYMBOL("c"))));
+
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_STRING("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_STRING("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_rawGet(b, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_STRING("c"))));
+
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_MSG("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_MSG("a"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_rawGet(a, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_rawGet(b, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_MSG("c"))));
+}
+#endif
 
 /**
  * Generic get.
@@ -317,26 +482,79 @@ Fuga* Fuga_has(Fuga* self, Fuga* name)
 Fuga* Fuga_get(Fuga* self, Fuga* name)
 {
     ALWAYS(self); ALWAYS(name);
-    // FIXME: typecheck name
-    /*
-    if (self->header.type) {
-        if (self->header.type->get) {
-            Fuga* result = self->header.type->get(self, name);
-            if (result)
-                return result;
-        }
-        if (self->header.type->proto) {
-            Fuga* proto = self->header.type->proto(self);
-            FUGA_CATCH_RAISE(proto);
-            if (proto)
-                return Fuga_get(proto, name);
-        }
-    }
-    */
+    FUGA_CHECK(self);
+    name = Fuga_toName(name);
+    FUGA_CHECK(name);
+
+    FugaSlot* slot = Fuga_rawGetSlot(self, name);
+    if (slot)
+        return slot->value;
+
+    if (self->proto && Fuga_isSymbol(name))
+        return Fuga_get(self->proto, name);
+
+    // FIXME: give better error message
     FUGA_RAISE(FUGA->SlotError,
-        "get: no such slot" // FIXME: give slot name!
+        "get: No slot with given name."
     );
 }
+
+#ifdef TESTING
+TESTS(Fuga_get) {
+    Fuga* self = Fuga_init();
+    
+    Fuga* a = Fuga_clone(FUGA->Object);
+    Fuga* b = Fuga_clone(a);
+    Fuga* c = Fuga_clone(b);
+
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), b)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, c)));
+
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(0))));
+    TEST( b  ==        (Fuga_get(b, FUGA_INT(0))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(0))));
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(1))));
+    TEST( c  ==        (Fuga_get(b, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(42))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(-1))));
+
+    TEST( a  ==        (Fuga_get(a, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_SYMBOL("c"))));
+
+    TEST( a  ==        (Fuga_get(a, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_STRING("c"))));
+
+    TEST( a  ==        (Fuga_get(a, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_MSG("c"))));
+}
+#endif
 
 Fuga* Fuga_append(Fuga* self, Fuga* value)
 {
