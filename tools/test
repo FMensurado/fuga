@@ -109,9 +109,10 @@ int main() {
 }
 """ % (module, testsuites_decl, testsuites_run))
     testcode.close()
-    run('tools/make', 'tools/make --test -x .test')
+    quiet = ' --quiet ' if flag_quiet else ' '
+    run('tools/make', 'tools/make %s --test -x .test' % quiet)
     run('test', './.test')
-    run('rm', 'rm .test')
+    #run('rm', 'rm .test')
     run('rm', 'rm src/.test.c')
 
 def test_module(module):
@@ -151,6 +152,7 @@ def test_all():
 
 def print_usage():
     print "Usage:"
+    print "    %s" % sys.argv[0]
     print "    %s --all" % sys.argv[0]
     print "    %s package" % sys.argv[0]
     print "    %s module" % sys.argv[0]
@@ -164,8 +166,9 @@ def main():
         global flag_quiet
         flag_quiet = True
         del sys.argv[sys.argv.index('--quiet')]
-
-    if len(sys.argv) not in [2]:
+    if len(sys.argv) == 1:
+        test_all()
+    elif len(sys.argv) > 2:
         print_usage()
     elif sys.argv[1] in ['-h', '--help']:
         print_usage()
