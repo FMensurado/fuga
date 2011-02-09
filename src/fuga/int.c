@@ -21,3 +21,8 @@ long FugaInt_value(Fuga* self)
     return (long)self->data;
 }
 
+bool FugaInt_isEqualTo(Fuga* self, long value)
+{
+    return Fuga_isInt(self) && (FugaInt_value(self) == value);
+}
+

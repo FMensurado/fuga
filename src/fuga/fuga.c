@@ -114,6 +114,7 @@ void Fuga_quit(Fuga* self)
 Fuga* Fuga_clone(Fuga* proto)
 {
     ALWAYS(proto);
+    FUGA_CHECK(proto);
     Fuga* self = _Fuga_new(proto->root);
     self->proto = proto;
     return self;
@@ -129,7 +130,6 @@ Fuga* Fuga_raise(Fuga* self)
 }
 
 #ifdef TESTING
-
 Fuga* _Fuga_raise_test(Fuga* self) {
     FUGA_RAISE(FUGA->TypeError,
         "just testing FUGA_RAISE"
@@ -170,13 +170,34 @@ TESTS(Fuga_catch) {
 #endif
 
 /**
+ * Are two objects the same (taking into account thunks).
+ */
+Fuga* Fuga_is(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    return FUGA_BOOL(self->id == other->id);
+}
+
+/**
+ * Does one object inherit from the other?
+ */
+Fuga* Fuga_isa(Fuga* self, Fuga* other)
+{
+    FUGA_NEED(self); FUGA_NEED(other);
+    self = self->proto;
+    return FUGA_BOOL(self && ((self->id == other->id) ||
+                              Fuga_isa(self, other)));
+}
+
+/**
  * Converts a primitive into either an int or a symbol (raising an
  * exception on failure).
  */ 
 Fuga* Fuga_toName(Fuga* name)
 {
     ALWAYS(name);
-    FUGA_CHECK(name);
+    FUGA_NEED(name);
     if (Fuga_isSymbol(name))
         return name;
     if (Fuga_isInt(name))
@@ -206,13 +227,23 @@ TESTS(Fuga_toName) {
 #endif
 
 /**
+ * Return the number of slots.
+ */
+Fuga* Fuga_length(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_NEED(self);
+    return FUGA_INT(self->slots ? FugaSlots_length(self->slots) : 0);
+}
+
+/**
  * Look in an object's slots.
  */
 Fuga* Fuga_rawHas(Fuga* self, Fuga* name)
 {
     ALWAYS(self); ALWAYS(name);
+    FUGA_NEED(self);
     name = Fuga_toName(name);
-    FUGA_CHECK(self);
     FUGA_CHECK(name);
 
     if (self->slots) {
@@ -286,6 +317,14 @@ TESTS(Fuga_rawHas) {
     TEST( Fuga_isRaised(Fuga_rawHas(a, FUGA_STRING(""))));
     TEST( Fuga_isRaised(Fuga_rawHas(Fuga_raise(a), FUGA_INT(10))));
     TEST( Fuga_isRaised(Fuga_rawHas(a, Fuga_raise(FUGA_INT(10)))));
+
+
+    Fuga* prim = FUGA_INT(10);
+    Fuga* obj = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
+    TEST(Fuga_isTrue(Fuga_rawHas(Fuga_thunk(obj, self), FUGA_INT(0))));
+    TEST(Fuga_isTrue(Fuga_rawHas(obj, Fuga_thunk(FUGA_INT(0), self))));
+    TEST(Fuga_isTrue(Fuga_rawHas(a,Fuga_thunk(FUGA_SYMBOL("a"),self))));
 }
 #endif
 
@@ -373,6 +412,13 @@ TESTS(Fuga_has) {
     TEST( Fuga_isRaised(Fuga_has(a, FUGA_STRING(""))));
     TEST( Fuga_isRaised(Fuga_has(Fuga_raise(a), FUGA_INT(10))));
     TEST( Fuga_isRaised(Fuga_has(a, Fuga_raise(FUGA_INT(10)))));
+
+    Fuga* prim = FUGA_INT(10);
+    Fuga* obj = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
+    TEST(Fuga_isTrue(Fuga_has(Fuga_thunk(obj, self), FUGA_INT(0))));
+    TEST(Fuga_isTrue(Fuga_has(obj, Fuga_thunk(FUGA_INT(0), self))));
+    TEST(Fuga_isTrue(Fuga_has(a,Fuga_thunk(FUGA_SYMBOL("a"),self))));
 }
 #endif
 
@@ -405,7 +451,7 @@ FugaSlot* Fuga_rawGetSlot(Fuga* self, Fuga* name)
 Fuga* Fuga_rawGet(Fuga* self, Fuga* name)
 {
     ALWAYS(self); ALWAYS(name);
-    FUGA_CHECK(self);
+    FUGA_NEED(self);
     name = Fuga_toName(name);
     FUGA_CHECK(name);
 
@@ -473,6 +519,13 @@ TESTS(Fuga_rawGet) {
     TEST( Fuga_isRaised(Fuga_rawGet(a, FUGA_MSG("c"))));
     TEST( Fuga_isRaised(Fuga_rawGet(b, FUGA_MSG("c"))));
     TEST( Fuga_isRaised(Fuga_rawGet(c, FUGA_MSG("c"))));
+
+    Fuga* prim = FUGA_INT(10);
+    Fuga* obj = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
+    TEST(prim == Fuga_rawGet(Fuga_thunk(obj, self), FUGA_INT(0)));
+    TEST(prim == Fuga_rawGet(obj, Fuga_thunk(FUGA_INT(0), self)));
+    TEST(a == Fuga_rawGet(a, Fuga_thunk(FUGA_SYMBOL("a"), self)));
 }
 #endif
 
@@ -482,7 +535,7 @@ TESTS(Fuga_rawGet) {
 Fuga* Fuga_get(Fuga* self, Fuga* name)
 {
     ALWAYS(self); ALWAYS(name);
-    FUGA_CHECK(self);
+    FUGA_NEED(self);
     name = Fuga_toName(name);
     FUGA_CHECK(name);
 
@@ -553,13 +606,22 @@ TESTS(Fuga_get) {
     TEST( Fuga_isRaised(Fuga_get(a, FUGA_MSG("c"))));
     TEST( Fuga_isRaised(Fuga_get(b, FUGA_MSG("c"))));
     TEST( Fuga_isRaised(Fuga_get(c, FUGA_MSG("c"))));
+
+    Fuga* prim = FUGA_INT(10);
+    Fuga* obj = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
+    TEST(prim == Fuga_get(Fuga_thunk(obj, self), FUGA_INT(0)));
+    TEST(prim == Fuga_get(obj, Fuga_thunk(FUGA_INT(0), self)));
+    TEST(a == Fuga_get(a, Fuga_thunk(FUGA_SYMBOL("a"), self)));
+
+    Fuga_quit(self);
 }
 #endif
 
 Fuga* Fuga_append(Fuga* self, Fuga* value)
 {
     ALWAYS(self); ALWAYS(value);
-    FUGA_CHECK(self);
+    FUGA_NEED(self);
     FUGA_CHECK(value);
     if (!self->slots)
         self->slots = FugaSlots_new(self);
@@ -580,7 +642,7 @@ Fuga* Fuga_append(Fuga* self, Fuga* value)
 Fuga* Fuga_set(Fuga* self, Fuga* name, Fuga* value)
 {
     ALWAYS(self); ALWAYS(value);
-    FUGA_CHECK(self);
+    FUGA_NEED(self);
     FUGA_CHECK(value);
     if (!self->slots)
         self->slots = FugaSlots_new(self);
@@ -638,3 +700,118 @@ TESTS(Fuga_set) {
     Fuga_quit(self);
 }
 #endif
+
+/**
+ * Create a thunk.
+ *
+ * Thunk data is stored in the proto and data fields.
+ */
+Fuga* Fuga_thunk(Fuga* self, Fuga* scope)
+{
+    ALWAYS(self); ALWAYS(scope);
+    FUGA_CHECK(self); FUGA_CHECK(scope);
+    Fuga* thunk = _Fuga_new(self->root);
+    thunk->id = 0;
+    thunk->proto = scope;
+    thunk->size = 1;
+    thunk->data = self;
+    return thunk;
+}
+
+/**
+ * Evaluate a thunk. (If the result is a thunk, evaluate it again
+ * and again and again...)
+ */
+Fuga* Fuga_need(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    while (self->id == 0) {
+        Fuga* result = Fuga_eval(self->data, self->proto, self->proto);
+        FUGA_CHECK(result);
+        *self = *result;
+    }
+    return self;
+}
+
+/**
+ * Evaluate a thunk, but if the result is a thunk, return it without
+ * evaluating it.
+ */
+Fuga* Fuga_needOnce(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    if (self->id == 0) {
+        Fuga* result = Fuga_eval(self->data, self->proto, self->proto);
+        FUGA_CHECK(result);
+        *self = *result;
+    }
+    return self;
+}
+
+/**
+ * Call / resolve a method.
+ */
+Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args)
+{
+    ALWAYS(self);
+    ALWAYS(recv);
+    ALWAYS(args);
+    FUGA_NEED(self);
+    FUGA_CHECK(recv);
+    FUGA_CHECK(args);
+    if (Fuga_isMethod(self))
+        return FugaMethod_call(self, recv, args);
+    if (Fuga_length(args))
+        FUGA_RAISE(FUGA->TypeError,
+            "attempt to call a non-method with arguments"
+        );
+    return self;
+}
+
+/**
+ * Evaluate an object
+ */
+Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope)
+{
+    ALWAYS(self); ALWAYS(recv); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(recv); FUGA_NEED(scope);
+    // if (Fuga_isTrue(Fuga_has(recv, FUGA_SYMBOL("eval"))));
+    return self;
+}
+
+#ifdef TESTING
+TESTS(Fuga_eval) {
+    Fuga* self = Fuga_init();
+
+    Fuga* prim = FUGA_INT(10);
+    TEST(prim == Fuga_eval(prim, self, self));
+    prim = FUGA_STRING("Hello World!");
+    TEST(prim == Fuga_eval(prim, self, self));
+    prim = FUGA_SYMBOL("hello");
+    TEST(prim == Fuga_eval(prim, self, self));
+
+    Fuga* scope = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_set(scope, FUGA_SYMBOL("hello"), prim)));
+    TEST(prim == Fuga_eval(FUGA_MSG("hello"), scope, scope));
+
+    Fuga* obj = Fuga_clone(FUGA->Object);
+    TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
+    TEST(!Fuga_isRaised(Fuga_append(obj, FUGA_MSG("hello"))));
+    TEST(!Fuga_isRaised(Fuga_set(obj, FUGA_SYMBOL("hi"), prim)));
+    Fuga* eobj = Fuga_eval(obj, scope, scope);
+    TEST(FugaInt_isEqualTo(Fuga_length(eobj), 3));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(0)));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(1)));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(2)));
+    TEST(prim == Fuga_get(eobj, FUGA_SYMBOL("hi")));
+
+    TEST(Fuga_isRaised(Fuga_eval(Fuga_raise(prim), scope, scope)));
+    TEST(Fuga_isRaised(Fuga_eval(prim, Fuga_raise(scope), scope)));
+    TEST(Fuga_isRaised(Fuga_eval(prim, scope, Fuga_raise(scope))));
+
+    Fuga_quit(self);
+}
+#endif
+

@@ -2,6 +2,7 @@
 #include "slots.h"
 #include "gc.h"
 #include "test.h"
+#include "fuga.h"
 
 
 /**
@@ -254,7 +255,8 @@ bool FugaSlots_hasBySymbol(FugaSlots* self, Fuga* symbol) {
     ALWAYS(self);
     ALWAYS(symbol);
     for (FugaIndex i = 0; i < self->length; i++) {
-        if (self->slots[i].name == symbol)
+        if (self->slots[i].name &&
+            Fuga_isTrue(Fuga_is(self->slots[i].name, symbol)))
             return true;
     }
     return false;
@@ -283,7 +285,8 @@ FugaSlot* FugaSlots_getBySymbol(FugaSlots* self, Fuga* symbol) {
     ALWAYS(self);
     ALWAYS(symbol);
     for (FugaIndex i = 0; i < self->length; i++) {
-        if (self->slots[i].name == symbol)
+        if (self->slots[i].name &&
+            Fuga_isTrue(Fuga_is(self->slots[i].name, symbol)))
             return &self->slots[i];
     }
     return NULL;
@@ -374,11 +377,10 @@ void FugaSlots_setByIndex(
 TESTS(FugaSlots_setByIndex) {
     FugaGC* gc = FugaGC_start();
     FugaSlots* slots = FugaSlots_new(gc);
-    Fuga* name  = FugaGC_alloc(gc, 1);
     Fuga* value1 = FugaGC_alloc(gc, 1);
     Fuga* value2 = FugaGC_alloc(gc, 1);
-    FugaSlot slot1 = {.name = name, .value = value1, .doc = NULL};
-    FugaSlot slot2 = {.name = name, .value = value2, .doc = NULL};
+    FugaSlot slot1 = {.name = NULL, .value = value1, .doc = NULL};
+    FugaSlot slot2 = {.name = NULL, .value = value2, .doc = NULL};
 
     bool h;
 
@@ -427,7 +429,8 @@ void FugaSlots_setBySymbol(
     ALWAYS(name);
 
     for (FugaIndex i = 0; i < self->length; i++) {
-        if (self->slots[i].name == name) {
+        if (self->slots[i].name &&
+            Fuga_isTrue(Fuga_is(self->slots[i].name, name))) {
             self->slots[i] = slot;
             self->slots[i].index = i;
             return;
@@ -438,16 +441,16 @@ void FugaSlots_setBySymbol(
 
 #ifdef TESTING
 TESTS(FugaSlots_setBySymbol) {
-    FugaGC* gc = FugaGC_start();
-    Fuga* name1 = FugaGC_alloc(gc, 4);
-    Fuga* name2 = FugaGC_alloc(gc, 4);
-    Fuga* value1 = FugaGC_alloc(gc, 4);
-    Fuga* value2 = FugaGC_alloc(gc, 4);
+    Fuga* self = Fuga_init();
+    Fuga* name1 = FUGA_SYMBOL("hello");
+    Fuga* name2 = FUGA_SYMBOL("goodbye");
+    Fuga* value1 = FugaGC_alloc(self, 4);
+    Fuga* value2 = FugaGC_alloc(self, 4);
     FugaSlot slot1 = {.name = name1, .value = value1, .doc = NULL};
     FugaSlot slot2 = {.name = name2, .value = value2, .doc = NULL};
     bool h;
 
-    FugaSlots* slots = FugaSlots_new(gc);
+    FugaSlots* slots = FugaSlots_new(self);
 
     TEST(FugaSlots_length(slots) == 0);
     TEST(!FugaSlots_hasBySymbol(slots, name1));
@@ -481,7 +484,7 @@ TESTS(FugaSlots_setBySymbol) {
         TEST(FugaSlots_getByIndex(slots, 1)->value == value1);
     }   
 
-    FugaGC_end(gc);
+    Fuga_quit(self);
 }
 #endif
 

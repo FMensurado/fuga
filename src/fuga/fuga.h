@@ -10,6 +10,7 @@ typedef struct FugaRoot FugaRoot;
 typedef const struct FugaType FugaType;
 typedef struct FugaHeader FugaHeader;
 typedef uint64_t FugaID;
+typedef Fuga* (*FugaMethod)(Fuga* self, Fuga* recv, Fuga* args);
 
 /**
  * A single Fuga object.
@@ -22,6 +23,7 @@ struct Fuga {
     FugaID     id;
     size_t     size;
     void*      data;
+    FugaMethod method;
 };
 
 /**
@@ -59,6 +61,8 @@ struct FugaRoot {
     Fuga* IOError;
 };
 
+#define FUGA_ID 0
+
 #define FUGA (self->root)
 
 /**
@@ -77,6 +81,7 @@ struct FugaType {
 #include "string.h"
 #include "symbol.h"
 #include "msg.h"
+#include "method.h"
 
 #define FUGA_TYPE_MASK    7
 
@@ -97,15 +102,15 @@ void  Fuga_mark(void*);
 Fuga* Fuga_clone(Fuga*);
 Fuga* Fuga_raise(Fuga*);
 Fuga* Fuga_is(Fuga*, Fuga*);
-
-uint64_t Fuga_newID(Fuga*);
+Fuga* Fuga_isa(Fuga*, Fuga*);
+Fuga* Fuga_proto(Fuga*);
 
 #define Fuga_isTrue(self)   (!Fuga_isRaised(self) && \
-                             (self)->id == FUGA->True->id)
+                             (self)->id == (self)->root->True->id)
 #define Fuga_isFalse(self)  (!Fuga_isRaised(self) && \
-                             (self)->id == FUGA->False->id)
+                             (self)->id == (self)->root->False->id)
 #define Fuga_isNil(self)    (!Fuga_isRaised(self) && \
-                             (self)->id == FUGA->nil->id)
+                             (self)->id == (self)->root->nil->id)
 #define Fuga_isInt(self)    (!Fuga_isRaised(self) && \
                              (self)->type == FUGA_TYPE_INT)
 #define Fuga_isString(self) (!Fuga_isRaised(self) && \
@@ -134,22 +139,34 @@ Fuga* Fuga_catch(Fuga*);
             return error##__LINE__;                     \
     } while(0)
 
-// Generic Functions
-Fuga* Fuga_proto(Fuga*);
+
+
+// Slot manipulation
+Fuga* Fuga_length(Fuga*);
 Fuga* Fuga_rawHas(Fuga*, Fuga*);
 Fuga* Fuga_rawGet(Fuga*, Fuga*);
 Fuga* Fuga_has(Fuga*, Fuga*);
 Fuga* Fuga_get(Fuga*, Fuga*);
+Fuga* Fuga_append(Fuga*, Fuga*);
 Fuga* Fuga_set(Fuga*, Fuga*, Fuga*);
 Fuga* Fuga_hasDoc(Fuga*, Fuga*);
 Fuga* Fuga_getDoc(Fuga*, Fuga*);
 Fuga* Fuga_setDoc(Fuga*, Fuga*, Fuga*);
-Fuga* Fuga_call(Fuga*, Fuga*, Fuga*);
 
-// Derived Functions
+// Thunks
+Fuga* Fuga_thunk(Fuga* self, Fuga* scope);
 Fuga* Fuga_need(Fuga*);
-Fuga* Fuga_send(Fuga*, const char*, Fuga*);
-Fuga* Fuga_isa(Fuga*, Fuga*);
+#define FUGA_NEED(result) FUGA_CHECK(Fuga_need(result))
+Fuga* Fuga_needOnce(Fuga*);
+
+// Eval
+Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope);
+Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope);
+Fuga* Fuga_evalSlotsIn(Fuga* self, Fuga* scope);
+
+// Call
+Fuga* Fuga_send(Fuga* self, Fuga* name, Fuga* args);
+Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args);
 
 
 #endif
