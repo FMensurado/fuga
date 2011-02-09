@@ -7,6 +7,7 @@
 Fuga* FugaMsg_new(Fuga*, const char*);
 Fuga* FugaMsg_fromSymbol(Fuga*);
 Fuga* FugaMsg_toSymbol(Fuga*);
+Fuga* FugaMsg_eval(Fuga* self, Fuga* recv, Fuga* scope);
 
 #endif
 

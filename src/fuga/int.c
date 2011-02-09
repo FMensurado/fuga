@@ -1,10 +1,6 @@
 #include "test.h"
 #include "int.h"
 
-Fuga* FugaInt_proto(Fuga* self) {
-    return self->root->Int;
-}
-
 Fuga* FugaInt_new(Fuga* self, long value)
 {
     ALWAYS(self);
@@ -23,6 +19,7 @@ long FugaInt_value(Fuga* self)
 
 bool FugaInt_isEqualTo(Fuga* self, long value)
 {
+    ALWAYS(self);
     return Fuga_isInt(self) && (FugaInt_value(self) == value);
 }
 

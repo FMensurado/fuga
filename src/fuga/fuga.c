@@ -763,11 +763,25 @@ Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args)
     FUGA_CHECK(args);
     if (Fuga_isMethod(self))
         return FugaMethod_call(self, recv, args);
-    if (Fuga_length(args))
+    FUGA_NEED(args);
+    if (FugaInt_value(Fuga_length(args)))
         FUGA_RAISE(FUGA->TypeError,
             "attempt to call a non-method with arguments"
         );
     return self;
+}
+
+
+/**
+ * Send
+ */
+Fuga* Fuga_send(Fuga* self, Fuga* name, Fuga* args)
+{
+    ALWAYS(self);    ALWAYS(name);    ALWAYS(args);
+    FUGA_NEED(self); FUGA_NEED(name); FUGA_CHECK(args);
+
+    Fuga* method = Fuga_get(self, name);
+    return Fuga_call(method, self, args);
 }
 
 /**
@@ -777,8 +791,14 @@ Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope)
 {
     ALWAYS(self); ALWAYS(recv); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(recv); FUGA_NEED(scope);
-    // if (Fuga_isTrue(Fuga_has(recv, FUGA_SYMBOL("eval"))));
-    return self;
+
+    if (Fuga_isInt(self) || Fuga_isString(self) || Fuga_isSymbol(self))
+        return self;
+
+    if (Fuga_isMsg(self))
+        return FugaMsg_eval(self, recv, scope);
+
+    return Fuga_evalSlots(self, scope);
 }
 
 #ifdef TESTING
@@ -794,13 +814,14 @@ TESTS(Fuga_eval) {
 
     Fuga* scope = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_set(scope, FUGA_SYMBOL("hello"), prim)));
-    TEST(prim == Fuga_eval(FUGA_MSG("hello"), scope, scope));
+    TEST(Fuga_is(prim, Fuga_eval(FUGA_MSG("hello"), scope, scope)));
 
     Fuga* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append(obj, prim)));
     TEST(!Fuga_isRaised(Fuga_append(obj, FUGA_MSG("hello"))));
     TEST(!Fuga_isRaised(Fuga_set(obj, FUGA_SYMBOL("hi"), prim)));
     Fuga* eobj = Fuga_eval(obj, scope, scope);
+    TEST(!Fuga_isRaised(eobj));
     TEST(FugaInt_isEqualTo(Fuga_length(eobj), 3));
     TEST(prim == Fuga_get(eobj, FUGA_INT(0)));
     TEST(prim == Fuga_get(eobj, FUGA_INT(1)));
@@ -814,4 +835,21 @@ TESTS(Fuga_eval) {
     Fuga_quit(self);
 }
 #endif
+
+Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
+{
+    // Ultimately, [thunkSlots needSlots], not this.
+    ALWAYS(self); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(scope);
+    Fuga* result = Fuga_clone(FUGA->Object);
+    long length = FugaInt_value(Fuga_length(self));
+    ALWAYS(length >= 0);
+    for (long i = 0; i < length; i++) {
+        FugaSlot* slot = Fuga_rawGetSlot(self, FUGA_INT(i));
+        Fuga* value = Fuga_eval(slot->value, scope, scope);
+        FUGA_CHECK(value);
+        FUGA_CHECK(Fuga_set(result, slot->name, value));
+    }
+    return result;
+}
 
