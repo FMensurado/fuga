@@ -106,23 +106,16 @@ Fuga* Fuga_is(Fuga*, Fuga*);
 Fuga* Fuga_isa(Fuga*, Fuga*);
 Fuga* Fuga_proto(Fuga*);
 
-#define Fuga_isTrue(self)   (!Fuga_isRaised(self) && \
-                             (self)->id == (self)->root->True->id)
-#define Fuga_isFalse(self)  (!Fuga_isRaised(self) && \
-                             (self)->id == (self)->root->False->id)
-#define Fuga_isNil(self)    (!Fuga_isRaised(self) && \
-                             (self)->id == (self)->root->nil->id)
-#define Fuga_isInt(self)    (!Fuga_isRaised(self) && \
-                             (self)->type == FUGA_TYPE_INT)
-#define Fuga_isString(self) (!Fuga_isRaised(self) && \
-                             (self)->type == FUGA_TYPE_STRING)
-#define Fuga_isSymbol(self) (!Fuga_isRaised(self) && \
-                             (self)->type == FUGA_TYPE_SYMBOL)
-#define Fuga_isMsg(self)    (!Fuga_isRaised(self) && \
-                             (self)->type == FUGA_TYPE_MSG)
-#define Fuga_isMethod(self) (!Fuga_isRaised(self) && \
-                             (self)->type == FUGA_TYPE_METHOD)
-#define Fuga_isRaised(self)  (((size_t)(self)) & 0x01)
+bool Fuga_isRaised(Fuga*);
+bool Fuga_isTrue  (Fuga*);
+bool Fuga_isFalse (Fuga*);
+bool Fuga_isNil   (Fuga*);
+bool Fuga_isInt   (Fuga*);
+bool Fuga_isString(Fuga*);
+bool Fuga_isSymbol(Fuga*);
+bool Fuga_isMsg   (Fuga*);
+bool Fuga_isMethod(Fuga*);
+bool Fuga_isExpr  (Fuga*);
 
 // Error handling
 Fuga* Fuga_raise(Fuga*);

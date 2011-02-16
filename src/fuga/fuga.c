@@ -174,6 +174,38 @@ Fuga* Fuga_isa(Fuga* self, Fuga* other)
     }
 }
 
+bool Fuga_isRaised(Fuga* self) {
+    return ((size_t)self) & 0x01;
+}
+bool Fuga_isTrue(Fuga* self) {
+    return !Fuga_isRaised(self) && self->id == self->root->True->id;
+}
+bool Fuga_isFalse(Fuga* self) {
+    return !Fuga_isRaised(self) && self->id == self->root->False->id;
+}
+bool Fuga_isNil(Fuga* self) {
+    return !Fuga_isRaised(self) && self->id == self->root->nil->id;
+}
+bool Fuga_isInt(Fuga* self) {
+    return !Fuga_isRaised(self) && self->type == FUGA_TYPE_INT;
+}
+bool Fuga_isString(Fuga* self) {
+    return !Fuga_isRaised(self) && self->type == FUGA_TYPE_STRING;
+}
+bool Fuga_isSymbol(Fuga* self) {
+    return !Fuga_isRaised(self) && self->type == FUGA_TYPE_SYMBOL;
+}
+bool Fuga_isMsg(Fuga* self) {
+    return !Fuga_isRaised(self) && self->type == FUGA_TYPE_MSG;
+}
+bool Fuga_isMethod(Fuga* self) {
+    return !Fuga_isRaised(self) && self->type == FUGA_TYPE_METHOD;
+}
+bool Fuga_isExpr(Fuga* self) {
+    return !Fuga_isRaised(self) &&
+        Fuga_isTrue(Fuga_isa(self, FUGA->Expr));
+}
+
 #ifdef TESTING
 TESTS(Fuga_isa) {
     Fuga* self = Fuga_init();
