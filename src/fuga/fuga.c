@@ -2,33 +2,10 @@
 #include "test.h"
 #include "fuga.h"
 
-
 void _FugaRoot_mark(void*_root) {
-    FugaRoot* root = _root;
-
-    FugaGC_mark(root, root->symbols);
-
-    FugaGC_mark(root, root->Object);
-    FugaGC_mark(root, root->Prelude);
-
-    FugaGC_mark(root, root->True);
-    FugaGC_mark(root, root->False);
-    FugaGC_mark(root, root->nil);
-
-    FugaGC_mark(root, root->Number);
-    FugaGC_mark(root, root->Int);
-    FugaGC_mark(root, root->String);
-    FugaGC_mark(root, root->Symbol);
-    FugaGC_mark(root, root->Msg);
-    FugaGC_mark(root, root->Method);
-    FugaGC_mark(root, root->Expr);
-
-    FugaGC_mark(root, root->Exception);
-    FugaGC_mark(root, root->SlotError);
-    FugaGC_mark(root, root->MutableError);
-    FugaGC_mark(root, root->TypeError);
-    FugaGC_mark(root, root->ValueError);
-    FugaGC_mark(root, root->IOError);
+    void** root = _root;
+    for (size_t i = 0; i < sizeof(FugaRoot) / sizeof(void*); i++)
+        FugaGC_mark(root, root[i]);
 }
 
 void _Fuga_mark(void* _self) {
@@ -85,6 +62,7 @@ Fuga* Fuga_init()
     FUGA->TypeError    = Fuga_clone(FUGA->Exception);
     FUGA->MutableError = Fuga_clone(FUGA->Exception);
     FUGA->IOError      = Fuga_clone(FUGA->Exception);
+    FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
 
     return FUGA->Prelude;
 }
@@ -184,11 +162,34 @@ Fuga* Fuga_is(Fuga* self, Fuga* other)
  */
 Fuga* Fuga_isa(Fuga* self, Fuga* other)
 {
+    ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
-    self = self->proto;
-    return FUGA_BOOL(self && ((self->id == other->id) ||
-                              Fuga_isa(self, other)));
+    Fuga* proto = self->proto;
+    if (proto) {
+        FUGA_NEED(proto);
+        return FUGA_BOOL((proto->id == other->id)
+                    || Fuga_isTrue(Fuga_isa(proto, other)));
+    } else {
+        return FUGA->False;
+    }
 }
+
+#ifdef TESTING
+TESTS(Fuga_isa) {
+    Fuga* self = Fuga_init();
+    TEST(Fuga_isFalse (Fuga_isa(FUGA->Object, FUGA->Object)));
+    TEST(Fuga_isTrue  (Fuga_isa(FUGA->Symbol, FUGA->Object)));
+    TEST(Fuga_isFalse (Fuga_isa(FUGA->Symbol, FUGA->Symbol)));
+    TEST(Fuga_isFalse (Fuga_isa(FUGA->Symbol, FUGA->Symbol)));
+    TEST(Fuga_isFalse (Fuga_isa(FUGA->Symbol, FUGA->String)));
+    TEST(Fuga_isTrue  (Fuga_isa(FUGA->Int,    FUGA->Number)));
+    TEST(Fuga_isTrue  (Fuga_isa(FUGA->Number, FUGA->Object)));
+    TEST(Fuga_isTrue  (Fuga_isa(FUGA->Int,    FUGA->Object)));
+    TEST(Fuga_isRaised(Fuga_isa(Fuga_raise(FUGA->Symbol),FUGA->Object)));
+    TEST(Fuga_isRaised(Fuga_isa(FUGA->Symbol,Fuga_raise(FUGA->Object))));
+    Fuga_quit(self);
+}
+#endif
 
 /**
  * Converts a primitive into either an int or a symbol (raising an

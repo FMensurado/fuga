@@ -54,6 +54,7 @@ struct FugaRoot {
 
     // Exception protos
     Fuga* Exception;
+    Fuga* SyntaxError;
     Fuga* SlotError;
     Fuga* MutableError;
     Fuga* TypeError;
@@ -131,6 +132,10 @@ Fuga* Fuga_raise(Fuga*);
         return Fuga_raise(error##__LINE__);                            \
     } while(0)
 #define FUGA_RERAISE(error) return Fuga_raise(error)
+#define FUGA_RAISEP(type, msg) do{                                 \
+        printf("%s:%d: %s, %s\n", __FILE__, __LINE__, #type, msg); \
+        FUGA_RAISE(type, msg);                                     \
+    } while(0)
 
 Fuga* Fuga_catch(Fuga*);
 #define FUGA_CHECK(result) do{                          \
