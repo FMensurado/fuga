@@ -29,3 +29,30 @@ FugaToken* FugaToken_new(
     return self;
 }
 
+Fuga* FugaToken_int_(
+    FugaToken* token,
+    Fuga* self
+) {
+    ALWAYS(token); ALWAYS(token->value);
+    ALWAYS(token->type == FUGA_TOKEN_INT);
+    return FUGA_INT(*(long*)token->value);
+}
+
+Fuga* FugaToken_string_(
+    FugaToken* token,
+    Fuga* self
+) {
+    ALWAYS(token); ALWAYS(token->value);
+    NEVER(token->type == FUGA_TOKEN_INT);
+    return FUGA_STRING(token->value);
+}
+
+Fuga* FugaToken_symbol_(
+    FugaToken* token,
+    Fuga* self
+) {
+    ALWAYS(token); ALWAYS(token->value);
+    NEVER(token->type == FUGA_TOKEN_INT);
+    return FUGA_SYMBOL(token->value);
+}
+
