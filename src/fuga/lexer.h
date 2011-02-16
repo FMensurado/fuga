@@ -30,21 +30,21 @@ void FugaLexer_free(
 );
 
 /**
-*** ### FugaLexer_read_
+*** ### FugaLexer_readCode_
 *** 
 *** Specify which code to have the lexer read.
 **/
-void FugaLexer_read_(
+void FugaLexer_readCode_(
     FugaLexer* self,
     const char* code
 );
 
 /**
-*** ### FugaLexer_open_
+*** ### FugaLexer_readFile_
 *** 
 *** Specify which file to have the lexer read from.
 **/
-void FugaLexer_open_(
+void FugaLexer_readFile_(
     FugaLexer* self,
     const char* filename
 );
