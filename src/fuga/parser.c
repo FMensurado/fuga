@@ -344,6 +344,19 @@ TESTS(FugaParser) {
         && FugaInt_isEqualTo(Fuga_length(self), 2)
         && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 20)
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+    FUGA_PARSER_TEST("10 * 20 * 30",
+           !Fuga_isRaised(self)
+        && Fuga_isExpr(self)
+        && FugaInt_isEqualTo(Fuga_length(self), 3)
+        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
+        && Fuga_isMsg(Fuga_get(self, FUGA_INT(2))));
+    FUGA_PARSER_TEST("10 ** 20 ** 30",
+           !Fuga_isRaised(self)
+        && Fuga_isExpr(self)
+        && FugaInt_isEqualTo(Fuga_length(self), 2)
+        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
 
     Fuga_quit(self);
 }
