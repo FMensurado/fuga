@@ -181,13 +181,11 @@
 #ifdef TESTING_COVERAGE
 # define TEST(assertion) (assertion)
 #else
-# define TEST(assertion)                                                   \
-    if (!(assertion)) {                                                    \
-        printf("--------------------------------------");                  \
-        printf("--------------------------------------\n");                \
-        printf("[%s] in %s, line %d\n", _suite_name, __FILE__, __LINE__);  \
-        printf("    Test: %s\n", #assertion);                              \
-    }
+# define TEST(assertion)                                            \
+    do {                                                            \
+        if (!(assertion))                                           \
+            printf("%s:%d: %s\n", __FILE__, __LINE__, #assertion);  \
+    } while(0);
 #endif
 
 #endif // #ifndef TEST_H
