@@ -293,8 +293,13 @@ void _FugaLexer_lexOp(
     int i=0;
     while (_FugaLexer_isop(self->code[i]))
         i++;
-    self->token->type = FUGA_TOKEN_OP;
-    self->token->value = _FugaLexer_prefix_(self, i);
+    if (i == 1 && self->code[0] == '=') {
+        self->token->type = FUGA_TOKEN_EQUALS;
+        _FugaLexer_consume_(self, 1);
+    } else {
+        self->token->type = FUGA_TOKEN_OP;
+        self->token->value = _FugaLexer_prefix_(self, i);
+    }
 }
 
 void _FugaLexer_lexDoc(
@@ -521,6 +526,11 @@ TESTS(FugaLexer) {
     FugaLexer_readCode_(self, "do");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "do");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "a = b");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "a");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_EQUALS);
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "b");
 
     FugaLexer_readCode_(self, "0");
     FUGA_LEXER_TEST    (FUGA_TOKEN_INT);

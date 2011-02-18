@@ -49,22 +49,11 @@ Fuga* FugaParser_operators(
 );
 
 /**
-*** ### FugaParser_infixl_precedence_
-***
-*** Set a left-associative operator's precedence.
-**/
-void FugaParser_infixl_precedence_(
-    FugaParser* self,
-    const char* op,
-    size_t precedence
-);
-
-/**
 *** ### FugaParser_infixr_precedence_
 *** 
 *** Set a right-associative operator's precedence.
 **/
-void FugaParser_infixr_precedence_(
+void FugaParser_infix_precedence_(
     FugaParser* self,
     const char* op,
     size_t precedence

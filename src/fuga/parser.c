@@ -1,3 +1,4 @@
+#include "token.h"
 #include "parser.h"
 #include "test.h"
 
@@ -11,7 +12,23 @@ FugaParser* FugaParser_new(
 ) {
     FugaParser* parser = FugaGC_alloc(self, sizeof(FugaParser));
     parser->operators = Fuga_clone(FUGA->Object);
-    // FIXME: add default operators
+
+    // relational: 500s
+    FugaParser_infix_precedence_(parser, "==", 500);
+    FugaParser_infix_precedence_(parser, "<=", 500);
+    FugaParser_infix_precedence_(parser, ">=", 500);
+    FugaParser_infix_precedence_(parser, "<",  500);
+    FugaParser_infix_precedence_(parser, ">",  500);
+    // default: 1000s
+    // arithmetic: 1500s
+    FugaParser_infix_precedence_(parser, "+",  1500);
+    FugaParser_infix_precedence_(parser, "-",  1500);
+    FugaParser_infix_precedence_(parser, "*",  1510);
+    FugaParser_infix_precedence_(parser, "/",  1510);
+    FugaParser_infix_precedence_(parser, "//", 1510);
+    FugaParser_infix_precedence_(parser, "%",  1510);
+    FugaParser_infix_precedence_(parser, "**", 1520);
+
     return parser;
 }
 
@@ -36,17 +53,27 @@ Fuga* FugaParser_operators(
     return self->operators;
 }
 
-void FugaParser_infixl_precedence_(
-    FugaParser* self,
+void FugaParser_infix_precedence_(
+    FugaParser* parser,
     const char* op,
     size_t precedence
-);
-
-void FugaParser_infixr_precedence_(
-    FugaParser* self,
-    const char* op,
-    size_t precedence
-);
+) {
+    Fuga* self = parser->operators;
+    Fuga* opSymbol = FUGA_SYMBOL(op);
+    Fuga* opData;
+    Fuga* precedenceSymbol = FUGA_SYMBOL("precedence");
+    if (Fuga_has(self, opSymbol)) {
+        opData = Fuga_get(self, opSymbol);
+        opData = Fuga_need(opData);
+        if (!Fuga_isRaised(opData)) {
+            Fuga_set(opData, precedenceSymbol, FUGA_INT(precedence));
+            return;
+        }
+    } 
+    opData = Fuga_clone(FUGA->Object);
+    Fuga_set(opData, precedenceSymbol, FUGA_INT(precedence));
+    Fuga_set(self, opSymbol, opData);
+}
 
 size_t FugaParser_precedence_(
     FugaParser* parser,
@@ -60,7 +87,7 @@ size_t FugaParser_precedence_(
         if (Fuga_isInt(precedence)) {
             long p = FugaInt_value(precedence);
             if (p > 1999) p = 1999;
-            if (p < 1)    p = 1;
+            if (p < 2)    p = 2;
             return p;
         }
     }
@@ -85,6 +112,7 @@ size_t _FugaParser_lbp_(
     case FUGA_TOKEN_STRING: return 2000;
     case FUGA_TOKEN_SYMBOL: return 2000;
     case FUGA_TOKEN_NAME:   return 2000;
+    case FUGA_TOKEN_EQUALS: return 1;
     case FUGA_TOKEN_OP:
         return FugaParser_precedence_(parser, token->value);
     // FIXME: handle FUGA_TOKEN_OP
@@ -148,13 +176,10 @@ Fuga* _FugaParser_derive_(
         return self;
 
     case FUGA_TOKEN_OP:
-        // FIXME: handle send-to-scope style operators.
         self = FugaMsg_fromSymbol(FugaToken_symbol_(token, self));
         FUGA_CHECK(self);
         Fuga* part = FugaParser_expression_(parser, 2000);
         return _FugaParser_buildExpr_(part, self);
-
-    // FIXME: handle FUGA_TOKEN_OP
 
     default:
         FUGA_RAISE(FUGA->SyntaxError, "invalid syntax");
@@ -172,8 +197,10 @@ Fuga* _FugaParser_derive_after_(
     FugaToken* token,
     Fuga* expr
 ) {
-    // FIXME: use more descriptive error messages.
     Fuga* self = parser->operators;
+    Fuga* name;
+    Fuga* arg;
+    Fuga* msg;
     switch (token->type) {
     case FUGA_TOKEN_ERROR:
         FUGA_RAISE(FUGA->SyntaxError, "invalid token");
@@ -182,8 +209,19 @@ Fuga* _FugaParser_derive_after_(
         self = _FugaParser_derive_(parser, token);
         return _FugaParser_buildExpr_(expr, self);
 
-    // FIXME: handle FUGA_TOKEN_INT
-    // FIXME: handle FUGA_TOKEN_OP
+    case FUGA_TOKEN_EQUALS:
+        msg = FUGA_MSG("=");
+        Fuga_append(msg, expr);
+        Fuga_append(msg, FugaParser_expression_(parser, 1));
+        return msg;
+
+    case FUGA_TOKEN_OP:
+        name = FugaToken_symbol_(token, self);
+        arg  = FugaParser_expression_(parser,
+            FugaParser_precedence_(parser, token->value));
+        msg  = FugaMsg_fromSymbol(name);
+        Fuga_append(msg, arg);
+        return _FugaParser_buildExpr_(expr, msg);
 
     default:
         FUGA_RAISE(FUGA->SyntaxError, "invalid syntax");
@@ -321,11 +359,6 @@ TESTS(FugaParser) {
         && FugaInt_isEqualTo(Fuga_length(self), 2)
         && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 42)
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
-    FUGA_PARSER_TEST("!42",
-           !Fuga_isRaised(self)
-        && Fuga_isMsg(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 42));
     FUGA_PARSER_TEST("10 + 20",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
@@ -338,12 +371,6 @@ TESTS(FugaParser) {
         && FugaInt_isEqualTo(Fuga_length(self), 2)
         && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
         && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(1)), 20));
-    FUGA_PARSER_TEST("10 +> 20",
-           !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 20)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("10 * 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
@@ -351,7 +378,7 @@ TESTS(FugaParser) {
         && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(2))));
-    FUGA_PARSER_TEST("10 ** 20 ** 30",
+    FUGA_PARSER_TEST("10 + 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
         && FugaInt_isEqualTo(Fuga_length(self), 2)
