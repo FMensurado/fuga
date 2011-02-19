@@ -18,3 +18,30 @@ Fuga* FugaMethod_call(Fuga* self, Fuga* recv, Fuga* args)
     return self->method(self, recv, args);
 }
 
+struct _FugaMethod_strMethod {
+    Fuga* (*fp)(Fuga*);
+};
+
+Fuga* _FugaMethod_strMethodCall(Fuga* self, Fuga* recv, Fuga* args)
+{
+    struct _FugaMethod_strMethod* method = self->data;
+    FUGA_NEED(args);
+    if (!FugaInt_isEqualTo(Fuga_length(args), 0)) {
+        FUGA_RAISE(FUGA->ValueError, "str: expected no arguments");
+    }
+    return method->fp(recv);
+}
+
+Fuga* FugaMethod_strMethod(Fuga* self, Fuga* (*fp)(Fuga*))
+{
+    self = FugaMethod_new(self, _FugaMethod_strMethodCall);
+    struct _FugaMethod_strMethod* method = FugaGC_alloc(
+        self,
+        sizeof(struct _FugaMethod_strMethod)
+    );
+    method->fp = fp;
+    self->data = method;
+    return self;
+}
+
+

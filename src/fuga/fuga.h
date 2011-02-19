@@ -166,6 +166,11 @@ Fuga* Fuga_evalSlotsIn(Fuga* self, Fuga* scope);
 Fuga* Fuga_send(Fuga* self, Fuga* name, Fuga* args);
 Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args);
 
+// Utility
+Fuga* Fuga_str(Fuga* self);
+Fuga* Fuga_strSlots(Fuga* self);
+
+void Fuga_printException(Fuga* self);
 
 #endif
 

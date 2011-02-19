@@ -3,6 +3,8 @@
 
 #include "fuga.h"
 
+void FugaInt_init(Fuga*);
+
 #define FUGA_INT(x) FugaInt_new(self, (x))
 Fuga* FugaInt_new(Fuga*, long);
 long FugaInt_value(Fuga*);

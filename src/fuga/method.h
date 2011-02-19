@@ -8,5 +8,8 @@
 Fuga* FugaMethod_new(Fuga* self, FugaMethod method);
 Fuga* FugaMethod_call(Fuga* self, Fuga* recv, Fuga* args);
 
+Fuga* FugaMethod_noArgs(Fuga* self, Fuga* (*)(Fuga*));
+Fuga* FugaMethod_strMethod(Fuga* self, Fuga* (*)(Fuga*));
+
 #endif
 

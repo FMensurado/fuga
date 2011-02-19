@@ -29,7 +29,6 @@ TESTS(FUGA_STRING) {
 Fuga* FugaString_toSymbol(Fuga* self)
 {
     ALWAYS(self);
-    ALWAYS(Fuga_isString(self)); // better to return
 
     if (!Fuga_isString(self)) {
         FUGA_RAISE(FUGA->TypeError,
@@ -44,5 +43,14 @@ Fuga* FugaString_toSymbol(Fuga* self)
     }
 
     return FUGA_SYMBOL(self->data);
+}
+
+#include <stdio.h>
+void FugaString_print(Fuga* self)
+{
+    ALWAYS(self);
+    ALWAYS(Fuga_isString(self));
+    
+    puts(self->data);
 }
 

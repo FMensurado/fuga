@@ -2,6 +2,8 @@
 #include "test.h"
 #include "fuga.h"
 
+#include <string.h>
+
 void _FugaRoot_mark(void*_root) {
     void** root = _root;
     for (size_t i = 0; i < sizeof(FugaRoot) / sizeof(void*); i++)
@@ -63,6 +65,11 @@ Fuga* Fuga_init()
     FUGA->MutableError = Fuga_clone(FUGA->Exception);
     FUGA->IOError      = Fuga_clone(FUGA->Exception);
     FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
+
+    FugaInt_init(FUGA->Prelude);
+
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("str"), 
+        FugaMethod_strMethod(self, Fuga_strSlots));
 
     return FUGA->Prelude;
 }
@@ -884,5 +891,58 @@ Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
         FUGA_CHECK(Fuga_set(result, slot->name, value));
     }
     return result;
+}
+
+
+Fuga* Fuga_str(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_NEED(self);
+    Fuga* result = Fuga_send(self, FUGA_SYMBOL("str"),
+                             Fuga_clone(FUGA->Object));
+    FUGA_NEED(result);
+    if (!Fuga_isString(result)) {
+        FUGA_RAISE(FUGA->TypeError,
+            "str: expected a string to be returned"
+        );
+    }
+    return result;
+}
+
+Fuga* Fuga_strSlots(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_NEED(self);
+    size_t numSlots = FugaInt_value(Fuga_length(self));
+    // FIXME: use dynamic memory. (this causes overflows)
+    char buffer[numSlots * 1024];
+    size_t index = 0;
+
+    buffer[index++] = '(';
+    for (size_t slotNum = 0; slotNum < numSlots; slotNum++) {
+        Fuga* slot = Fuga_get(self, FUGA_INT(slotNum));
+        Fuga* string = Fuga_str(slot);
+
+        FUGA_NEED(string);
+        memcpy(buffer+index, string->data, string->size-1);
+        index += string->size-1;
+        buffer[index++] = ',';
+        buffer[index++] = ' ';
+    }
+    if (numSlots)
+        index -= 2;
+    buffer[index++] = ')';
+    buffer[index++] = '\0';
+    return FUGA_STRING(buffer);
+}
+
+void Fuga_printException(Fuga* self) 
+{
+    Fuga *msg = Fuga_get(self, FUGA_SYMBOL("msg"));
+    if (!Fuga_isString(msg)) {
+        printf("Exception raised.\n");
+    } else {
+        printf("Exception: %s\n", (char*)msg->data);
+    }
 }
 
