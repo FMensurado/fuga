@@ -67,6 +67,9 @@ Fuga* Fuga_init()
     FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
 
     FugaInt_init(FUGA->Prelude);
+    FugaString_init(FUGA->Prelude);
+    FugaSymbol_init(FUGA->Prelude);
+    FugaMsg_init(FUGA->Prelude);
 
     Fuga_set(FUGA->Object, FUGA_SYMBOL("str"), 
         FugaMethod_strMethod(self, Fuga_strSlots));
@@ -908,6 +911,34 @@ Fuga* Fuga_str(Fuga* self)
     }
     return result;
 }
+#ifdef TESTING
+bool Fuga_str_test(Fuga* self, const char* str) {
+    return FugaString_isEqualTo(Fuga_str(self), str);
+}
+#define FUGA_STR_TEST(a,b) TEST(Fuga_str_test(a, b))
+
+TESTS(Fuga_str) {
+    Fuga* self = Fuga_init();
+
+    FUGA_STR_TEST(Fuga_clone(FUGA->Object), "()");
+    FUGA_STR_TEST(FUGA_INT(0), "0");
+    FUGA_STR_TEST(FUGA_INT(10), "10");
+    FUGA_STR_TEST(FUGA_INT(-10), "-10");
+    FUGA_STR_TEST(FUGA_STRING(""), "\"\"");
+    FUGA_STR_TEST(FUGA_STRING("Hello"), "\"Hello\"");
+    FUGA_STR_TEST(FUGA_STRING("good\nbye\""), "\"good\\nbye\\\"\"");
+    FUGA_STR_TEST(FUGA_STRING("\\\t\r"), "\"\\\\\\t\\r\"");
+    FUGA_STR_TEST(FUGA_SYMBOL("abcdef"), ":abcdef");
+    FUGA_STR_TEST(FUGA_SYMBOL("1st"), ":1st");
+    FUGA_STR_TEST(FUGA_SYMBOL("+"), ":\\+");
+    FUGA_STR_TEST(FUGA_MSG("abcdef"), "abcdef");
+    FUGA_STR_TEST(FUGA_MSG("1st"), "1st");
+    FUGA_STR_TEST(FUGA_MSG("+"), "\\+");
+    // FIXME: add tests for objects and msgs with args.
+
+    Fuga_quit(self);
+}
+#endif
 
 Fuga* Fuga_strSlots(Fuga* self)
 {

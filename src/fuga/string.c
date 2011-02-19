@@ -4,6 +4,13 @@
 #include "test.h"
 #include "symbol.h"
 
+void FugaString_init(Fuga* self)
+{
+    Fuga_set(FUGA->String, FUGA_SYMBOL("str"),
+        FUGA_METHOD_STR(FugaString_str));
+
+}
+
 Fuga* FugaString_new(Fuga* self, const char* value)
 {
     ALWAYS(self); ALWAYS(value);
@@ -52,5 +59,42 @@ void FugaString_print(Fuga* self)
     ALWAYS(Fuga_isString(self));
     
     puts(self->data);
+}
+
+
+bool FugaString_isEqualTo(Fuga* self, const char* str)
+{
+    ALWAYS(self);
+    self = Fuga_need(self);
+    return Fuga_isString(self) && (strcmp(self->data, str) == 0);
+}
+
+
+Fuga* FugaString_str(Fuga* self)
+{
+    ALWAYS(self);
+    if (!Fuga_isString(self)) {
+        FUGA_RAISE(FUGA->TypeError,
+            "String str: expected primitive string"
+        );
+    }
+
+    char buffer[self->size*2+1];
+    size_t index = 0;
+    buffer[index++] = '"';
+    for (size_t i = 0; i < self->size-1; i++) {
+        switch (((char*)self->data)[i]) {
+            case '\n': buffer[index++]='\\'; buffer[index++]='n'; break;
+            case '\t': buffer[index++]='\\'; buffer[index++]='t'; break;
+            case '\r': buffer[index++]='\\'; buffer[index++]='r'; break;
+            case '\\': buffer[index++]='\\'; buffer[index++]='\\'; break;
+            case '\"': buffer[index++]='\\'; buffer[index++]='\"'; break;
+            default:   buffer[index++]=((char*)self->data)[i];
+        }
+    }
+    buffer[index++] = '"';
+    buffer[index++] = 0;
+    return FUGA_STRING(buffer);
+
 }
 

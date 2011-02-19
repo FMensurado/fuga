@@ -1,6 +1,11 @@
 #include "msg.h"
 #include "test.h"
 
+void FugaMsg_init(Fuga* self)
+{
+    
+}
+
 Fuga* FugaMsg_new(Fuga* self, const char* name)
 {
     ALWAYS(self); ALWAYS(name);

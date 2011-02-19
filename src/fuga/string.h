@@ -4,9 +4,12 @@
 #include "fuga.h"
 
 #define FUGA_STRING(x) FugaString_new(self, (x))
+void  FugaString_init(Fuga*);
 Fuga* FugaString_new(Fuga*, const char*);
 Fuga* FugaString_toSymbol(Fuga*);
 void  FugaString_print(Fuga*);
+bool  FugaString_isEqualTo(Fuga* self, const char* str);
+Fuga* FugaString_str(Fuga*);
 
 #endif
 

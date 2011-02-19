@@ -2,6 +2,13 @@
 #include "symbol.h"
 #include "symbols.h"
 #include "test.h"
+#include "char.h"
+
+void FugaSymbol_init(Fuga* self)
+{
+    Fuga_set(FUGA->Symbol, FUGA_SYMBOL("str"),
+        FUGA_METHOD_STR(FugaSymbol_str));
+}
 
 bool FugaSymbol_isValid(const char* value)
 {
@@ -19,7 +26,7 @@ Fuga* FugaSymbol_new(Fuga* self, const char* value)
     Fuga* result = FugaSymbols_get(FUGA->symbols, value);
     if (result) return result;
 
-    self = Fuga_clone(FUGA->String);
+    self = Fuga_clone(FUGA->Symbol);
     self->type = FUGA_TYPE_SYMBOL;
     self->size = strlen(value)+1;
     self->data = FugaGC_alloc(self, self->size);
@@ -35,3 +42,21 @@ TESTS(FUGA_SYMBOL) {
     Fuga_quit(self);
 }
 #endif
+
+Fuga* FugaSymbol_str(Fuga* self) {
+    ALWAYS(self);
+    if (!Fuga_isSymbol(self)) {
+        FUGA_RAISE(FUGA->TypeError,
+            "Symbol str: expected primitive symbol"
+        );
+    }
+    
+    char buffer[self->size+2];
+    size_t index=0;
+    buffer[index++] = ':';
+    if (FugaChar_isOp(self->data))
+        buffer[index++] = '\\';
+    memcpy(buffer+index, self->data, self->size);
+    return FUGA_STRING(buffer);
+}
+
