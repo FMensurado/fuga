@@ -99,6 +99,9 @@ Fuga* Fuga_init(void);
 void  Fuga_quit(Fuga*);
 void  Fuga_mark(void*);
 
+void Fuga_initObject(Fuga* self);
+void Fuga_initBool(Fuga* self);
+
 // General Functions
 Fuga* Fuga_clone(Fuga*);
 Fuga* Fuga_raise(Fuga*);

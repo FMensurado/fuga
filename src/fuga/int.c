@@ -33,8 +33,6 @@ Fuga* FugaInt_str(Fuga* self)
 {
     ALWAYS(self);
     FUGA_NEED(self);
-    if (Fuga_isTrue(Fuga_rawHas(self, FUGA_SYMBOL("name"))))
-        return Fuga_rawGet(self, FUGA_SYMBOL("name"));
     if (!Fuga_isInt(self))
         FUGA_RAISE(FUGA->TypeError, "Int str: expected primitive int");
     char revbuffer[1024] = {0};

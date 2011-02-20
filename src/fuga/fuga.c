@@ -70,11 +70,33 @@ Fuga* Fuga_init()
     FugaString_init(FUGA->Prelude);
     FugaSymbol_init(FUGA->Prelude);
     FugaMsg_init(FUGA->Prelude);
+    FugaMethod_init(FUGA->Prelude);
 
-    Fuga_set(FUGA->Object, FUGA_SYMBOL("str"), 
-        FugaMethod_strMethod(self, Fuga_strSlots));
+    Fuga_initObject(FUGA->Prelude);
+    Fuga_initBool(FUGA->Prelude);
 
     return FUGA->Prelude;
+}
+
+void Fuga_initObject(Fuga* self) {
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("str"), 
+        FUGA_METHOD_STR(Fuga_strSlots));
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("hasSlot"),
+        FUGA_METHOD_1ARG(Fuga_has));
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("getSlot"),
+        FUGA_METHOD_1ARG(Fuga_get));
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("setSlot"),
+        FUGA_METHOD_2ARG(Fuga_set));
+    Fuga_set(FUGA->Object, FUGA_SYMBOL("numSlots"),
+        FUGA_METHOD_0ARG(Fuga_length));
+
+    // *cough* sorry. this is here, but this location doesn't make sense
+    Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
+}
+
+void Fuga_initBool(Fuga* self) {
+    Fuga_set(FUGA->True,  FUGA_SYMBOL("name"), FUGA_STRING("true"));
+    Fuga_set(FUGA->False, FUGA_SYMBOL("name"), FUGA_STRING("false"));
 }
 
 #ifdef TESTING
@@ -959,6 +981,14 @@ TESTS(Fuga_str) {
     FUGA_STR_TEST(FUGA_MSG("1st"), "1st");
     FUGA_STR_TEST(FUGA_MSG("+"), "\\+");
     // FIXME: add tests for objects and msgs with args.
+
+    FUGA_STR_TEST(Fuga_get(FUGA->Int, FUGA_SYMBOL("str")),
+                  "method(...)");
+
+    // test names
+    FUGA_STR_TEST(FUGA->True,  "true");
+    FUGA_STR_TEST(FUGA->False, "false");
+    FUGA_STR_TEST(FUGA->nil,   "nil");
 
     Fuga_quit(self);
 }
