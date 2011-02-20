@@ -841,6 +841,9 @@ Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope)
     if (Fuga_isMsg(self))
         return FugaMsg_eval(self, recv, scope);
 
+    if (Fuga_isExpr(self))
+        return Fuga_evalExpr(self, recv, scope);
+
     return Fuga_evalSlots(self, scope);
 }
 
@@ -894,6 +897,27 @@ Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
         FUGA_CHECK(Fuga_set(result, slot->name, value));
     }
     return result;
+}
+
+Fuga* Fuga_evalExpr(
+    Fuga* self,
+    Fuga* recv,
+    Fuga* scope
+) {
+    ALWAYS(self); ALWAYS(recv); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(recv); FUGA_NEED(scope);
+    long length = FugaInt_value(Fuga_length(self));
+    if (length < 1) {
+        FUGA_RAISE(FUGA->ValueError,
+            "Expr eval: can't evaluate empty expression"
+        );
+    }
+    for (long i = 0; i < length; i++) {
+        Fuga* part = Fuga_get(self, FUGA_INT(i));
+        recv = Fuga_eval(part, recv, scope);
+        FUGA_CHECK(recv);
+    }
+    return recv;
 }
 
 

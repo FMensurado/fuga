@@ -1,6 +1,12 @@
 #include "method.h"
 #include "test.h"
 
+void FugaMethod_init(Fuga* self)
+{
+    Fuga_set(FUGA->Method, FUGA_SYMBOL("str"),
+        FUGA_STRING("method(...)"));
+}
+
 Fuga* FugaMethod_new(Fuga* self, FugaMethod method)
 {
     ALWAYS(self); ALWAYS(method);

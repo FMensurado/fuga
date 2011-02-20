@@ -11,6 +11,9 @@ Fuga* FugaMsg_fromSymbol(Fuga*);
 Fuga* FugaMsg_toSymbol(Fuga*);
 Fuga* FugaMsg_eval(Fuga* self, Fuga* recv, Fuga* scope);
 
+Fuga* FugaMsg_name(Fuga*);
+Fuga* FugaMsg_args(Fuga*);
+
 Fuga* FugaMsg_str(Fuga*);
 
 #endif

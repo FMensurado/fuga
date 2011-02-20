@@ -1,4 +1,3 @@
 bin/*.o
 bin/test/*.o
 .test
-fuga

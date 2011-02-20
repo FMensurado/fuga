@@ -98,3 +98,38 @@ Fuga* FugaString_str(Fuga* self)
 
 }
 
+Fuga* FugaString_sliceFrom(Fuga* self, long start)
+{
+    ALWAYS(self);
+    if (!Fuga_isString(self)) {
+        FUGA_RAISE(FUGA->TypeError,
+            "String slice: expected primitive string"
+        );
+    }
+
+    if (start < 0)
+        start += self->size - 1;
+        
+    // FIXME: self->size does not really represent length.
+    if (start < 0 || start >= self->size)
+        return FUGA_STRING("");
+
+    // FIXME: start is not really the right offset to the start'th char.
+    return FUGA_STRING((char*)self->data + start);
+}
+
+Fuga* FugaString_cat(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    if (!Fuga_isString(self) || !Fuga_isString(other)) {
+        FUGA_RAISE(FUGA->TypeError,
+            "String \\++: expected primitive strings"
+        );
+    }
+
+    char buffer[self->size + other->size];
+    memcpy(buffer,                self->data,  self->size-1);
+    memcpy(buffer + self->size-1, other->data, other->size);
+    return FUGA_STRING(buffer);
+}
+

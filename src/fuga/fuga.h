@@ -161,6 +161,7 @@ Fuga* Fuga_needOnce(Fuga*);
 Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope);
 Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope);
 Fuga* Fuga_evalSlotsIn(Fuga* self, Fuga* scope);
+Fuga* Fuga_evalExpr(Fuga* self, Fuga* recv, Fuga* scope);
 
 // Call
 Fuga* Fuga_send(Fuga* self, Fuga* name, Fuga* args);

@@ -3,7 +3,7 @@
 #include "gc.h"
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include "char.h"
 
 struct FugaLexer {
     char* code;     // current code pointer
@@ -62,7 +62,7 @@ void _FugaLexer_lexDoc    (FugaLexer*);
 void _FugaLexer_lexName   (FugaLexer*);
 void _FugaLexer_lexString (FugaLexer*);
 void _FugaLexer_lexSymbol (FugaLexer*);
-void _FugaLexer_lexSingle (FugaLexer*);
+void _FugaLexer_lexSpecial(FugaLexer*);
 void _FugaLexer_lexError  (FugaLexer*);
 
 FugaToken* FugaLexer_peek(
@@ -182,40 +182,18 @@ bool _FugaLexer_issingle(
     }
 }
 
-bool _FugaLexer_isop(
-    char c
-) {
-    switch (c) {
-    case '~': case '`': case '@': case '$': case '%': case '^':
-    case '&': case '*': case '-': case '+': case '=': case '|':
-    case ';': case ':': case '<': case '>': case '.': case '?':
-    case '/':
-        return true;
-
-    default:
-        return false;
-    }
-}
-
-bool _FugaLexer_isname(
-    char c
-) {
-    return c == '_' || c == '?' || c == '!' || isalnum(c);
-}
-
 void _FugaLexer_lex(
     FugaLexer* self
 ) {
-    char c = self->code[0];
-    if (c == '"')
+    if (self->code[0] == '"')
         _FugaLexer_lexString(self);
-    else if (c == ':')
+    else if (self->code[0] == ':')
         _FugaLexer_lexSymbol(self);
-    else if (_FugaLexer_issingle(c))
-        _FugaLexer_lexSingle(self);
-    else if (_FugaLexer_isop(c))
+    else if (FugaChar_isSpecial(self->code))
+        _FugaLexer_lexSpecial(self);
+    else if (FugaChar_isOp(self->code))
         _FugaLexer_lexOp(self);
-    else if (_FugaLexer_isname(c))
+    else if (FugaChar_isName(self->code))
         _FugaLexer_lexName(self);
     else
         _FugaLexer_lexError(self);
@@ -236,7 +214,7 @@ void _FugaLexer_lexError(
     _FugaLexer_lexError_(self, 1);
 }
 
-void _FugaLexer_lexSingle(
+void _FugaLexer_lexSpecial(
     FugaLexer* self
 ) {
     ALWAYS(self); ALWAYS(self->token); ALWAYS(self->code);
@@ -258,7 +236,9 @@ void _FugaLexer_lexInt(
 ) {
     long value = 0;
     size_t i;
-    for (i = 0; isdigit(self->code[i]); i++) {
+    // FIXME: make a FugaChar_digit() function.
+    for (i = 0; FugaChar_isDigit(self->code+i);
+              i += FugaChar_size(self->code+i)) {
         value *= 10;
         value += self->code[i] - '0';
     }
@@ -274,8 +254,9 @@ void _FugaLexer_lexName(
     // FIXME: handle escaped operators
     int i;
     bool digits = true;
-    for (i = 0; _FugaLexer_isname(self->code[i]); i++)
-        digits = digits && isdigit(self->code[i]);
+    for (i = 0; FugaChar_isName(self->code+i);
+           i += FugaChar_size  (self->code+i))
+        digits = digits && FugaChar_isDigit(self->code+i);
 
     if (!i) {
         _FugaLexer_lexError(self);
@@ -291,8 +272,8 @@ void _FugaLexer_lexOp(
     FugaLexer* self
 ) {
     int i=0;
-    while (_FugaLexer_isop(self->code[i]))
-        i++;
+    while (FugaChar_isOp(self->code+i))
+        i += FugaChar_size(self->code+i);
     if (i == 1 && self->code[0] == '=') {
         self->token->type = FUGA_TOKEN_EQUALS;
         _FugaLexer_consume_(self, 1);
@@ -323,7 +304,7 @@ void _FugaLexer_lexSymbol(
     char c = self->code[1];
     if (c == ':') {
         _FugaLexer_lexDoc(self);
-    } else if (_FugaLexer_isname(c)) {
+    } else if (FugaChar_isName(self->code+1)) {
         _FugaLexer_consume_(self, 1);
         _FugaLexer_lexName(self);
         self->token->type = FUGA_TOKEN_SYMBOL;

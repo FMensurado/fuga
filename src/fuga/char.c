@@ -35,3 +35,15 @@ bool FugaChar_isDigit(
     return isdigit(*c);
 }
 
+bool FugaChar_isSpecial(
+    const char* c
+) {
+    switch (*c) {
+    case '(': case ')': case '[': case ']': case '{': case '}':
+    case '\n': case ',': case '\0':
+        return true;
+
+    default:
+        return false;
+    }
+}
