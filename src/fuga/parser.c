@@ -127,7 +127,6 @@ size_t _FugaParser_lbp_(
     case FUGA_TOKEN_EQUALS:   return 1;
     case FUGA_TOKEN_OP:
         return FugaParser_precedence_(parser, token->value);
-    // FIXME: handle FUGA_TOKEN_OP
     default: return 0;
     }
 }
