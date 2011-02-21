@@ -54,10 +54,7 @@ void repl(void)
         Fuga* block = read(parser);
         if (!block) break;
         Fuga* error = evalPrint(self, block);
-        if (error) {
-            error = Fuga_catch(error);
-            Fuga_printException(error);
-        }
+        if (error) Fuga_printException(error);
         FugaGC_collect(self);
     }
 
