@@ -10,12 +10,13 @@ Fuga* FugaInt_new(Fuga*, long);
 long FugaInt_value(Fuga*);
 bool FugaInt_isEqualTo(Fuga*, long);
 
+Fuga* FugaInt_str(Fuga*);
+
 Fuga* FugaInt_add(Fuga*, Fuga*);
 Fuga* FugaInt_sub(Fuga*, Fuga*);
 Fuga* FugaInt_mul(Fuga*, Fuga*);
-Fuga* FugaInt_div(Fuga*, Fuga*);
-
-Fuga* FugaInt_str(Fuga*);
+Fuga* FugaInt_fdiv(Fuga*, Fuga*);
+Fuga* FugaInt_mod(Fuga*, Fuga*);
 
 #endif
 

@@ -88,6 +88,10 @@ void Fuga_initObject(Fuga* self) {
         FUGA_METHOD_1ARG(Fuga_getSlot));
     Fuga_setSlot(FUGA->Object, FUGA_SYMBOL("setSlot"),
         FUGA_METHOD_2ARG(Fuga_setSlot));
+    Fuga_setSlot(FUGA->Object, FUGA_SYMBOL("hasSlotRaw"),
+        FUGA_METHOD_1ARG(Fuga_hasSlotRaw));
+    Fuga_setSlot(FUGA->Object, FUGA_SYMBOL("getSlotRaw"),
+        FUGA_METHOD_1ARG(Fuga_getSlotRaw));
     Fuga_setSlot(FUGA->Object, FUGA_SYMBOL("numSlots"),
         FUGA_METHOD_0ARG(Fuga_numSlots));
 

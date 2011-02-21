@@ -1,5 +1,8 @@
 all: test main
 
+try: all
+	./fuga
+
 test:
 	tools/test fuga
 
