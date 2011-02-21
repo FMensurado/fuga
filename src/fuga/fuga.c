@@ -717,7 +717,7 @@ Fuga* Fuga_setSlot(Fuga* self, Fuga* name, Fuga* value)
     if (!self->slots)
         self->slots = FugaSlots_new(self);
 
-    if (!name) 
+    if (!name || Fuga_isNil(name))
         return Fuga_append(self, value);
     name = Fuga_toName(name);
     FUGA_CHECK(name);
@@ -1028,11 +1028,26 @@ Fuga* Fuga_strSlots(Fuga* self)
 
 void Fuga_printException(Fuga* self) 
 {
+    ALWAYS(self);
+    if (Fuga_isRaised(self))
+        self = Fuga_catch(self);
     Fuga *msg = Fuga_getSlot(self, FUGA_SYMBOL("msg"));
     if (!Fuga_isString(msg)) {
-        printf("Exception raised.\n");
+        printf("Exception raised:\n\t");
+        Fuga_print(self);
     } else {
-        printf("Exception: %s\n", (char*)msg->data);
+        printf("Exception raised:\n\t%s\n", (char*)msg->data);
     }
+}
+
+Fuga* Fuga_print(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    Fuga* str = Fuga_str(self);
+    FUGA_CHECK(str);
+    ALWAYS(Fuga_isString(str));
+    FugaString_print(str);
+    return FUGA->nil;
 }
 

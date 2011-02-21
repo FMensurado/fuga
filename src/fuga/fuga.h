@@ -171,7 +171,9 @@ Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args);
 Fuga* Fuga_str(Fuga* self);
 Fuga* Fuga_strSlots(Fuga* self);
 
+Fuga* Fuga_print(Fuga* self);
 void Fuga_printException(Fuga* self);
+
 
 #endif
 

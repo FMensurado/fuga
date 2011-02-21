@@ -7,56 +7,59 @@
 #define PROMPT1 ">>> "
 #define PROMPT2 "... "
 
+Fuga* read(FugaParser* parser)
+{
+    char buffer[1024];
+    printf(PROMPT1);
+    fflush(stdout);
+    fgets(buffer, 1024, stdin);
+    if (feof(stdin)) {
+        printf("quit\n");
+        return NULL;
+    }
+    if (strcmp(buffer, "quit\n") == 0) {
+        return NULL;
+    }
+    FugaParser_readCode_(parser, buffer);
+    return FugaParser_block(parser);
+}
+
+Fuga* evalPrint(Fuga* self, Fuga* block)
+{
+    FUGA_CHECK(block);
+    long length = FugaInt_value(Fuga_numSlots(block));
+    for (long i = 0; i < length; i++) {
+        Fuga* slot  = Fuga_getSlot(block, FUGA_INT(i));
+        Fuga* value = Fuga_eval(slot, self, self);
+        if (Fuga_isNil(value))
+            continue;
+        FUGA_CHECK(Fuga_print(value));
+    }
+    return NULL;
+}
+
 void repl(void)
 {
     Fuga *self = Fuga_init();
     FugaParser *parser = FugaParser_new(self);
-    char buffer[1024];
     
     self = Fuga_clone(FUGA->Prelude);
     FugaGC_root(self);
     FugaGC_root(parser);
 
-    printf("Fuga interpreter.\n");
+    Fuga_setSlot(self, FUGA_SYMBOL("__this__"), self);
+
+    printf("Fuga version 0.1\n");
     while (1) {
-        printf(PROMPT1);
-        fflush(stdout);
-        fgets(buffer, 1024, stdin);
-        if (feof(stdin)) {
-            printf("quit\n");
-            break;
-        }
-        if (strcmp(buffer, "quit\n") == 0)
-            break;
-        FugaParser_readCode_(parser, buffer);
-        Fuga* block = FugaParser_block(parser);
-        Fuga* error;
-        if ((error = Fuga_catch(block))) {
-            printf("Syntax Error.\n");
+        Fuga* block = read(parser);
+        if (!block) break;
+        Fuga* error = evalPrint(self, block);
+        if (error) {
+            error = Fuga_catch(error);
             Fuga_printException(error);
-            continue;
         }
-        Fuga* value = Fuga_eval(block, self, self);
-        if ((error = Fuga_catch(value))) {
-            printf("Exception raised while evaluating.\n");
-            Fuga_printException(error);
-            continue;
-        }
-        Fuga* string = Fuga_str(value);
-        if ((error = Fuga_catch(string))) {
-            printf("Exception raised while calling str.\n");
-            Fuga_printException(error);
-            continue;
-        }
-        if (!Fuga_isString(string)) {
-            printf("Error: str did not return a string.\n");
-            Fuga_printException(error);
-            continue;
-        }
-        FugaString_print(string);
         FugaGC_collect(self);
     }
-
 
     Fuga_quit(self);
 }
