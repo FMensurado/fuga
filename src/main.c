@@ -17,11 +17,16 @@ void repl(void)
     FugaGC_root(self);
     FugaGC_root(parser);
 
+    printf("Fuga interpreter.\n");
     while (1) {
         printf(PROMPT1);
         fflush(stdout);
         fgets(buffer, 1024, stdin);
-        if (feof(stdin) || (strcmp(buffer, "quit\n") == 0))
+        if (feof(stdin)) {
+            printf("quit\n");
+            break;
+        }
+        if (strcmp(buffer, "quit\n") == 0)
             break;
         FugaParser_readCode_(parser, buffer);
         Fuga* block = FugaParser_block(parser);
