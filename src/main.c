@@ -49,7 +49,7 @@ void repl(void)
 
     Fuga_setSlot(self, FUGA_SYMBOL("__this__"), self);
 
-    printf("Fuga version 0.1\n");
+    printf("Fuga 0.1. Use \"quit\" to quit.\n");
     while (1) {
         Fuga* block = read(parser);
         if (!block) break;
