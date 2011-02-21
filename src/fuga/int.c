@@ -6,9 +6,9 @@ void FugaInt_init(Fuga* self)
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaInt_str));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("+"),
-        FUGA_METHOD_1ARG(FugaInt_add));
+        FUGA_METHOD_ARG(FugaInt_addMethod));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("-"),
-        FUGA_METHOD_1ARG(FugaInt_sub));
+        FUGA_METHOD_ARG(FugaInt_subMethod));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("*"),
         FUGA_METHOD_1ARG(FugaInt_mul));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("//"),
@@ -64,6 +64,46 @@ Fuga* FugaInt_str(Fuga* self)
         buffer[j++] = revbuffer[--i];
     buffer[j++] = 0;
     return FUGA_STRING(buffer);
+}
+
+Fuga* FugaInt_addMethod(Fuga* self, Fuga* args)
+{
+    ALWAYS(self); ALWAYS(args);
+    FUGA_NEED(self); FUGA_NEED(args);
+    if (!Fuga_isInt(self))
+        FUGA_RAISE(FUGA->TypeError, "Int +: expected primitive int");
+
+    Fuga* numSlots = Fuga_numSlots(args);
+    if (FugaInt_isEqualTo(numSlots, 0)) {
+        return self;
+    } else if (FugaInt_isEqualTo(numSlots, 1)) {
+        Fuga* other = Fuga_getSlot(args, FUGA_INT(0));
+        if (!Fuga_isInt(other))
+            FUGA_RAISE(FUGA->TypeError, "Int +: expected primitive int");
+        return FUGA_INT(FugaInt_value(self) + FugaInt_value(other));
+    } else {
+        FUGA_RAISE(FUGA->TypeError, "Int +: expected 0 or 1 args");
+    }
+}
+
+Fuga* FugaInt_subMethod(Fuga* self, Fuga* args)
+{
+    ALWAYS(self); ALWAYS(args);
+    FUGA_NEED(self); FUGA_NEED(args);
+    if (!Fuga_isInt(self))
+        FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");
+
+    Fuga* numSlots = Fuga_numSlots(args);
+    if (FugaInt_isEqualTo(numSlots, 0)) {
+        return FUGA_INT(-FugaInt_value(self));
+    } else if (FugaInt_isEqualTo(numSlots, 1)) {
+        Fuga* other = Fuga_getSlot(args, FUGA_INT(0));
+        if (!Fuga_isInt(other))
+            FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");
+        return FUGA_INT(FugaInt_value(self) - FugaInt_value(other));
+    } else {
+        FUGA_RAISE(FUGA->TypeError, "Int -: expected 0 or 1 args");
+    }
 }
 
 Fuga* FugaInt_add(Fuga* self, Fuga* other)

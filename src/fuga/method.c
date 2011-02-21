@@ -24,6 +24,31 @@ Fuga* FugaMethod_call(Fuga* self, Fuga* recv, Fuga* args)
     return self->method(self, recv, args);
 }
 
+// arg methods
+
+struct _FugaMethod_argMethod {
+    Fuga* (*fp)(Fuga*, Fuga*);
+};
+
+Fuga* _FugaMethod_argMethodCall(Fuga* self, Fuga* recv, Fuga* args)
+{
+    struct _FugaMethod_argMethod* method = self->data;
+    return method->fp(recv, args);
+}
+
+Fuga* FugaMethod_arg(Fuga* self, Fuga* (*fp)(Fuga*, Fuga*))
+{
+    self = FugaMethod_new(self, _FugaMethod_argMethodCall);
+    struct _FugaMethod_argMethod* method = FugaGC_alloc(
+        self,
+        sizeof(struct _FugaMethod_argMethod)
+    );
+    method->fp = fp;
+    self->data = method;
+    self->size = 1;
+    return self;
+}
+
 // str method
 
 struct _FugaMethod_strMethod {
