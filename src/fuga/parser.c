@@ -28,6 +28,8 @@ FugaParser* FugaParser_new(
     FugaParser_infix_precedence_(parser, ">=", 500);
     FugaParser_infix_precedence_(parser, "<",  500);
     FugaParser_infix_precedence_(parser, ">",  500);
+    // collections: 600s
+    FugaParser_infix_precedence_(parser, "++", 600);
     // default: 1000s
     // arithmetic: 1500s
     FugaParser_infix_precedence_(parser, "+",  1500);
@@ -115,13 +117,14 @@ size_t _FugaParser_lbp_(
     FugaToken* token
 ) {
     switch (token->type) {
-    case FUGA_TOKEN_ERROR:  return 9999;
-    case FUGA_TOKEN_LPAREN: return 2000;
-    case FUGA_TOKEN_INT:    return 2000;
-    case FUGA_TOKEN_STRING: return 2000;
-    case FUGA_TOKEN_SYMBOL: return 2000;
-    case FUGA_TOKEN_NAME:   return 2000;
-    case FUGA_TOKEN_EQUALS: return 1;
+    case FUGA_TOKEN_ERROR:    return 9999;
+    case FUGA_TOKEN_LPAREN:   return 2000;
+    case FUGA_TOKEN_LBRACKET: return 2000;
+    case FUGA_TOKEN_INT:      return 2000;
+    case FUGA_TOKEN_STRING:   return 2000;
+    case FUGA_TOKEN_SYMBOL:   return 2000;
+    case FUGA_TOKEN_NAME:     return 2000;
+    case FUGA_TOKEN_EQUALS:   return 1;
     case FUGA_TOKEN_OP:
         return FugaParser_precedence_(parser, token->value);
     // FIXME: handle FUGA_TOKEN_OP
@@ -165,6 +168,13 @@ Fuga* _FugaParser_derive_(
         self = FugaParser_block(parser);
         if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RPAREN)
             FUGA_RAISE(FUGA->SyntaxError, "expected )");
+        FugaLexer_next(parser->lexer);
+        return self;
+
+    case FUGA_TOKEN_LBRACKET:
+        self = FugaParser_expression(parser);
+        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RBRACKET)
+            FUGA_RAISE(FUGA->SyntaxError, "expected ]");
         FugaLexer_next(parser->lexer);
         return self;
     
@@ -393,6 +403,14 @@ TESTS(FugaParser) {
         && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
+    FUGA_PARSER_TEST("[10 + 20] * 30",
+           !Fuga_isRaised(self)
+        && Fuga_isExpr(self)
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
+    FUGA_PARSER_TEST("[10, 20]", Fuga_isRaised(self));
 
     Fuga_quit(self);
 }

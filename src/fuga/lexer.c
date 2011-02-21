@@ -169,19 +169,6 @@ void _FugaLexer_strip(
     }
 }
 
-bool _FugaLexer_issingle(
-    char c
-) {
-    switch (c) {
-    case '(': case ')': case '[': case ']': case '{': case '}':
-    case '\n': case ',': case '\0':
-        return true;
-
-    default:
-        return false;
-    }
-}
-
 void _FugaLexer_lex(
     FugaLexer* self
 ) {
@@ -222,6 +209,8 @@ void _FugaLexer_lexSpecial(
     switch(self->code[0]) {
     case '(':  self->token->type = FUGA_TOKEN_LPAREN; break;
     case ')':  self->token->type = FUGA_TOKEN_RPAREN; break;
+    case '[':  self->token->type = FUGA_TOKEN_LBRACKET; break;
+    case ']':  self->token->type = FUGA_TOKEN_RBRACKET; break;
     case ',':  self->token->type = FUGA_TOKEN_SEPARATOR; break;
     case '\n': self->token->type = FUGA_TOKEN_SEPARATOR; break;
     case '\0': self->token->type = FUGA_TOKEN_END; return;
@@ -547,6 +536,11 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_OP,   ".");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "re?");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "mi!");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "][");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_RBRACKET);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_LBRACKET);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaGC_end(gc);

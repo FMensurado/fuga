@@ -13,6 +13,8 @@ enum FugaTokenType {
     FUGA_TOKEN_EQUALS,
     FUGA_TOKEN_LPAREN,
     FUGA_TOKEN_RPAREN,
+    FUGA_TOKEN_LBRACKET,
+    FUGA_TOKEN_RBRACKET,
 
     // more interesting tokens
     FUGA_TOKEN_INT,
