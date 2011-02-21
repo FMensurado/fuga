@@ -134,7 +134,6 @@ char* _FugaLexer_prefix_(
     FugaLexer* self,
     size_t num_chars
 ) {
-    // FIXME: prevent getting strings that are larger than the code.
     if (self->code + num_chars > self->codeEnd)
         num_chars = (size_t)(self->codeEnd - self->code);
     char* value = malloc(num_chars+1);
@@ -180,7 +179,7 @@ void _FugaLexer_lex(
         _FugaLexer_lexSpecial(self);
     else if (FugaChar_isOp(self->code))
         _FugaLexer_lexOp(self);
-    else if (FugaChar_isName(self->code))
+    else if (FugaChar_isName(self->code) || (self->code[0] == '\\'))
         _FugaLexer_lexName(self);
     else
         _FugaLexer_lexError(self);
@@ -225,7 +224,6 @@ void _FugaLexer_lexInt(
 ) {
     long value = 0;
     size_t i;
-    // FIXME: make a FugaChar_digit() function.
     for (i = 0; FugaChar_isDigit(self->code+i);
               i += FugaChar_size(self->code+i)) {
         value *= 10;
@@ -240,7 +238,13 @@ void _FugaLexer_lexInt(
 void _FugaLexer_lexName(
     FugaLexer* self
 ) {
-    // FIXME: handle escaped operators
+    if (self->code[0] == '\\') {
+        _FugaLexer_consume_(self, 1);
+        _FugaLexer_lexOp(self);
+        self->token->type = FUGA_TOKEN_NAME;
+        return;
+    }
+
     int i;
     bool digits = true;
     for (i = 0; FugaChar_isName(self->code+i);
@@ -295,7 +299,7 @@ void _FugaLexer_lexSymbol(
     char c = self->code[1];
     if (c == ':') {
         _FugaLexer_lexDoc(self);
-    } else if (FugaChar_isName(self->code+1)) {
+    } else if (FugaChar_isName(self->code+1) || self->code[1] == '\\') {
         _FugaLexer_consume_(self, 1);
         _FugaLexer_lexName(self);
         self->token->type = FUGA_TOKEN_SYMBOL;
@@ -550,6 +554,11 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST    (FUGA_TOKEN_LPAREN);
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "a");
     FUGA_LEXER_TEST    (FUGA_TOKEN_RPAREN);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "\\+ :\\**");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "+");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "**");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaGC_end(gc);
