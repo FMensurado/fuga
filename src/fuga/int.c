@@ -3,7 +3,7 @@
 
 void FugaInt_init(Fuga* self)
 {
-    Fuga_set(FUGA->Int, FUGA_SYMBOL("str"),
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("str"),
         FugaMethod_strMethod(self, FugaInt_str));
 }
 

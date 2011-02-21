@@ -30,8 +30,8 @@ struct Fuga {
  * Holds references to important Fuga objects and things.
  */
 struct FugaRoot {
-    FugaSymbols* symbols;
     FugaID lastID;
+    FugaSymbols* symbols;
 
     // Important protos
     Fuga* Object;
@@ -124,7 +124,7 @@ bool Fuga_isExpr  (Fuga*);
 Fuga* Fuga_raise(Fuga*);
 #define FUGA_RAISE(type, msg) do{                                      \
         Fuga* error##__LINE__ = Fuga_clone(type);                      \
-        Fuga_set(error##__LINE__, FUGA_SYMBOL("msg"),FUGA_STRING(msg));\
+        Fuga_setSlot(error##__LINE__, FUGA_SYMBOL("msg"),FUGA_STRING(msg));\
         return Fuga_raise(error##__LINE__);                            \
     } while(0)
 #define FUGA_RERAISE(error) return Fuga_raise(error)
@@ -143,16 +143,13 @@ Fuga* Fuga_catch(Fuga*);
 
 
 // Slot manipulation
-Fuga* Fuga_length(Fuga*);
-Fuga* Fuga_rawHas(Fuga*, Fuga*);
-Fuga* Fuga_rawGet(Fuga*, Fuga*);
-Fuga* Fuga_has(Fuga*, Fuga*);
-Fuga* Fuga_get(Fuga*, Fuga*);
+Fuga* Fuga_numSlots(Fuga*);
+Fuga* Fuga_hasSlotRaw(Fuga*, Fuga*);
+Fuga* Fuga_getSlotRaw(Fuga*, Fuga*);
+Fuga* Fuga_hasSlot(Fuga*, Fuga*);
+Fuga* Fuga_getSlot(Fuga*, Fuga*);
 Fuga* Fuga_append(Fuga*, Fuga*);
-Fuga* Fuga_set(Fuga*, Fuga*, Fuga*);
-Fuga* Fuga_hasDoc(Fuga*, Fuga*);
-Fuga* Fuga_getDoc(Fuga*, Fuga*);
-Fuga* Fuga_setDoc(Fuga*, Fuga*, Fuga*);
+Fuga* Fuga_setSlot(Fuga*, Fuga*, Fuga*);
 
 // Thunks
 Fuga* Fuga_thunk(Fuga* self, Fuga* scope);

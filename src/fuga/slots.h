@@ -14,7 +14,7 @@
 ***
 *** This is an ADT that handles the getting and setting of slots, in a
 *** more-or-less low-level way. For every day use, I recommend you use
-*** `Fuga_has`, `Fuga_get`, `Fuga_set`. The `Fuga_...` functions call
+*** `Fuga_hasSlot`, `Fuga_getSlot`, `Fuga_setSlot`. The `Fuga_...` functions call
 *** the respective `FugaSlots_...` functions.
 ***
 *** Nothing is revealed about the implementation, because this is an

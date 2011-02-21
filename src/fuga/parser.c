@@ -7,10 +7,19 @@ struct FugaParser {
     FugaLexer* lexer;
 };
 
+void _FugaParser_mark(
+    void *_parser
+) {
+    FugaParser* parser = _parser;
+    FugaGC_mark(parser, parser->operators);
+    FugaGC_mark(parser, parser->lexer);
+}
+
 FugaParser* FugaParser_new(
     Fuga* self
 ) {
     FugaParser* parser = FugaGC_alloc(self, sizeof(FugaParser));
+    FugaGC_onMark(parser, _FugaParser_mark);
     parser->operators = Fuga_clone(FUGA->Object);
 
     // relational: 500s
@@ -62,17 +71,17 @@ void FugaParser_infix_precedence_(
     Fuga* opSymbol = FUGA_SYMBOL(op);
     Fuga* opData;
     Fuga* precedenceSymbol = FUGA_SYMBOL("precedence");
-    if (Fuga_has(self, opSymbol)) {
-        opData = Fuga_get(self, opSymbol);
+    if (Fuga_hasSlot(self, opSymbol)) {
+        opData = Fuga_getSlot(self, opSymbol);
         opData = Fuga_need(opData);
         if (!Fuga_isRaised(opData)) {
-            Fuga_set(opData, precedenceSymbol, FUGA_INT(precedence));
+            Fuga_setSlot(opData, precedenceSymbol, FUGA_INT(precedence));
             return;
         }
     } 
     opData = Fuga_clone(FUGA->Object);
-    Fuga_set(opData, precedenceSymbol, FUGA_INT(precedence));
-    Fuga_set(self, opSymbol, opData);
+    Fuga_setSlot(opData, precedenceSymbol, FUGA_INT(precedence));
+    Fuga_setSlot(self, opSymbol, opData);
 }
 
 size_t FugaParser_precedence_(
@@ -80,9 +89,9 @@ size_t FugaParser_precedence_(
     const char* op
 ) {
     Fuga* self = parser->operators;
-    Fuga* opdata = Fuga_get(self, FUGA_SYMBOL(op));
+    Fuga* opdata = Fuga_getSlot(self, FUGA_SYMBOL(op));
     if (!Fuga_isRaised(opdata)) {
-        Fuga* precedence = Fuga_get(opdata, FUGA_SYMBOL("precedence"));
+        Fuga* precedence = Fuga_getSlot(opdata, FUGA_SYMBOL("precedence"));
         precedence = Fuga_need(precedence);
         if (Fuga_isInt(precedence)) {
             long p = FugaInt_value(precedence);
@@ -317,73 +326,73 @@ TESTS(FugaParser) {
     FUGA_PARSER_TEST("\"Hello World!\"", Fuga_isString(self));
     FUGA_PARSER_TEST(":doremi", Fuga_isSymbol(self));
     FUGA_PARSER_TEST("doremi", Fuga_isMsg(self));
-    FUGA_PARSER_TEST("()", FugaInt_isEqualTo(Fuga_length(self), 0));
+    FUGA_PARSER_TEST("()", FugaInt_isEqualTo(Fuga_numSlots(self), 0));
     FUGA_PARSER_TEST("(10)",
-           FugaInt_isEqualTo(Fuga_length(self), 1)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10));
+           FugaInt_isEqualTo(Fuga_numSlots(self), 1)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10));
     FUGA_PARSER_TEST("(10,20)",
-           FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(1)), 20));
+           FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20));
     FUGA_PARSER_TEST("(\n\n\n10\n20\n\n:do,)",
-           FugaInt_isEqualTo(Fuga_length(self), 3)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(1)), 20)
-        && Fuga_is(FUGA_SYMBOL("do"), Fuga_get(self, FUGA_INT(2))));
+           FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20)
+        && Fuga_is(FUGA_SYMBOL("do"), Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST("do()", Fuga_isMsg(self));
     FUGA_PARSER_TEST("do(re, mi)",
            Fuga_isMsg(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2));
     FUGA_PARSER_TEST("do re",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("do re mi",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 3)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(2))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST(":do re",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && (FUGA_SYMBOL("do") == Fuga_get(self, FUGA_INT(0)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && (FUGA_SYMBOL("do") == Fuga_getSlot(self, FUGA_INT(0)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("-42",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 42)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 42)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("10 + 20",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("10 = 20",
            !Fuga_isRaised(self)
         && Fuga_isMsg(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(1)), 20));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20));
     FUGA_PARSER_TEST("10 * 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 3)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(2))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST("10 + 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_length(self), 2)
-        && FugaInt_isEqualTo(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
+        && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
 
     Fuga_quit(self);
 }

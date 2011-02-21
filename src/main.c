@@ -14,6 +14,8 @@ void repl(void)
     char buffer[1024];
     
     self = Fuga_clone(FUGA->Prelude);
+    FugaGC_root(self);
+    FugaGC_root(parser);
 
     while (1) {
         printf(PROMPT1);
@@ -47,6 +49,7 @@ void repl(void)
             continue;
         }
         FugaString_print(string);
+        FugaGC_collect(self);
     }
 
 

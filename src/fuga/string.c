@@ -6,7 +6,7 @@
 
 void FugaString_init(Fuga* self)
 {
-    Fuga_set(FUGA->String, FUGA_SYMBOL("str"),
+    Fuga_setSlot(FUGA->String, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaString_str));
 
 }

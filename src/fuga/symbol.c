@@ -6,7 +6,7 @@
 
 void FugaSymbol_init(Fuga* self)
 {
-    Fuga_set(FUGA->Symbol, FUGA_SYMBOL("str"),
+    Fuga_setSlot(FUGA->Symbol, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaSymbol_str));
 }
 

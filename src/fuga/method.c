@@ -3,7 +3,7 @@
 
 void FugaMethod_init(Fuga* self)
 {
-    Fuga_set(FUGA->Method, FUGA_SYMBOL("str"),
+    Fuga_setSlot(FUGA->Method, FUGA_SYMBOL("str"),
         FUGA_STRING("method(...)"));
 }
 
@@ -34,11 +34,11 @@ Fuga* _FugaMethod_strMethodCall(Fuga* self, Fuga* recv, Fuga* args)
 {
     struct _FugaMethod_strMethod* method = self->data;
     FUGA_NEED(args);
-    if (!FugaInt_isEqualTo(Fuga_length(args), 0)) {
+    if (!FugaInt_isEqualTo(Fuga_numSlots(args), 0)) {
         FUGA_RAISE(FUGA->ValueError, "str: expected no arguments");
     }
-    if (Fuga_isTrue(Fuga_rawHas(recv, FUGA_SYMBOL("name"))))
-        return Fuga_rawGet(recv, FUGA_SYMBOL("name"));
+    if (Fuga_isTrue(Fuga_hasSlotRaw(recv, FUGA_SYMBOL("name"))))
+        return Fuga_getSlotRaw(recv, FUGA_SYMBOL("name"));
     return method->fp(recv);
 }
 
@@ -65,7 +65,7 @@ Fuga* _FugaMethod_0argMethodCall(Fuga* self, Fuga* recv, Fuga* args)
 {
     struct _FugaMethod_0argMethod* method = self->data;
     FUGA_NEED(args);
-    if (!FugaInt_isEqualTo(Fuga_length(args), 0)) {
+    if (!FugaInt_isEqualTo(Fuga_numSlots(args), 0)) {
         FUGA_RAISE(FUGA->ValueError, "expected no arguments");
     }
     return method->fp(recv);
@@ -94,10 +94,10 @@ Fuga* _FugaMethod_1argMethodCall(Fuga* self, Fuga* recv, Fuga* args)
 {
     struct _FugaMethod_1argMethod* method = self->data;
     FUGA_NEED(args);
-    if (!FugaInt_isEqualTo(Fuga_length(args), 1)) {
+    if (!FugaInt_isEqualTo(Fuga_numSlots(args), 1)) {
         FUGA_RAISE(FUGA->ValueError, "expected 1 argument");
     }
-    Fuga* arg0 = Fuga_get(args, FUGA_INT(0));
+    Fuga* arg0 = Fuga_getSlot(args, FUGA_INT(0));
     FUGA_CHECK(arg0);
     return method->fp(recv, arg0);
 }
@@ -125,11 +125,11 @@ Fuga* _FugaMethod_2argMethodCall(Fuga* self, Fuga* recv, Fuga* args)
 {
     struct _FugaMethod_2argMethod* method = self->data;
     FUGA_NEED(args);
-    if (!FugaInt_isEqualTo(Fuga_length(args), 2)) {
+    if (!FugaInt_isEqualTo(Fuga_numSlots(args), 2)) {
         FUGA_RAISE(FUGA->ValueError, "expected 2 arguments");
     }
-    Fuga* arg0 = Fuga_get(args, FUGA_INT(0));
-    Fuga* arg1 = Fuga_get(args, FUGA_INT(1));
+    Fuga* arg0 = Fuga_getSlot(args, FUGA_INT(0));
+    Fuga* arg1 = Fuga_getSlot(args, FUGA_INT(1));
     FUGA_CHECK(arg0); FUGA_CHECK(arg1);
     return method->fp(recv, arg0, arg1);
 }

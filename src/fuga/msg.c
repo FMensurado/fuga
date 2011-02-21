@@ -3,7 +3,7 @@
 
 void FugaMsg_init(Fuga* self)
 {
-    Fuga_set(FUGA->Msg, FUGA_SYMBOL("str"),
+    Fuga_setSlot(FUGA->Msg, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaMsg_str));
 }
 
@@ -90,7 +90,7 @@ Fuga* FugaMsg_str(Fuga* self)
     if (Fuga_isSymbol(name))
         namestr = FugaString_sliceFrom(namestr, 1);
 
-    if (FugaInt_isEqualTo(Fuga_length(self), 0)) {
+    if (FugaInt_isEqualTo(Fuga_numSlots(self), 0)) {
         return namestr;
     } else {
         Fuga* argsstr = Fuga_strSlots(self);
