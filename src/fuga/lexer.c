@@ -561,6 +561,21 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "**");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
+    FugaLexer_readCode_(self, "a := b");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "a");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_OP,   ":=");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "b");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "::Hello\nthere:: Good\n:bye");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Hello");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME,   "there");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Good");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "bye");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
     FugaGC_end(gc);
 }
 #endif
