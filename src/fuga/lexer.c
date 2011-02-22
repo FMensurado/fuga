@@ -317,35 +317,14 @@ void _FugaLexer_lexString(
     size_t length=0;
     size_t i;
     bool escapeError = false;
-    for (i=0; self->code[i] != '"'; i++) {
-        switch (self->code[i]) { 
-        case '\0':
-            _FugaLexer_lexError_(self, i);
-            return;
-        case '\\':
-            i++;
-            switch (self->code[i]) {
-            case '\0':
-                _FugaLexer_lexError_(self, i);
-                return;
-
-            case '\n':
-                break;
-            
-            case '\"': case '\\': case 'n': case 't': case 'r':
-                length++;
-                break;
-    
-            default:
-                escapeError = true;
-            }
-            break;
-
-        default:
-            length++;
+    for (i=0; self->code[i] != '"';) {
+        if (FugaChar_escapeError(self->code + i)) {
+            escapeError = true;
+            if (!self->code[i]) break;
         }
+        length += FugaChar_sizeUnescaped(self->code + i);
+        i      += FugaChar_sizeEscaped(self->code + i);
     }
-
     if (escapeError) {
         _FugaLexer_lexError_(self, i+1);
         return;
@@ -355,21 +334,12 @@ void _FugaLexer_lexString(
     // FIXME: add support for \0 and \xff
     char* value = malloc(length+1);
     size_t index = 0;
-    for (size_t j=0; j<i; j++) {
-        if (self->code[j] == '\\') {
-            j++;
-            switch (self->code[j]) {
-            case '\n': break;
-            case '\"': value[index++] = '\"'; break;
-            case 'n':  value[index++] = '\n'; break;
-            case 't':  value[index++] = '\t'; break;
-            case 'r':  value[index++] = '\r'; break;
-            default: NEVER(self->code[j] || 1);
-            }
-        } else {
-            value[index++] = self->code[j];
-        }
+    for (size_t j=0; j<i; ) {
+        FugaChar_unescape(value + index, self->code + j);
+        index += FugaChar_sizeUnescaped(self->code + j);
+        j     += FugaChar_sizeEscaped  (self->code + j);
     }
+    value[length] = '\0';
 
     self->token->type = FUGA_TOKEN_STRING;
     self->token->value = value;
