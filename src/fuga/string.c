@@ -3,6 +3,7 @@
 #include "string.h"
 #include "test.h"
 #include "symbol.h"
+#include "char.h"
 
 void FugaString_init(Fuga* self)
 {
@@ -79,23 +80,24 @@ Fuga* FugaString_str(Fuga* self)
         );
     }
 
-    char buffer[self->size*2+1];
+    char* c = self->data;
+    size_t size = 0;
+    for (size_t i = 0; i < self->size-1;) {
+        size += FugaChar_sizeAfterEscape (c+i);
+        i    += FugaChar_sizeBeforeEscape(c+i);
+    }
+
+    char buffer[size+3];
     size_t index = 0;
     buffer[index++] = '"';
-    for (size_t i = 0; i < self->size-1; i++) {
-        switch (((char*)self->data)[i]) {
-            case '\n': buffer[index++]='\\'; buffer[index++]='n'; break;
-            case '\t': buffer[index++]='\\'; buffer[index++]='t'; break;
-            case '\r': buffer[index++]='\\'; buffer[index++]='r'; break;
-            case '\\': buffer[index++]='\\'; buffer[index++]='\\'; break;
-            case '\"': buffer[index++]='\\'; buffer[index++]='\"'; break;
-            default:   buffer[index++]=((char*)self->data)[i];
-        }
+    for (size_t i = 0; i < self->size-1;) {
+        FugaChar_escape(buffer+index, c+i);
+        index += FugaChar_sizeAfterEscape (c+i);
+        i     += FugaChar_sizeBeforeEscape(c+i);
     }
     buffer[index++] = '"';
     buffer[index++] = 0;
     return FUGA_STRING(buffer);
-
 }
 
 Fuga* FugaString_sliceFrom(Fuga* self, long start)

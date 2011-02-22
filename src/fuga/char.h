@@ -17,10 +17,14 @@ bool   FugaChar_isSpecial(const char*);
 
 // escaping
 bool   FugaChar_escapeError(const char*);
-size_t FugaChar_sizeEscaped(const char*);
-size_t FugaChar_sizeUnescaped(const char*);
+
 void   FugaChar_escape(char* dest, const char* src);
 void   FugaChar_unescape(char* dest, const char* src);
+
+size_t FugaChar_sizeBeforeEscape(const char*);
+size_t FugaChar_sizeAfterEscape(const char*);
+size_t FugaChar_sizeBeforeUnescape(const char*);
+size_t FugaChar_sizeAfterUnescape(const char*);
 
 #endif
 

@@ -322,8 +322,8 @@ void _FugaLexer_lexString(
             escapeError = true;
             if (!self->code[i]) break;
         }
-        length += FugaChar_sizeUnescaped(self->code + i);
-        i      += FugaChar_sizeEscaped(self->code + i);
+        length += FugaChar_sizeAfterUnescape(self->code + i);
+        i      += FugaChar_sizeBeforeUnescape(self->code + i);
     }
     if (escapeError) {
         _FugaLexer_lexError_(self, i+1);
@@ -331,13 +331,12 @@ void _FugaLexer_lexString(
     }
 
     // get string value
-    // FIXME: add support for \0 and \xff
     char* value = malloc(length+1);
     size_t index = 0;
     for (size_t j=0; j<i; ) {
         FugaChar_unescape(value + index, self->code + j);
-        index += FugaChar_sizeUnescaped(self->code + j);
-        j     += FugaChar_sizeEscaped  (self->code + j);
+        index += FugaChar_sizeAfterUnescape (self->code + j);
+        j     += FugaChar_sizeBeforeUnescape(self->code + j);
     }
     value[length] = '\0';
 
