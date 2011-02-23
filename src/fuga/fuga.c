@@ -307,6 +307,85 @@ Fuga* Fuga_numSlots(Fuga* self)
 }
 
 /**
+ * Get the slot associated with a given name. Return NULL if no such
+ * slot. Do not pass raised exceptions to this function. name must 
+ * be a FugaInt or a FugaSymbol.
+ */
+FugaSlot* _Fuga_getActualSlot(Fuga* self, Fuga* name) 
+{
+    ALWAYS(self); ALWAYS(name);
+    ALWAYS(!Fuga_isRaised(self));
+    ALWAYS(!Fuga_isRaised(name));
+
+    if (self->slots) {
+        if (Fuga_isInt(name)) {
+            long index = FugaInt_value(name);
+            return FugaSlots_getByIndex(self->slots, index);
+        } else {
+            return FugaSlots_getBySymbol(self->slots, name);
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Does a slot have a name for a given index?
+ */
+Fuga* Fuga_hasSlotName(Fuga* self, Fuga* name)
+{
+    ALWAYS(self); ALWAYS(name);
+    FUGA_NEED(self); FUGA_NEED(name);
+    if (!Fuga_isInt(name))
+        FUGA_RAISE(FUGA->TypeError,
+            "hasSlotName: expected a primitive int"
+        );
+    if (FugaInt_value(name) < 0)
+        FUGA_RAISE(FUGA->ValueError,
+            "hasSlotName: index < 0"
+        );
+    if (FugaInt_value(name) >= FugaInt_value(Fuga_numSlots(self)))
+        FUGA_RAISE(FUGA->ValueError,
+            "hasSlotName: index >= numSlots"
+        );
+
+    FugaSlot* slot = _Fuga_getActualSlot(self, name);
+    if (slot->name)
+        return FUGA->True;
+    else
+        return FUGA->False;
+}
+
+/**
+ * Does a slot have a name for a given index?
+ */
+Fuga* Fuga_getSlotName(Fuga* self, Fuga* name)
+{
+    ALWAYS(self); ALWAYS(name);
+    FUGA_NEED(self); FUGA_NEED(name);
+    if (!Fuga_isInt(name))
+        FUGA_RAISE(FUGA->TypeError,
+            "getSlotName: expected a primitive int"
+        );
+    if (FugaInt_value(name) < 0)
+        FUGA_RAISE(FUGA->ValueError,
+            "getSlotName: index < 0"
+        );
+    if (FugaInt_value(name) >= FugaInt_value(Fuga_numSlots(self)))
+        FUGA_RAISE(FUGA->ValueError,
+            "getSlotName: index >= numSlots"
+        );
+
+    FugaSlot* slot = _Fuga_getActualSlot(self, name);
+    if (slot->name) {
+        return slot->name;
+    } else {
+        FUGA_RAISE(FUGA->SlotError,
+            "getSlotName: slot has no name"
+        );
+    }
+}
+
+/**
  * Look in an object's slots.
  */
 Fuga* Fuga_hasSlotRaw(Fuga* self, Fuga* name)
@@ -493,27 +572,6 @@ TESTS(Fuga_hasSlot) {
 #endif
 
 
-/**
- * Get the slot associated with a given name. Return NULL if no such
- * slot. Do not pass raised exceptions to this function. name must 
- * be a FugaInt or a FugaSymbol.
- */
-FugaSlot* _Fuga_getActualSlot(Fuga* self, Fuga* name) 
-{
-    ALWAYS(self); ALWAYS(name);
-    ALWAYS(!Fuga_isRaised(self));
-    ALWAYS(!Fuga_isRaised(name));
-
-    if (self->slots) {
-        if (Fuga_isInt(name)) {
-            long index = FugaInt_value(name);
-            return FugaSlots_getByIndex(self->slots, index);
-        } else {
-            return FugaSlots_getBySymbol(self->slots, name);
-        }
-    }
-    return NULL;
-}
 
 /**
  * Get the value of a slot, without looking in proto.
@@ -1016,28 +1074,29 @@ Fuga* Fuga_strSlots(Fuga* self)
     ALWAYS(self);
     FUGA_NEED(self);
     size_t numSlots = FugaInt_value(Fuga_numSlots(self));
-    // FIXME: use dynamic memory. (this causes overflows)
-    char buffer[numSlots * 1024];
-    size_t index = 0;
 
+    Fuga* result = FUGA_STRING("(");
 
-    // FIXME: use '='
-    buffer[index++] = '(';
     for (size_t slotNum = 0; slotNum < numSlots; slotNum++) {
+        Fuga* fSlotNum = FUGA_INT(slotNum);
+        if (Fuga_isTrue(Fuga_hasSlotName(self, fSlotNum))) {
+            Fuga* name = Fuga_getSlotName(self, fSlotNum);
+            name = FugaSymbol_toString(name);
+            FUGA_CHECK(name);
+            result = FugaString_cat(result, name);
+            result = FugaString_cat(result, FUGA_STRING("="));
+            // FIXME: handle op msg edge case
+        }
+        FUGA_CHECK(result);
         Fuga* slot = Fuga_getSlot(self, FUGA_INT(slotNum));
-        Fuga* string = Fuga_str(slot);
-
-        FUGA_NEED(string);
-        memcpy(buffer+index, string->data, string->size-1);
-        index += string->size-1;
-        buffer[index++] = ',';
-        buffer[index++] = ' ';
+        Fuga* str  = Fuga_str(slot);
+        FUGA_NEED(str);
+        result = FugaString_cat(result, str);
+        if (slotNum < numSlots-1)
+            result = FugaString_cat(result, FUGA_STRING(", "));
     }
-    if (numSlots)
-        index -= 2;
-    buffer[index++] = ')';
-    buffer[index++] = '\0';
-    return FUGA_STRING(buffer);
+    result = FugaString_cat(result, FUGA_STRING(")"));
+    return result;
 }
 
 void Fuga_printException(Fuga* self) 

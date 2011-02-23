@@ -45,6 +45,7 @@ TESTS(FUGA_SYMBOL) {
 
 Fuga* FugaSymbol_str(Fuga* self) {
     ALWAYS(self);
+    FUGA_CHECK(self);
     if (!Fuga_isSymbol(self)) {
         FUGA_RAISE(FUGA->TypeError,
             "Symbol str: expected primitive symbol"
@@ -58,5 +59,10 @@ Fuga* FugaSymbol_str(Fuga* self) {
         buffer[index++] = '\\';
     memcpy(buffer+index, self->data, self->size);
     return FUGA_STRING(buffer);
+}
+
+Fuga* FugaSymbol_toString(Fuga* self) {
+    Fuga* result = FugaSymbol_str(self);
+    return FugaString_sliceFrom(result, 1);
 }
 

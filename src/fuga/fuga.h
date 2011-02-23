@@ -144,6 +144,8 @@ Fuga* Fuga_catch(Fuga*);
 
 // Slot manipulation
 Fuga* Fuga_numSlots(Fuga*);
+Fuga* Fuga_hasSlotName(Fuga*, Fuga*);
+Fuga* Fuga_getSlotName(Fuga*, Fuga*);
 Fuga* Fuga_hasSlotRaw(Fuga*, Fuga*);
 Fuga* Fuga_getSlotRaw(Fuga*, Fuga*);
 Fuga* Fuga_hasSlot(Fuga*, Fuga*);

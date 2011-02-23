@@ -11,6 +11,7 @@ Fuga* FugaSymbol_new(Fuga*, const char*);
 bool  FugaSymbol_isValid(const char*);
 
 Fuga* FugaSymbol_str(Fuga*);
+Fuga* FugaSymbol_toString(Fuga*);
 
 #endif
 

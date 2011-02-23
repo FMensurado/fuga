@@ -8,7 +8,8 @@ void FugaString_init(Fuga* self)
 {
     Fuga_setSlot(FUGA->String, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaString_str));
-
+    Fuga_setSlot(FUGA->String, FUGA_SYMBOL("++"),
+        FUGA_METHOD_1ARG(FugaString_cat));
 }
 
 Fuga* FugaString_new(Fuga* self, const char* value)
@@ -86,7 +87,7 @@ Fuga* FugaString_str(Fuga* self)
         i    += FugaChar_sizeBeforeEscape(c+i);
     }
 
-    char buffer[size+3];
+    char* buffer = malloc(size+3);
     size_t index = 0;
     buffer[index++] = '"';
     for (size_t i = 0; i < self->size-1;) {
@@ -96,12 +97,15 @@ Fuga* FugaString_str(Fuga* self)
     }
     buffer[index++] = '"';
     buffer[index++] = 0;
-    return FUGA_STRING(buffer);
+    Fuga* result = FUGA_STRING(buffer);
+    free(buffer);
+    return result;
 }
 
 Fuga* FugaString_sliceFrom(Fuga* self, long start)
 {
     ALWAYS(self);
+    FUGA_CHECK(self);
     if (!Fuga_isString(self)) {
         FUGA_RAISE(FUGA->TypeError,
             "String slice: expected primitive string"
