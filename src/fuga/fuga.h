@@ -155,9 +155,16 @@ Fuga* Fuga_setSlot(Fuga*, Fuga*, Fuga*);
 
 // Thunks
 Fuga* Fuga_thunk(Fuga* self, Fuga* scope);
+bool  Fuga_isThunk(Fuga* self);
+
 Fuga* Fuga_need(Fuga*);
 #define FUGA_NEED(result) FUGA_CHECK(Fuga_need(result))
 Fuga* Fuga_needOnce(Fuga*);
+
+Fuga* Fuga_thunkScope(Fuga*);
+Fuga* Fuga_thunkCode(Fuga*);
+
+Fuga* Fuga_thunkSlots(Fuga*);
 
 // Eval
 Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope);

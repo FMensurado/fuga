@@ -1,6 +1,7 @@
 
 #include "test.h"
 #include "fuga.h"
+#include "prelude.h"
 
 #include <string.h>
 
@@ -67,6 +68,7 @@ Fuga* Fuga_init()
     FUGA->IOError      = Fuga_clone(FUGA->Exception);
     FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
 
+    FugaPrelude_init(FUGA->Prelude);
     FugaInt_init(FUGA->Prelude);
     FugaString_init(FUGA->Prelude);
     FugaSymbol_init(FUGA->Prelude);
@@ -846,6 +848,11 @@ Fuga* Fuga_thunk(Fuga* self, Fuga* scope)
     return thunk;
 }
 
+bool Fuga_isThunk(Fuga* self) 
+{
+    return !Fuga_isRaised(self) && (self->id == 0);
+}
+
 /**
  * Evaluate a thunk. (If the result is a thunk, evaluate it again
  * and again and again...)
@@ -854,13 +861,13 @@ Fuga* Fuga_need(Fuga* self)
 {
     ALWAYS(self);
     FUGA_CHECK(self);
-    while (self->id == 0) {
-        Fuga* result = Fuga_eval(self->data, self->proto, self->proto);
-        FUGA_CHECK(result);
-        *self = *result;
+    while (Fuga_isThunk(self)) {
+        self = Fuga_needOnce(self);
+        FUGA_CHECK(self);
     }
     return self;
 }
+
 
 /**
  * Evaluate a thunk, but if the result is a thunk, return it without
@@ -870,12 +877,32 @@ Fuga* Fuga_needOnce(Fuga* self)
 {
     ALWAYS(self);
     FUGA_CHECK(self);
-    if (self->id == 0) {
-        Fuga* result = Fuga_eval(self->data, self->proto, self->proto);
+    if (Fuga_isThunk(self)) {
+        Fuga* code   = Fuga_thunkCode(self);
+        Fuga* scope  = Fuga_thunkScope(self); 
+        Fuga* result = Fuga_eval(code, scope, scope);
         FUGA_CHECK(result);
         *self = *result;
     }
     return self;
+}
+
+Fuga* Fuga_thunkCode(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    if (!Fuga_isThunk(self))
+        FUGA_RAISE(FUGA->TypeError, "c.thunkCode: not a thunk");
+    return self->data;
+}
+
+Fuga* Fuga_thunkScope(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    if (!Fuga_isThunk(self))
+        FUGA_RAISE(FUGA->TypeError, "c.thunkCode: not a thunk");
+    return self->proto;
 }
 
 /**
