@@ -29,8 +29,8 @@ Fuga* evalPrint(Fuga* self, Fuga* block)
     FUGA_CHECK(block);
     long length = FugaInt_value(Fuga_numSlots(block));
     for (long i = 0; i < length; i++) {
-        Fuga* slot  = Fuga_getSlot(block, FUGA_INT(i));
-        Fuga* value = Fuga_eval(slot, self, self);
+        Fuga* slot   = Fuga_getSlot(block, FUGA_INT(i));
+        Fuga* value  = Fuga_eval(slot, self, self);
         if (Fuga_isNil(value))
             continue;
         FUGA_CHECK(Fuga_print(value));
@@ -46,8 +46,7 @@ void repl(void)
     self = Fuga_clone(FUGA->Prelude);
     FugaGC_root(self);
     FugaGC_root(parser);
-
-    Fuga_setSlot(self, FUGA_SYMBOL("__this__"), self);
+    Fuga_setSlot(self, FUGA_SYMBOL("this"), self);
 
     printf("Fuga 0.1. Use \"quit\" to quit.\n");
     while (1) {

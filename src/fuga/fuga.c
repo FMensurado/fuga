@@ -874,6 +874,19 @@ Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope)
     return Fuga_evalSlots(self, scope);
 }
 
+Fuga* Fuga_evalSlot(Fuga* self, Fuga* scope, Fuga* result)
+{
+    ALWAYS(self); ALWAYS(result); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(result); FUGA_NEED(scope);
+    
+    scope = Fuga_clone(scope);
+    Fuga_setSlot(scope, FUGA_SYMBOL("this"), result);
+    Fuga* value = Fuga_eval(self, scope, scope);
+    if (!Fuga_isNil(value))
+        FUGA_CHECK(Fuga_append(result, value));
+    return value;
+}
+
 #ifdef TESTING
 TESTS(Fuga_eval) {
     Fuga* self = Fuga_init();
@@ -886,7 +899,7 @@ TESTS(Fuga_eval) {
     TEST(prim == Fuga_eval(prim, self, self));
 
     Fuga* scope = Fuga_clone(FUGA->Object);
-    TEST(!Fuga_isRaised(Fuga_setSlot(scope, FUGA_SYMBOL("hello"), prim)));
+    TEST(!Fuga_isRaised(Fuga_setSlot(scope, FUGA_SYMBOL("hello"),prim)));
     TEST(Fuga_is(prim, Fuga_eval(FUGA_MSG("hello"), scope, scope)));
 
     Fuga* obj = Fuga_clone(FUGA->Object);
@@ -899,7 +912,6 @@ TESTS(Fuga_eval) {
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(0)));
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(1)));
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(2)));
-    TEST(prim == Fuga_getSlot(eobj, FUGA_SYMBOL("hi")));
 
     TEST(Fuga_isRaised(Fuga_eval(Fuga_raise(prim), scope, scope)));
     TEST(Fuga_isRaised(Fuga_eval(prim, Fuga_raise(scope), scope)));
@@ -908,6 +920,8 @@ TESTS(Fuga_eval) {
     Fuga_quit(self);
 }
 #endif
+
+
 
 Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
 {
@@ -918,10 +932,8 @@ Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
     long length = FugaInt_value(Fuga_numSlots(self));
     ALWAYS(length >= 0);
     for (long i = 0; i < length; i++) {
-        FugaSlot* slot = _Fuga_getActualSlot(self, FUGA_INT(i));
-        Fuga* value = Fuga_eval(slot->value, scope, scope);
-        FUGA_CHECK(value);
-        FUGA_CHECK(Fuga_setSlot(result, slot->name, value));
+        Fuga *slot = Fuga_getSlot(self, FUGA_INT(i));
+        FUGA_CHECK(Fuga_evalSlot(slot, scope, result));
     }
     return result;
 }
@@ -1008,6 +1020,8 @@ Fuga* Fuga_strSlots(Fuga* self)
     char buffer[numSlots * 1024];
     size_t index = 0;
 
+
+    // FIXME: use '='
     buffer[index++] = '(';
     for (size_t slotNum = 0; slotNum < numSlots; slotNum++) {
         Fuga* slot = Fuga_getSlot(self, FUGA_INT(slotNum));
