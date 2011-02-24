@@ -335,77 +335,77 @@ TESTS(FugaParser) {
     FUGA_PARSER_TEST("\"Hello World!\"", Fuga_isString(self));
     FUGA_PARSER_TEST(":doremi", Fuga_isSymbol(self));
     FUGA_PARSER_TEST("doremi", Fuga_isMsg(self));
-    FUGA_PARSER_TEST("()", FugaInt_isEqualTo(Fuga_numSlots(self), 0));
+    FUGA_PARSER_TEST("()", Fuga_hasNumSlots(self, 0));
     FUGA_PARSER_TEST("(10)",
-           FugaInt_isEqualTo(Fuga_numSlots(self), 1)
+           Fuga_hasNumSlots(self, 1)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10));
     FUGA_PARSER_TEST("(10,20)",
-           FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+           Fuga_hasNumSlots(self, 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20));
     FUGA_PARSER_TEST("(\n\n\n10\n20\n\n:do,)",
-           FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+           Fuga_hasNumSlots(self, 3)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20)
         && Fuga_is(FUGA_SYMBOL("do"), Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST("do()", Fuga_isMsg(self));
     FUGA_PARSER_TEST("do(re, mi)",
            Fuga_isMsg(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2));
+        && Fuga_hasNumSlots(self, 2));
     FUGA_PARSER_TEST("do re",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("do re mi",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && Fuga_hasNumSlots(self, 3)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST(":do re",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && (FUGA_SYMBOL("do") == Fuga_getSlot(self, FUGA_INT(0)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("-42",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 42)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("10 + 20",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("10 = 20",
            !Fuga_isRaised(self)
         && Fuga_isMsg(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 20));
     FUGA_PARSER_TEST("10 * 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && Fuga_hasNumSlots(self, 3)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(2))));
     FUGA_PARSER_TEST("10 + 20 * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 2)
+        && Fuga_hasNumSlots(self, 2)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("[10 + 20] * 30",
            !Fuga_isRaised(self)
         && Fuga_isExpr(self)
-        && FugaInt_isEqualTo(Fuga_numSlots(self), 3)
+        && Fuga_hasNumSlots(self, 3)
         && FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(0)), 10)
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));

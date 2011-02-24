@@ -5,8 +5,46 @@
 void FugaPrelude_init(
     Fuga* self
 ) {
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Object"),  FUGA->Object);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Prelude"), FUGA->Prelude);
+
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Bool"),    FUGA->Bool);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("true"),    FUGA->True);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("false"),   FUGA->False);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("nil"),     FUGA->nil);
+
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Number"),  FUGA->Number);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Int"),     FUGA->Int);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("String"),  FUGA->String);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Symbol"),  FUGA->Symbol);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Method"),  FUGA->Method);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Msg"),     FUGA->Msg);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Expr"),    FUGA->Msg);
+
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("Exception"),
+                                       FUGA->Exception);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("SyntaxError"),
+                                       FUGA->SyntaxError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("SlotError"),
+                                       FUGA->SlotError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("MutableError"),
+                                       FUGA->MutableError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("TypeError"),
+                                       FUGA->TypeError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("ValueError"),
+                                       FUGA->ValueError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("TypeError"),
+                                       FUGA->TypeError);
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("IOError"),
+                                       FUGA->IOError);
+
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("name"),
+                                FUGA_STRING("Prelude"));
+
     Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("="),
-        FUGA_METHOD_ARG(FugaPrelude_equals));
+                                FUGA_METHOD(FugaPrelude_equals));
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("if"),
+                                FUGA_METHOD(FugaPrelude_if));
 }
 
 Fuga* FugaPrelude_equals(
@@ -23,7 +61,7 @@ Fuga* FugaPrelude_equals(
     Fuga* scope = Fuga_thunkScope(args);
     FUGA_NEED(code); FUGA_NEED(scope);
 
-    if (!FugaInt_isEqualTo(Fuga_numSlots(code), 2))
+    if (!Fuga_hasNumSlots((code), 2))
         FUGA_RAISE(FUGA->TypeError, "=: expected 2 arguments");
 
     Fuga* recv = scope;
@@ -57,5 +95,73 @@ Fuga* FugaPrelude_equals(
     FUGA_CHECK(rhs);
     FUGA_CHECK(Fuga_setSlot(recv, lhs, rhs));
     return FUGA->nil;
+}
+
+
+#ifdef TESTING
+#define FUGA_EQUALS_TEST(x,y,z)
+TESTS(FugaPrelude_equals) {
+    Fuga* self = Fuga_init();
+
+    Fuga* args;
+    Fuga* lhs;
+    Fuga* scope = Fuga_clone(FUGA->Object);
+    Fuga* dest  = Fuga_clone(FUGA->Object);
+    Fuga* foo   = Fuga_clone(FUGA->Object);
+    Fuga* result;
+
+    Fuga_setSlot(scope, FUGA_SYMBOL("this"), dest);
+    Fuga_setSlot(scope, FUGA_SYMBOL("foo"),  foo);
+
+    args = Fuga_clone(FUGA->Object);
+    Fuga_append(args, FUGA_INT(0));
+    Fuga_append(args, FUGA_INT(10));
+    result = FugaPrelude_equals(self, Fuga_thunk(args, scope));
+    TEST(Fuga_isNil(result));
+    TEST(FugaInt_isEqualTo(Fuga_getSlot(dest, FUGA_INT(0)), 10));
+
+    args = Fuga_clone(FUGA->Object);
+    Fuga_append(args, FUGA_MSG("a"));
+    Fuga_append(args, FUGA_INT(20));
+    result = FugaPrelude_equals(self, Fuga_thunk(args, scope));
+    TEST(Fuga_isNil(result));
+    TEST(FugaInt_isEqualTo(Fuga_getSlot(dest, FUGA_INT(1)), 20));
+    TEST(FugaInt_isEqualTo(Fuga_getSlot(dest, FUGA_SYMBOL("a")), 20));
+
+    lhs = Fuga_clone(FUGA->Expr);
+    Fuga_append(lhs, FUGA_MSG("foo"));
+    Fuga_append(lhs, FUGA_MSG("a"));
+    args = Fuga_clone(FUGA->Object);
+    Fuga_append(args, lhs);
+    Fuga_append(args, FUGA_INT(30));
+    result = FugaPrelude_equals(self, Fuga_thunk(args, scope));
+    TEST(Fuga_isNil(result));
+    TEST(FugaInt_isEqualTo(Fuga_getSlot(foo, FUGA_INT(0)), 30));
+    TEST(FugaInt_isEqualTo(Fuga_getSlot(foo, FUGA_SYMBOL("a")), 30));
+
+    Fuga_quit(self);
+}
+#endif
+
+Fuga* FugaPrelude_if(
+    Fuga* self,
+    Fuga* args
+) {
+    ALWAYS(self); ALWAYS(args);
+    FUGA_NEED(self);
+    args = Fuga_thunkSlots(args);
+    FUGA_CHECK(args);
+    // FIXME: allow multiple arguments (2 or more).
+    if (!Fuga_hasNumSlots(args, 3))
+        FUGA_RAISE(FUGA->TypeError, "if: expected 3 arguments");
+    Fuga* cond = Fuga_getSlot(args, FUGA_INT(0));
+    FUGA_NEED(cond);
+    if (Fuga_isTrue(cond))
+        return Fuga_needOnce(Fuga_getSlot(args, FUGA_INT(1)));
+    if (Fuga_isFalse(cond))
+        return Fuga_needOnce(Fuga_getSlot(args, FUGA_INT(2)));
+    FUGA_RAISE(FUGA->TypeError,
+        "if: condition must be a boolean"
+    );
 }
 

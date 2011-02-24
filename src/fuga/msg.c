@@ -90,7 +90,7 @@ Fuga* FugaMsg_str(Fuga* self)
     if (Fuga_isSymbol(name))
         namestr = FugaString_sliceFrom(namestr, 1);
 
-    if (FugaInt_isEqualTo(Fuga_numSlots(self), 0)) {
+    if (Fuga_hasNumSlots(self, 0)) {
         return namestr;
     } else {
         Fuga* argsstr = Fuga_strSlots(self);

@@ -6,9 +6,9 @@ void FugaInt_init(Fuga* self)
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("str"),
         FUGA_METHOD_STR(FugaInt_str));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("+"),
-        FUGA_METHOD_ARG(FugaInt_addMethod));
+        FUGA_METHOD(FugaInt_addMethod));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("-"),
-        FUGA_METHOD_ARG(FugaInt_subMethod));
+        FUGA_METHOD(FugaInt_subMethod));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("*"),
         FUGA_METHOD_1ARG(FugaInt_mul));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("//"),
@@ -98,6 +98,7 @@ Fuga* FugaInt_subMethod(Fuga* self, Fuga* args)
         return FUGA_INT(-FugaInt_value(self));
     } else if (FugaInt_isEqualTo(numSlots, 1)) {
         Fuga* other = Fuga_getSlot(args, FUGA_INT(0));
+        FUGA_NEED(other);
         if (!Fuga_isInt(other))
             FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");
         return FUGA_INT(FugaInt_value(self) - FugaInt_value(other));

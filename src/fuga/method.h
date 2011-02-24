@@ -5,12 +5,11 @@
 
 void FugaMethod_init(Fuga* self);
 
-#define FUGA_METHOD(fn) (FugaMethod_new(self, (fn)))
 Fuga* FugaMethod_new(Fuga* self, FugaMethod method);
 Fuga* FugaMethod_call(Fuga* self, Fuga* recv, Fuga* args);
 
 Fuga* FugaMethod_arg(Fuga* self, Fuga* (*)(Fuga*, Fuga*));
-#define FUGA_METHOD_ARG(fn) (FugaMethod_arg(self, (fn)))
+#define FUGA_METHOD(fn) (FugaMethod_arg(self, (fn)))
 
 Fuga* FugaMethod_0arg(Fuga* self, Fuga* (*)(Fuga*));
 #define FUGA_METHOD_0ARG(fn) (FugaMethod_0arg(self, (fn)))

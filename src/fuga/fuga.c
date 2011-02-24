@@ -308,6 +308,25 @@ Fuga* Fuga_numSlots(Fuga* self)
     return FUGA_INT(self->slots ? FugaSlots_length(self->slots) : 0);
 }
 
+bool Fuga_hasNumSlots(Fuga* self, long value)
+{
+    if (Fuga_isRaised(self))
+        return false;
+    return FugaInt_isEqualTo(Fuga_numSlots(self), value);
+}
+
+/**
+ * Return a vanilla object that shares its slots with self.
+ */
+Fuga* Fuga_slots(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_NEED(self);
+    Fuga* result = Fuga_clone(FUGA->Object);
+    result->slots = self->slots;
+    return result;
+}
+
 /**
  * Get the slot associated with a given name. Return NULL if no such
  * slot. Do not pass raised exceptions to this function. name must 
@@ -905,6 +924,28 @@ Fuga* Fuga_thunkScope(Fuga* self)
     return self->proto;
 }
 
+Fuga* Fuga_thunkSlots(Fuga* self)
+{
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    if (!Fuga_isThunk(self))
+        return Fuga_slots(self);
+    Fuga* result = Fuga_clone(FUGA->Object);
+    Fuga* code   = Fuga_thunkCode(self);
+    Fuga* scope  = Fuga_thunkScope(self);
+    FUGA_CHECK(code); FUGA_CHECK(scope);
+
+    size_t numSlots = FugaInt_value(Fuga_numSlots(code));
+    for (size_t i = 0; i < numSlots; i++) {
+        Fuga* slot = Fuga_getSlot(code, FUGA_INT(i));
+        FUGA_CHECK(slot);
+        // FIXME: handle Thunk ~
+        FUGA_CHECK(Fuga_append(result, Fuga_thunk(slot, scope)));
+    }
+
+    return result;
+}
+
 /**
  * Call / resolve a method.
  */
@@ -993,7 +1034,7 @@ TESTS(Fuga_eval) {
     TEST(!Fuga_isRaised(Fuga_setSlot(obj, FUGA_SYMBOL("hi"), prim)));
     Fuga* eobj = Fuga_eval(obj, scope, scope);
     TEST(!Fuga_isRaised(eobj));
-    TEST(FugaInt_isEqualTo(Fuga_numSlots(eobj), 3));
+    TEST(Fuga_hasNumSlots((eobj), 3));
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(0)));
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(1)));
     TEST(prim == Fuga_getSlot(eobj, FUGA_INT(2)));
@@ -1010,7 +1051,6 @@ TESTS(Fuga_eval) {
 
 Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope)
 {
-    // Ultimately, [thunkSlots needSlots], not this.
     ALWAYS(self); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(scope);
     Fuga* result = Fuga_clone(FUGA->Object);

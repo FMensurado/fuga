@@ -143,15 +143,24 @@ Fuga* Fuga_catch(Fuga*);
 
 
 // Slot manipulation
+bool  Fuga_hasNumSlots(Fuga*, long);
 Fuga* Fuga_numSlots(Fuga*);
-Fuga* Fuga_hasSlotName(Fuga*, Fuga*);
-Fuga* Fuga_getSlotName(Fuga*, Fuga*);
-Fuga* Fuga_hasSlotRaw(Fuga*, Fuga*);
-Fuga* Fuga_getSlotRaw(Fuga*, Fuga*);
+Fuga* Fuga_slots(Fuga*);
+
 Fuga* Fuga_hasSlot(Fuga*, Fuga*);
+Fuga* Fuga_hasSlotName(Fuga*, Fuga*);
+Fuga* Fuga_hasSlotRaw(Fuga*, Fuga*);
+Fuga* Fuga_hasSlotDoc(Fuga*, Fuga*);
+
 Fuga* Fuga_getSlot(Fuga*, Fuga*);
-Fuga* Fuga_append(Fuga*, Fuga*);
+Fuga* Fuga_getSlotName(Fuga*, Fuga*);
+Fuga* Fuga_getSlotRaw(Fuga*, Fuga*);
+Fuga* Fuga_getSlotDoc(Fuga*, Fuga*);
+
 Fuga* Fuga_setSlot(Fuga*, Fuga*, Fuga*);
+Fuga* Fuga_setSlotDoc(Fuga*, Fuga*, Fuga*);
+
+Fuga* Fuga_append(Fuga*, Fuga*);
 
 // Thunks
 Fuga* Fuga_thunk(Fuga* self, Fuga* scope);
