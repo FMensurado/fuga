@@ -45,6 +45,8 @@ void FugaPrelude_init(
                                 FUGA_METHOD(FugaPrelude_equals));
     Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("if"),
                                 FUGA_METHOD(FugaPrelude_if));
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("method"),
+                                FUGA_METHOD(FugaPrelude_method));
 }
 
 Fuga* FugaPrelude_equals(
@@ -164,4 +166,19 @@ Fuga* FugaPrelude_if(
         "if: condition must be a boolean"
     );
 }
+
+Fuga* FugaPrelude_method(
+    Fuga* self,
+    Fuga* args
+) {
+    Fuga* scope = Fuga_thunkScope(args);
+    Fuga* code  = Fuga_thunkCode(args);
+    if (!Fuga_hasNumSlots(code, 2))
+        FUGA_RAISE(FUGA->TypeError, "method: expected 2 arguments");
+    Fuga* formals = Fuga_getSlot(code, FUGA_INT(0));
+    Fuga* body    = Fuga_getSlot(code, FUGA_INT(1));
+
+    return FugaMethod_method(scope, formals, body);
+}
+
 

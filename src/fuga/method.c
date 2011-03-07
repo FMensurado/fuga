@@ -172,3 +172,74 @@ Fuga* FugaMethod_2arg(Fuga* self, Fuga* (*fp)(Fuga*, Fuga*, Fuga*))
     return self;
 }
 
+// fuga method
+
+struct _FugaMethod_method {
+    Fuga* scope;
+    Fuga* args;
+    Fuga* body;
+};
+
+Fuga* _FugaMethod_getScope(Fuga* self, Fuga* formals, Fuga* actuals)
+{
+    FUGA_NEED(self); FUGA_NEED(formals); FUGA_NEED(actuals);
+    self = Fuga_clone(self);
+    Fuga* numFormalsF = Fuga_numSlots(formals);
+    FUGA_CHECK(numFormalsF);
+    Fuga* numActualsF = Fuga_numSlots(actuals);
+    FUGA_CHECK(numActualsF);
+
+    size_t numFormals = FugaInt_value(numFormalsF);
+    size_t numActuals = FugaInt_value(numActualsF);
+    if (numFormals != numActuals)
+        FUGA_RAISE(FUGA->TypeError, "expected different number of args");
+    for (size_t i = 0; i < numFormals; i++) {
+        Fuga* index  = FUGA_INT(i);
+        Fuga* formal = Fuga_getSlot(formals, index);
+        Fuga* actual = Fuga_getSlot(actuals, index);
+        FUGA_CHECK(formal);
+        FUGA_CHECK(actual);
+        FUGA_CHECK(Fuga_setSlot(self, formal, actual));
+    }
+    // FIXME: handle thunks
+    return self;
+}
+
+void _FugaMethod_methodMark(void* _method)
+{
+    struct _FugaMethod_method *method = _method;
+    FugaGC_mark(method, method->scope);
+    FugaGC_mark(method, method->args);
+    FugaGC_mark(method, method->body);
+}
+
+Fuga* _FugaMethod_methodCall(Fuga* self, Fuga* recv, Fuga* args)
+{
+    // FIXME: check to see if 'thunkSlots' is necessary
+    FUGA_CHECK(self); FUGA_CHECK(recv); FUGA_CHECK(args);
+    ALWAYS(Fuga_isMethod(self));
+    struct _FugaMethod_method* method = self->data;
+    Fuga* scope = _FugaMethod_getScope(method->scope, method->args,args);
+    FUGA_CHECK(scope);
+    FUGA_CHECK(Fuga_setSlot(scope, FUGA_SYMBOL("self"), recv));
+    return Fuga_eval(method->body, scope, scope);
+}
+
+Fuga* FugaMethod_method(Fuga* scope, Fuga* args, Fuga* body)
+{
+    FUGA_NEED(scope);
+    FUGA_NEED(args);
+    FUGA_NEED(body);
+    Fuga* self = FugaMethod_new(args, _FugaMethod_methodCall);
+    FUGA_NEED(self);
+    struct _FugaMethod_method* method = FugaGC_alloc(self,
+                            sizeof(struct _FugaMethod_method));
+    FugaGC_onMark(method, _FugaMethod_methodMark);
+    method->scope = scope;
+    method->args  = args;
+    method->body  = body;
+    self->data = method;
+    self->size = 1;
+    return self;
+}
+

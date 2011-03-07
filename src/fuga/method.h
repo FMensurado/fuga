@@ -23,5 +23,7 @@ Fuga* FugaMethod_2arg(Fuga* self, Fuga* (*)(Fuga*, Fuga*, Fuga*));
 Fuga* FugaMethod_strMethod(Fuga* self, Fuga* (*)(Fuga*));
 #define FUGA_METHOD_STR(fn) (FugaMethod_strMethod(self, (fn)))
 
+Fuga* FugaMethod_method(Fuga* scope, Fuga* args, Fuga* body);
+
 #endif
 
