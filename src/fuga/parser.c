@@ -120,6 +120,7 @@ size_t _FugaParser_lbp_(
     case FUGA_TOKEN_ERROR:    return 9999;
     case FUGA_TOKEN_LPAREN:   return 2000;
     case FUGA_TOKEN_LBRACKET: return 2000;
+    case FUGA_TOKEN_LCURLY:   return 2000;
     case FUGA_TOKEN_INT:      return 2000;
     case FUGA_TOKEN_STRING:   return 2000;
     case FUGA_TOKEN_SYMBOL:   return 2000;
@@ -146,6 +147,65 @@ Fuga* _FugaParser_buildExpr_(
         FUGA_CHECK(Fuga_append(expr, msg));
         return expr;
     }   
+}
+
+Fuga* _FugaParser_buildMethodBody(
+    Fuga* self
+) {
+    FUGA_NEED(self);
+    if(Fuga_hasNumSlots(self, 1)) {
+        return Fuga_getSlot(self, FUGA_INT(0));
+    } else {
+        Fuga* body = FUGA_MSG("do");
+        body->slots = self->slots;
+        return body;
+    }
+}
+
+Fuga* _FugaParser_buildMethod_(
+    Fuga* prev,
+    Fuga* block
+) {
+    Fuga* self = block;
+    FUGA_CHECK(self);
+
+    Fuga* body = _FugaParser_buildMethodBody(block);
+    Fuga* args = NULL;
+
+
+    // separate args from prev.
+    if (prev) {
+        FUGA_CHECK(prev);
+        if (Fuga_isExpr(prev)) {
+            size_t last = FugaInt_value(Fuga_numSlots(prev)) - 1;
+            Fuga* lastF = FUGA_INT(last);
+            Fuga*  msg  = Fuga_getSlot(prev, lastF);
+            args = FugaMsg_args(msg);
+            Fuga* name = FugaMsg_fromSymbol(FugaMsg_name(msg));
+            FUGA_CHECK(Fuga_setSlot(prev, lastF, name));
+        } else if (Fuga_isMsg(prev)) {
+            args = FugaMsg_args(prev);
+            prev = FugaMsg_fromSymbol(FugaMsg_name(prev));
+        } else {
+            args = prev;
+            prev = NULL;
+        }
+    } else {
+        args = Fuga_clone(FUGA->Object);
+    }
+
+    Fuga* rhs = FUGA_MSG("method");
+    FUGA_CHECK(Fuga_append(rhs, args));
+    FUGA_CHECK(Fuga_append(rhs, body));
+
+    if (prev) {
+        Fuga* expr = FUGA_MSG("=");
+        FUGA_CHECK(Fuga_append(expr, prev));
+        FUGA_CHECK(Fuga_append(expr, rhs));
+        return expr;
+    } else {
+        return rhs;
+    }
 }
 
 /**
@@ -176,7 +236,14 @@ Fuga* _FugaParser_derive_(
             FUGA_RAISE(FUGA->SyntaxError, "expected ]");
         FugaLexer_next(parser->lexer);
         return self;
-    
+
+    case FUGA_TOKEN_LCURLY:
+        self = FugaParser_block(parser);
+        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RCURLY)
+            FUGA_RAISE(FUGA->SyntaxError, "expected }");
+        FugaLexer_next(parser->lexer);
+        return _FugaParser_buildMethod_(NULL, self);
+
     case FUGA_TOKEN_INT:    return FugaToken_int_(token, self);
     case FUGA_TOKEN_STRING: return FugaToken_string_(token, self);
     case FUGA_TOKEN_SYMBOL: return FugaToken_symbol_(token, self);
@@ -241,6 +308,13 @@ Fuga* _FugaParser_derive_after_(
         Fuga_append(msg, arg);
         return _FugaParser_buildExpr_(expr, msg);
 
+    case FUGA_TOKEN_LCURLY:
+        self = FugaParser_block(parser);
+        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RCURLY)
+            FUGA_RAISE(FUGA->SyntaxError, "expected }");
+        FugaLexer_next(parser->lexer);
+        return _FugaParser_buildMethod_(expr, self);
+
     default:
         FUGA_RAISE(FUGA->SyntaxError, "invalid syntax");
     }
@@ -299,6 +373,7 @@ Fuga* FugaParser_block(
         }
         
         if ((token->type == FUGA_TOKEN_RPAREN) ||
+            (token->type == FUGA_TOKEN_RCURLY) ||
             (token->type == FUGA_TOKEN_END))
             break;
         
@@ -410,6 +485,97 @@ TESTS(FugaParser) {
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
         && Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("[10, 20]", Fuga_isRaised(self));
+
+    FUGA_PARSER_TEST("{10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 0)
+        &&  FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 10));
+    FUGA_PARSER_TEST("{}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 0)
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(1)), 0));
+    FUGA_PARSER_TEST("{10, 20}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 0)
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(1)), 2));
+    FUGA_PARSER_TEST("() {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 0)
+        &&  FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 10));
+    FUGA_PARSER_TEST("(a) {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 1)
+        &&  FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 10));
+    FUGA_PARSER_TEST("(a, b) {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 2)
+        &&  FugaInt_isEqualTo(Fuga_getSlot(self, FUGA_INT(1)), 10));
+    FUGA_PARSER_TEST("foo {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        &&  Fuga_hasNumSlots(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(0)),
+                0
+            )
+        &&  FugaInt_isEqualTo(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(1)),
+                10
+            )
+        );
+    FUGA_PARSER_TEST("foo bar {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_isExpr(Fuga_getSlot(self, FUGA_INT(0)))
+        &&  Fuga_hasNumSlots(Fuga_getSlot(self, FUGA_INT(0)), 2)
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        &&  Fuga_hasNumSlots(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(0)),
+                0
+            )
+        &&  FugaInt_isEqualTo(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(1)),
+                10
+            )
+        );
+    FUGA_PARSER_TEST("foo (bar, baz) {10}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasNumSlots(self, 2)
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(0)))
+        &&  Fuga_isMsg(Fuga_getSlot(self, FUGA_INT(1)))
+        &&  Fuga_hasNumSlots(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(0)),
+                2
+            )
+        &&  FugaInt_isEqualTo(
+                Fuga_getSlot(Fuga_getSlot(self, FUGA_INT(1)),
+                             FUGA_INT(1)),
+                10
+            )
+        );
 
     Fuga_quit(self);
 }

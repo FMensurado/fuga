@@ -210,6 +210,8 @@ void _FugaLexer_lexSpecial(
     case ')':  self->token->type = FUGA_TOKEN_RPAREN; break;
     case '[':  self->token->type = FUGA_TOKEN_LBRACKET; break;
     case ']':  self->token->type = FUGA_TOKEN_RBRACKET; break;
+    case '{':  self->token->type = FUGA_TOKEN_LCURLY; break;
+    case '}':  self->token->type = FUGA_TOKEN_RCURLY; break;
     case ',':  self->token->type = FUGA_TOKEN_SEPARATOR; break;
     case '\n': self->token->type = FUGA_TOKEN_SEPARATOR; break;
     case '\0': self->token->type = FUGA_TOKEN_END; return;

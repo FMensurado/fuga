@@ -15,6 +15,8 @@ enum FugaTokenType {
     FUGA_TOKEN_RPAREN,
     FUGA_TOKEN_LBRACKET,
     FUGA_TOKEN_RBRACKET,
+    FUGA_TOKEN_LCURLY,
+    FUGA_TOKEN_RCURLY,
 
     // more interesting tokens
     FUGA_TOKEN_INT,
