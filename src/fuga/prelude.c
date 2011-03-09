@@ -47,6 +47,8 @@ void FugaPrelude_init(
                                 FUGA_METHOD(FugaPrelude_if));
     Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("method"),
                                 FUGA_METHOD(FugaPrelude_method));
+    Fuga_setSlot(FUGA->Prelude, FUGA_SYMBOL("print"),
+                                FUGA_METHOD(FugaPrelude_print));
 }
 
 Fuga* FugaPrelude_equals(
@@ -181,4 +183,27 @@ Fuga* FugaPrelude_method(
     return FugaMethod_method(scope, formals, body);
 }
 
+
+Fuga* FugaPrelude_print(
+    Fuga* self,
+    Fuga* args
+) {
+    FUGA_NEED(args);
+    size_t numSlots = FugaInt_value(Fuga_numSlots(args));
+    // FIXME: use a string builder
+    Fuga* totalStr = FUGA_STRING("");
+    for (size_t i = 0; i < numSlots; i++) {
+        if (i > 0) totalStr = FugaString_cat(totalStr, FUGA_STRING(" "));
+        Fuga* arg = Fuga_getSlot(args, FUGA_INT(i));
+        FUGA_NEED(totalStr);
+        if (!Fuga_isString(arg)) {
+            arg = Fuga_str(arg);
+            FUGA_NEED(arg);
+        }
+        totalStr = FugaString_cat(totalStr, arg);
+        FUGA_CHECK(totalStr);
+    }
+    FugaString_print(totalStr);
+    return FUGA->nil;
+}
 

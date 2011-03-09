@@ -7,8 +7,9 @@
 #define PROMPT1 ">>> "
 #define PROMPT2 "... "
 
-Fuga* read(FugaParser* parser)
-{
+Fuga* read(
+    FugaParser* parser
+) {
     char buffer[1024];
     printf(PROMPT1);
     fflush(stdout);
@@ -24,8 +25,10 @@ Fuga* read(FugaParser* parser)
     return FugaParser_block(parser);
 }
 
-Fuga* evalPrint(Fuga* self, Fuga* block)
-{
+Fuga* evalPrint(
+    Fuga* self,
+    Fuga* block
+) {
     FUGA_CHECK(block);
     long length = FugaInt_value(Fuga_numSlots(block));
     for (long i = 0; i < length; i++) {
@@ -38,7 +41,7 @@ Fuga* evalPrint(Fuga* self, Fuga* block)
     return NULL;
 }
 
-void repl(void)
+void repl()
 {
     Fuga *self = Fuga_init();
     FugaParser *parser = FugaParser_new(self);
@@ -60,9 +63,56 @@ void repl(void)
     Fuga_quit(self);
 }
 
+Fuga* runBlock(
+    Fuga* self
+) {
+    FUGA_CHECK(self);
+    Fuga* block = self;
+    self = Fuga_clone(FUGA->Prelude);
+    Fuga* scope = Fuga_clone(self);
+    FUGA_CHECK(Fuga_setSlot(scope, FUGA_SYMBOL("this"), self));
+
+    long numSlots = FugaInt_value(Fuga_numSlots(block));
+    for (long i = 0; i < numSlots; i++) {
+        Fuga* slot = Fuga_getSlot(block, FUGA_INT(i));
+        FUGA_CHECK(slot);
+        Fuga* result = Fuga_eval(slot, scope, scope);
+        FUGA_CHECK(result);
+        FUGA_CHECK(Fuga_print(result));
+    }
+    return FUGA->nil;
+}
+
+Fuga* loadFile(
+    Fuga* self,
+    const char* filename
+) {
+    FugaParser *parser = FugaParser_new(self);
+    if (!FugaParser_readFile_(parser, filename)) 
+        FUGA_RAISE(FUGA->IOError, "can't load module");
+    Fuga* block = FugaParser_block(parser);
+    // FIXME: ensure EOF
+    FUGA_CHECK(runBlock(block));
+    return FUGA->nil;
+}
+
+void runFile(
+    const char* filename
+) {
+    Fuga* self   = Fuga_init();
+    Fuga* result = loadFile(self, filename);
+    Fuga* error  = Fuga_catch(result);
+    if (error)
+        Fuga_printException(error);
+}
+
 int main(int argc, char** argv)
 {
-    repl();
+    if (argc == 2) {
+        runFile(argv[1]);
+    } else {
+        repl();
+    }
     return 0;
 }
 
