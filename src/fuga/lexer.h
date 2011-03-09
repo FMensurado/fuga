@@ -42,9 +42,10 @@ void FugaLexer_readCode_(
 /**
 *** ### FugaLexer_readFile_
 *** 
-*** Specify which file to have the lexer read from.
+*** Specify which file to have the lexer read from. Returns true on
+*** success, false on IO error (like, can't open).
 **/
-void FugaLexer_readFile_(
+bool FugaLexer_readFile_(
     FugaLexer* self,
     const char* filename
 );

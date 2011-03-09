@@ -39,20 +39,53 @@ FugaLexer* FugaLexer_new(
     return self;
 }
 
+char* _FugaLexer_strdup(
+    const char* src
+) {
+    char* dest = malloc(strlen(src)+1);
+    strcpy(dest, src);
+    return dest;
+}
+
 void FugaLexer_readCode_(
     FugaLexer* self,
     const char* code
 ) {
-    self->code = self->codeBase = malloc(strlen(code)+1);
-    strcpy(self->code, code);
-    self->codeEnd = self->code + strlen(self->code);
-    self->line = self->column = 1;
+    self->code     = _FugaLexer_strdup(code);
+    self->codeBase = self->code;
+    self->codeEnd  = self->code + strlen(code);
+    self->line     = 1;
+    self->column   = 1;
 }
 
-void FugaLexer_readFile_(
+#define BUFFSIZE 1024
+bool FugaLexer_readFile_(
     FugaLexer* self,
     const char* filename
-);
+) {
+    FILE* fp = fopen(filename, "r");
+    if (!fp) return false;
+
+    char* code = malloc(BUFFSIZE+1);
+    size_t length = 0;
+    size_t capacity = BUFFSIZE;
+    while (1) {
+        int c = getc(fp);
+        if (c == EOF) break;
+        code[length++] = c;
+        if (length >= capacity) {
+            capacity += BUFFSIZE;
+            code = realloc(code, capacity+1);
+        }
+    }
+    code[length] = 0;
+    self->code     = code;
+    self->codeBase = code;
+    self->codeEnd  = code+length;
+    self->line     = 1;
+    self->column   = 1;
+    return true;
+}
 
 void _FugaLexer_strip     (FugaLexer*);
 void _FugaLexer_lex       (FugaLexer*);

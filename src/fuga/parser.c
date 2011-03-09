@@ -51,6 +51,14 @@ void FugaParser_readCode_(
     FugaLexer_readCode_(parser->lexer, code);
 }
 
+bool FugaParser_readFile_(
+    FugaParser* parser,
+    const char* filename
+) {
+    parser->lexer = FugaLexer_new(parser);
+    return FugaLexer_readFile_(parser->lexer, filename);
+}
+
 void FugaParser_parseTokens_(
     FugaParser* parser,
     FugaLexer* lexer
@@ -132,6 +140,34 @@ size_t _FugaParser_lbp_(
     }
 }
 
+bool FugaParser_advance_(
+    FugaParser* parser,
+    FugaTokenType tokenType
+) {
+    ALWAYS(parser);
+    if (tokenType == FugaLexer_peek(parser->lexer)->type) {
+        FugaLexer_next(parser->lexer);
+        return true;
+    }
+    return false;
+}
+
+Fuga* FugaParser_error_(
+    FugaParser* parser,
+    const char* message
+) {
+    ALWAYS(parser); ALWAYS(message);
+    Fuga* self = parser->operators;
+    ALWAYS(self);
+    FUGA_RAISE(FUGA->SyntaxError, message);
+}
+
+#define FUGA_PARSER_EXPECT(parser, tokenType, name)             \
+    do {                                                        \
+        if (!FugaParser_advance_(parser, tokenType))            \
+            return FugaParser_error_(parser, "expected " name); \
+    } while(0)
+
 Fuga* _FugaParser_buildExpr_(
     Fuga* self,
     Fuga* msg
@@ -146,7 +182,7 @@ Fuga* _FugaParser_buildExpr_(
         FUGA_CHECK(Fuga_append(expr, self));
         FUGA_CHECK(Fuga_append(expr, msg));
         return expr;
-    }   
+    }
 }
 
 Fuga* _FugaParser_buildMethodBody(
@@ -225,23 +261,20 @@ Fuga* _FugaParser_derive_(
     
     case FUGA_TOKEN_LPAREN:
         self = FugaParser_block(parser);
-        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RPAREN)
-            FUGA_RAISE(FUGA->SyntaxError, "expected )");
-        FugaLexer_next(parser->lexer);
+        FUGA_CHECK(self);
+        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RPAREN, ")");
         return self;
 
     case FUGA_TOKEN_LBRACKET:
         self = FugaParser_expression(parser);
-        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RBRACKET)
-            FUGA_RAISE(FUGA->SyntaxError, "expected ]");
-        FugaLexer_next(parser->lexer);
+        FUGA_CHECK(self);
+        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RBRACKET, "]");
         return self;
 
     case FUGA_TOKEN_LCURLY:
         self = FugaParser_block(parser);
-        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RCURLY)
-            FUGA_RAISE(FUGA->SyntaxError, "expected }");
-        FugaLexer_next(parser->lexer);
+        FUGA_CHECK(self);
+        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RCURLY, "}");
         return _FugaParser_buildMethod_(NULL, self);
 
     case FUGA_TOKEN_INT:    return FugaToken_int_(token, self);
@@ -251,11 +284,10 @@ Fuga* _FugaParser_derive_(
     case FUGA_TOKEN_NAME:
         self = FugaMsg_fromSymbol(FugaToken_symbol_(token, self));
         FUGA_CHECK(self);
-        token = FugaLexer_peek(parser->lexer);
-        if (token->type == FUGA_TOKEN_LPAREN) {
-            FugaLexer_next(parser->lexer);
-            Fuga* slots = _FugaParser_derive_(parser, token);
+        if (FugaParser_advance_(parser, FUGA_TOKEN_LPAREN)) {
+            Fuga* slots = FugaParser_block(parser);
             FUGA_CHECK(slots);
+            FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RPAREN, ")");
             self->slots = slots->slots;
         }
         return self;
@@ -310,9 +342,8 @@ Fuga* _FugaParser_derive_after_(
 
     case FUGA_TOKEN_LCURLY:
         self = FugaParser_block(parser);
-        if (FugaLexer_peek(parser->lexer)->type != FUGA_TOKEN_RCURLY)
-            FUGA_RAISE(FUGA->SyntaxError, "expected }");
-        FugaLexer_next(parser->lexer);
+        FUGA_CHECK(self);
+        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RCURLY, "}");
         return _FugaParser_buildMethod_(expr, self);
 
     default:
@@ -363,15 +394,14 @@ Fuga* FugaParser_block(
     FugaParser* parser
 ) {
     Fuga* self = Fuga_clone(parser->operators->root->Object);
-    FugaToken* token = FugaLexer_peek(parser->lexer);
+    FugaToken* token;
     bool needsep = false;
     while (1) {
-        while (token->type == FUGA_TOKEN_SEPARATOR) {
-            token = FugaLexer_next(parser->lexer);
-            token = FugaLexer_peek(parser->lexer);
+        if (FugaParser_advance_(parser, FUGA_TOKEN_SEPARATOR))
             needsep = false;
-        }
-        
+        while (FugaParser_advance_(parser, FUGA_TOKEN_SEPARATOR));
+
+        token = FugaLexer_peek(parser->lexer);
         if ((token->type == FUGA_TOKEN_RPAREN) ||
             (token->type == FUGA_TOKEN_RCURLY) ||
             (token->type == FUGA_TOKEN_END))
@@ -386,7 +416,6 @@ Fuga* FugaParser_block(
         FUGA_CHECK(slot);
         Fuga_append(self, slot);
         needsep = true;
-        token = FugaLexer_peek(parser->lexer);
     }
     return self;
 }

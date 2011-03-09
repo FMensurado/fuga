@@ -34,7 +34,7 @@ void FugaParser_readCode_(
 *** 
 *** Read a file to parse the code therein.
 **/
-void FugaParser_readFile_(
+bool FugaParser_readFile_(
     FugaParser* parser,
     const char* filename
 );
