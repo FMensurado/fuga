@@ -1,16 +1,21 @@
 #ifndef FUGA_H
 #define FUGA_H
 
-#include "gc.h"
-#include "common.h"
-#include "symbols.h"
-#include "slots.h"
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
 
+typedef struct Fuga Fuga;
+typedef uint64_t FugaIndex;
 typedef struct FugaRoot FugaRoot;
 typedef const struct FugaType FugaType;
 typedef struct FugaHeader FugaHeader;
 typedef uint64_t FugaID;
 typedef Fuga* (*FugaMethod)(Fuga* self, Fuga* recv, Fuga* args);
+
+#include "gc.h"
+#include "symbols.h"
+#include "slots.h"
 
 /**
  * A single Fuga object.

@@ -2,9 +2,9 @@
 #ifndef FUGA_SYMBOLS_H
 #define FUGA_SYMBOLS_H
 
-#include "common.h"
-
 typedef struct FugaSymbols FugaSymbols;
+
+#include "fuga.h"
 
 FugaSymbols* FugaSymbols_new(void* gc);
 Fuga* FugaSymbols_get(FugaSymbols* self, const char* name);

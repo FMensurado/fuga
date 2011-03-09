@@ -6,7 +6,6 @@
 *** # FugaSlots
 **/
 
-#include "common.h"
 
 /**
 *** ## Types
@@ -21,6 +20,8 @@
 *** Abstract Data Type, meant to be use merely with its constructors.
 **/
 typedef struct FugaSlots FugaSlots;
+
+#include "fuga.h"
 
 /**
 *** ### FugaSlot
