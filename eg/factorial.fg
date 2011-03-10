@@ -1,0 +1,24 @@
+fact(n) {
+    if(n < 1
+        1
+        n * fact(n - 1)
+    )
+}
+
+line(n) {
+    print(n, fact(n))
+}
+
+print("Factorial:")
+line(0)
+line(1)
+line(2)
+line(3)
+line(4)
+line(5)
+line(6)
+line(7)
+line(8)
+line(9)
+line(10)
+

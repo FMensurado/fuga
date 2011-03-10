@@ -15,6 +15,18 @@ void FugaInt_init(Fuga* self)
         FUGA_METHOD_1ARG(FugaInt_fdiv));
     Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("%"),
         FUGA_METHOD_1ARG(FugaInt_mod));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("=="),
+        FUGA_METHOD_1ARG(FugaInt_eq));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("!="),
+        FUGA_METHOD_1ARG(FugaInt_neq));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("<"),
+        FUGA_METHOD_1ARG(FugaInt_lt));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL(">"),
+        FUGA_METHOD_1ARG(FugaInt_gt));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("<="),
+        FUGA_METHOD_1ARG(FugaInt_le));
+    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL(">="),
+        FUGA_METHOD_1ARG(FugaInt_ge));
 }
 
 Fuga* FugaInt_new(Fuga* self, long value)
@@ -151,3 +163,58 @@ Fuga* FugaInt_mod(Fuga* self, Fuga* other)
         FUGA_RAISE(FUGA->TypeError, "Int %: expected primitive ints");
     return FUGA_INT(FugaInt_value(self) % FugaInt_value(other));
 }
+
+Fuga* FugaInt_eq(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int ==: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) == FugaInt_value(other));
+}
+
+Fuga* FugaInt_neq(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int !=: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) != FugaInt_value(other));
+}
+
+Fuga* FugaInt_lt(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int <: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) < FugaInt_value(other));
+}
+
+Fuga* FugaInt_gt(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int >: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) > FugaInt_value(other));
+}
+
+Fuga* FugaInt_le(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int <=: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) <= FugaInt_value(other));
+}
+
+Fuga* FugaInt_ge(Fuga* self, Fuga* other)
+{
+    ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->TypeError, "Int >=: expected primitive ints");
+    return FUGA_BOOL(FugaInt_value(self) >= FugaInt_value(other));
+}
+
