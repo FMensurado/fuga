@@ -5,198 +5,126 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct Fuga Fuga;
-typedef uint64_t FugaIndex;
-typedef struct FugaRoot FugaRoot;
-typedef const struct FugaType FugaType;
-typedef struct FugaHeader FugaHeader;
-typedef uint64_t FugaID;
-typedef Fuga* (*FugaMethod)(Fuga* self, Fuga* recv, Fuga* args);
+#include "gclist.h"
 
-#include "gc.h"
-#include "symbols.h"
-#include "slots.h"
-
-/**
- * A single Fuga object.
- */
-struct Fuga {
-    FugaRoot*  root;
-    FugaType*  type;
-    Fuga*      proto;
-    FugaSlots* slots;
-    FugaID     id;
-    size_t     size;
-    void*      data;
-    FugaMethod method;
-};
-
-/**
- * Holds references to important Fuga objects and things.
- */
 struct FugaRoot {
-    FugaID lastID;
-    FugaSymbols* symbols;
+    // GC info
+    FugaGCList white;
+    FugaGCList grey;
+    FugaGCList black;
 
-    // Important protos
-    Fuga* Object;
-    Fuga* Prelude;
+    // basic objects
+    void* Object;
+    void* Prelude;
+    void* Number;
+    void* Int;
+    void* String;
+    void* Symbol;
+    void* Msg;
+    void* Method;
+    void* Name;
+    void* nil;
+    void* Bool;
+    void* True;     // "true"  is reserved in C++ :-/
+    void* False;    // "false" is also reserved
 
-    // singletons
-    Fuga* Bool;
-    Fuga* True;
-    Fuga* False;
-    Fuga* nil;
-
-    // Primitive protos
-    Fuga* Number;
-    Fuga* Int;
-    Fuga* String;
-    Fuga* Symbol;
-    Fuga* Msg;
-    Fuga* Method;
-    Fuga* Expr;
-
-    // Exception protos
-    Fuga* Exception;
-    Fuga* SyntaxError;
-    Fuga* SlotError;
-    Fuga* MutableError;
-    Fuga* TypeError;
-    Fuga* ValueError;
-    Fuga* IOError;
+    // Exceptions
+    void* Exception;
+    void* TypeError;
+    void* SlotError;
+    void* IOError;
+    void* ValueError;
 };
 
-#define FUGA_ID 0
-
-#define FUGA (self->root)
-
-/**
- * Defines how a Fuga object acts.
- */
-struct FugaType {
-    Fuga* (*proto)(Fuga*);
-    Fuga* (*has)(Fuga*, Fuga*);
-    Fuga* (*get)(Fuga*, Fuga*);
-    Fuga* (*set)(Fuga*, Fuga*);
-    Fuga* (*call)(Fuga*, Fuga*, Fuga*);
+struct FugaGCInfo {
+    FugaGCList list;
+    unsigned   pass;
+    bool       root;
 };
 
-// Basic types
-#include "int.h"
-#include "string.h"
-#include "symbol.h"
-#include "msg.h"
-#include "method.h"
+struct FugaHeader {
+    FugaGCInfo  gc;
+    FugaRoot*   root;
+    FugaType*   type;
+    FugaSlots*  slots;
+    void*       proto;
+};
 
-#define FUGA_TYPE_MASK    7
+#define FUGA_HEADER(self)   (((FugaHeader*)(self))-1)
+#define FUGA_DATA(self)     (((FugaHeader*)(self))+1)
 
-#define FUGA_TYPE_INT     ((FugaType*)1)
-#define FUGA_TYPE_STRING  ((FugaType*)2)
-#define FUGA_TYPE_SYMBOL  ((FugaType*)3)
-#define FUGA_TYPE_MSG     ((FugaType*)4)
-#define FUGA_TYPE_METHOD  ((FugaType*)5)
+#define FUGA (FUGA_HEADER(self)->root)
 
-#define FUGA_BOOL(x) ((x) ? FUGA->True : FUGA->False)
+//
+void* Fuga_init(void);
+void  Fuga_quit(void*);
 
-// Managing Fuga environments
-Fuga* Fuga_init(void);
-void  Fuga_quit(Fuga*);
-void  Fuga_mark(void*);
+void* Fuga_clone(void* proto);
+void* Fuga_clone_(void* proto, size_t size);
 
-void Fuga_initObject(Fuga* self);
-void Fuga_initBool(Fuga* self);
+// Garbage collection
+void* Fuga_onMark_(void* self, void markFn(void*));
+void* Fuga_onFree_(void* self, void freeFn(void*));
+void  Fuga_mark_(void* self, void* child);
 
-// General Functions
-Fuga* Fuga_clone(Fuga*);
-Fuga* Fuga_raise(Fuga*);
-Fuga* Fuga_is(Fuga*, Fuga*);
-Fuga* Fuga_isa(Fuga*, Fuga*);
-Fuga* Fuga_proto(Fuga*);
+// Primitives
+FugaType Fuga_type   (void* self);
+void     Fuga_type_  (void* self, FugaType* type);
 
-bool Fuga_isRaised(Fuga*);
-bool Fuga_isTrue  (Fuga*);
-bool Fuga_isFalse (Fuga*);
-bool Fuga_isNil   (Fuga*);
-bool Fuga_isInt   (Fuga*);
-bool Fuga_isString(Fuga*);
-bool Fuga_isSymbol(Fuga*);
-bool Fuga_isMsg   (Fuga*);
-bool Fuga_isMethod(Fuga*);
-bool Fuga_isExpr  (Fuga*);
+extern static const FugaType FugaInt_type;
+extern static const FugaType FugaString_type;
+extern static const FugaType FugaSymbol_type;
+extern static const FugaType FugaMsg_type;
+extern static const FugaType FugaExpr_type;
+extern static Inconst FugaType FugaMethod_type;
 
-// Error handling
-Fuga* Fuga_raise(Fuga*);
-#define FUGA_RAISE(type, msg) do{                                      \
-        Fuga* error##__LINE__ = Fuga_clone(type);                      \
-        Fuga_setSlot(error##__LINE__, FUGA_SYMBOL("msg"),FUGA_STRING(msg));\
-        return Fuga_raise(error##__LINE__);                            \
-    } while(0)
-#define FUGA_RERAISE(error) return Fuga_raise(error)
-#define FUGA_RAISEP(type, msg) do{                                 \
-        printf("%s:%d: %s, %s\n", __FILE__, __LINE__, #type, msg); \
-        FUGA_RAISE(type, msg);                                     \
-    } while(0)
+bool Fuga_isType_  (void* self, FugaType* type);
+bool Fuga_isInt    (void* self);
+bool Fuga_isString (void* self);
+bool Fuga_isSymbol (void* self);
+bool Fuga_isMsg    (void* self);
+bool Fuga_isExpr   (void* self);
+bool Fuga_isMethod (void* self);
 
-Fuga* Fuga_catch(Fuga*);
-#define FUGA_CHECK(result) do{                          \
-        Fuga* error##__LINE__ = result;                 \
-        if (Fuga_isRaised(error##__LINE__))             \
-            return error##__LINE__;                     \
-    } while(0)
+// Identity
+bool Fuga_is      (void* self, void* other);  // XXX: returning bool?
+bool Fuga_isa     (void* self, void* other);  // XXX: returning bool?
+bool Fuga_isTrue  (void* self);
+bool Fuga_isFalse (void* self);
+bool Fuga_isNil   (void* self);
 
+// Exception Handling
+bool  Fuga_isRaised (void* self);
+void* Fuga_raise(void* self);
+void* Fuga_catch(void* self);
 
-
-// Slot manipulation
-bool  Fuga_hasNumSlots(Fuga*, long);
-Fuga* Fuga_numSlots(Fuga*);
-Fuga* Fuga_slots(Fuga*);
-
-Fuga* Fuga_hasSlot(Fuga*, Fuga*);
-Fuga* Fuga_hasSlotName(Fuga*, Fuga*);
-Fuga* Fuga_hasSlotRaw(Fuga*, Fuga*);
-Fuga* Fuga_hasSlotDoc(Fuga*, Fuga*);
-
-Fuga* Fuga_getSlot(Fuga*, Fuga*);
-Fuga* Fuga_getSlotName(Fuga*, Fuga*);
-Fuga* Fuga_getSlotRaw(Fuga*, Fuga*);
-Fuga* Fuga_getSlotDoc(Fuga*, Fuga*);
-
-Fuga* Fuga_setSlot(Fuga*, Fuga*, Fuga*);
-Fuga* Fuga_setSlotDoc(Fuga*, Fuga*, Fuga*);
-
-Fuga* Fuga_append(Fuga*, Fuga*);
+#define FUGA_RAISE(,)
+#define FUGA_CHECK
 
 // Thunks
-Fuga* Fuga_thunk(Fuga* self, Fuga* scope);
-bool  Fuga_isThunk(Fuga* self);
 
-Fuga* Fuga_need(Fuga*);
-#define FUGA_NEED(result) FUGA_CHECK(Fuga_need(result))
-Fuga* Fuga_needOnce(Fuga*);
+// Slot Manipulation
+bool  Fuga_has_         (void* self, void* name);
+bool  Fuga_hasRaw_      (void* self, void* name);
+bool  Fuga_hasName_     (void* self, void* name);
+bool  Fuga_hasDoc_      (void* self, void* name);
+void* Fuga_get_         (void* self, void* name);
+void* Fuga_getRaw_      (void* self, void* name);
+void* Fuga_getName_     (void* self, void* name);
+void* Fuga_getDoc_      (void* self, void* name);
+void* Fuga_set_to_      (void* self, void* name, void* value);
+void* Fuga_setDoc_to_   (void* self, void* name, void* value);
 
-Fuga* Fuga_thunkScope(Fuga*);
-Fuga* Fuga_thunkCode(Fuga*);
+bool  Fuga_hasAt_       (void* self, size_t index);
+bool  Fuga_hasNameAt_   (void* self, size_t index);
+bool  Fuga_hasDocAt_    (void* self, size_t index);
+void* Fuga_getAt_       (void* self, size_t index);
+void* Fuga_getNameAt_   (void* self, size_t index);
+void* Fuga_getDocAt_    (void* self, size_t index);
+void* Fuga_setAt_to_    (void* self, size_t index, void* value);
+void* Fuga_setDocAt_to_ (void* self, size_t index, void* value);
 
-Fuga* Fuga_thunkSlots(Fuga*);
-
-// Eval
-Fuga* Fuga_eval(Fuga* self, Fuga* recv, Fuga* scope);
-Fuga* Fuga_evalSlots(Fuga* self, Fuga* scope);
-Fuga* Fuga_evalSlot(Fuga* self, Fuga* scope, Fuga* result);
-Fuga* Fuga_evalExpr(Fuga* self, Fuga* recv, Fuga* scope);
-
-// Call
-Fuga* Fuga_send(Fuga* self, Fuga* name, Fuga* args);
-Fuga* Fuga_call(Fuga* self, Fuga* recv, Fuga* args);
-
-// Utility
-Fuga* Fuga_str(Fuga* self);
-Fuga* Fuga_strSlots(Fuga* self);
-
-Fuga* Fuga_print(Fuga* self);
-void Fuga_printException(Fuga* self);
-
+void* Fuga_append_      (void* self, void* value);
 
 #endif
 
