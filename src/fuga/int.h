@@ -12,14 +12,22 @@ bool FugaInt_isEqualTo(Fuga*, long);
 
 Fuga* FugaInt_str(Fuga*);
 
-// binary operators
+// arithmetic
 Fuga* FugaInt_add(Fuga*, Fuga*);
 Fuga* FugaInt_sub(Fuga*, Fuga*);
 Fuga* FugaInt_mul(Fuga*, Fuga*);
 Fuga* FugaInt_fdiv(Fuga*, Fuga*);
 Fuga* FugaInt_mod(Fuga*, Fuga*);
 
-// support unary
+// comparison
+Fuga* FugaInt_eq(Fuga*, Fuga*);
+Fuga* FugaInt_neq(Fuga*, Fuga*);
+Fuga* FugaInt_gt(Fuga*, Fuga*);
+Fuga* FugaInt_lt(Fuga*, Fuga*);
+Fuga* FugaInt_ge(Fuga*, Fuga*);
+Fuga* FugaInt_le(Fuga*, Fuga*);
+
+// operators that are binary and unary
 Fuga* FugaInt_addMethod(Fuga* self, Fuga* args);
 Fuga* FugaInt_subMethod(Fuga* self, Fuga* args);
 
