@@ -1,58 +1,54 @@
 #include "token.h"
-#include "gc.h"
 #include "test.h"
 
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
 
-void _FugaToken_free(
+void FugaToken_free(
     void* _self
 ) {
     FugaToken* self = _self;
     free(self->value);
 }
 
-void _FugaToken_mark(
+void FugaToken_mark(
     void* _self
 ) {
     FugaToken* self = _self;
-    FugaGC_mark(self, self->filename);
+    Fuga_mark_(self, self->filename);
 }
 
 FugaToken* FugaToken_new(
-    void* gc
+    void* self
 ) {
-    FugaToken* self = FugaGC_alloc(gc, sizeof(FugaToken));
-    FugaGC_onFree(self, _FugaToken_free);
-    FugaGC_onMark(self, _FugaToken_mark);
-    return self;
+    FugaToken* token = Fuga_clone_(FUGA->Object, sizeof(FugaToken));
+    Fuga_onFree_(token, FugaToken_free);
+    Fuga_onMark_(token, FugaToken_mark);
+    return token;
 }
 
-Fuga* FugaToken_int_(
-    FugaToken* token,
-    Fuga* self
+FugaInt* FugaToken_int(
+    FugaToken* self
 ) {
-    ALWAYS(token); ALWAYS(token->value);
-    ALWAYS(token->type == FUGA_TOKEN_INT);
-    return FUGA_INT(*(long*)token->value);
+    ALWAYS(self); ALWAYS(self->value);
+    ALWAYS(self->type == FUGA_TOKEN_INT);
+    return FUGA_INT(*(long*)self->value);
 }
 
-Fuga* FugaToken_string_(
-    FugaToken* token,
-    Fuga* self
+FugaString* FugaToken_string(
+    FugaToken* self
 ) {
-    ALWAYS(token); ALWAYS(token->value);
-    NEVER(token->type == FUGA_TOKEN_INT);
-    return FUGA_STRING(token->value);
+    ALWAYS(self); ALWAYS(self->value);
+    NEVER(self->type == FUGA_TOKEN_INT);
+    return FUGA_STRING(self->value);
 }
 
-Fuga* FugaToken_symbol_(
-    FugaToken* token,
-    Fuga* self
+FugaSymbol* FugaToken_symbol(
+    FugaToken* self
 ) {
-    ALWAYS(token); ALWAYS(token->value);
-    NEVER(token->type == FUGA_TOKEN_INT);
-    return FUGA_SYMBOL(token->value);
+    ALWAYS(self); ALWAYS(self->value);
+    NEVER(self->type == FUGA_TOKEN_INT);
+    return FUGA_SYMBOL(self->value);
 }
 

@@ -16,7 +16,7 @@ typedef struct FugaParser FugaParser;
 *** - Return: a fresh parser.
 **/
 FugaParser* FugaParser_new(
-    Fuga* self
+    void* self
 );
 
 /**
@@ -44,7 +44,7 @@ bool FugaParser_readFile_(
 ***
 *** Return the Parser's operators metadata object.
 **/
-Fuga* FugaParser_operators(
+void* FugaParser_operators(
     FugaParser* self
 );
 
@@ -74,7 +74,7 @@ size_t FugaParser_precedence_(
 ***
 *** Parse a block (i.e., an object without the parentheses).
 **/
-Fuga* FugaParser_block(
+void* FugaParser_block(
     FugaParser* self
 );
 
@@ -83,7 +83,7 @@ Fuga* FugaParser_block(
 ***
 *** Parse a single Fuga expression.
 **/
-Fuga* FugaParser_expression(
+void* FugaParser_expression(
     FugaParser* self
 );
 
@@ -92,7 +92,7 @@ Fuga* FugaParser_expression(
 ***
 *** Parse a single Fuga expression at a given binding power.
 **/
-Fuga* FugaParser_expression_(
+void* FugaParser_expression_(
     FugaParser* self,
     size_t rbp
 );

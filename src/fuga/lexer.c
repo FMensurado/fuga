@@ -1,6 +1,5 @@
 #include "lexer.h"
 #include "test.h"
-#include "gc.h"
 #include <stdlib.h>
 #include <string.h>
 #include "char.h"
@@ -15,28 +14,28 @@ struct FugaLexer {
     FugaToken* token;
 };
 
-void _FugaLexer_free(
+void FugaLexer_free(
     void* _self
 ) {
     FugaLexer* self = _self;
     free(self->codeBase);
 }
 
-void _FugaLexer_mark(
+void FugaLexer_mark(
     void* _self
 ) {
     FugaLexer* self = _self;
-    FugaGC_mark(self, self->token);
-    FugaGC_mark(self, self->filename);
+    Fuga_mark_(self, self->token);
+    Fuga_mark_(self, self->filename);
 }
 
 FugaLexer* FugaLexer_new(
-    void* gc
+    void* self
 ) {
-    FugaLexer* self = FugaGC_alloc(gc, sizeof(FugaLexer));
-    FugaGC_onFree(self, _FugaLexer_free);
-    FugaGC_onMark(self, _FugaLexer_mark);
-    return self;
+    FugaLexer* lexer = Fuga_clone_(FUGA->Object, sizeof(FugaLexer));
+    Fuga_onFree_(lexer, FugaLexer_free);
+    Fuga_onMark_(lexer, FugaLexer_mark);
+    return lexer;
 }
 
 char* _FugaLexer_strdup(
@@ -441,7 +440,7 @@ bool _FugaLexer_test_int_(
     TEST(_FugaLexer_test_int_(self, type, value))
 
 TESTS(FugaLexer) {
-    void* gc = FugaGC_start();
+    void* gc = Fuga_init();
     FugaLexer* self = FugaLexer_new(gc);
 
     FugaLexer_readCode_(self, "");
@@ -580,7 +579,7 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "bye");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
-    FugaGC_end(gc);
+    Fuga_quit(gc);
 }
 #endif
 

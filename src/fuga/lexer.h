@@ -17,17 +17,9 @@ typedef struct FugaLexer FugaLexer;
 *** - Return: the constructed lexer.
 **/
 FugaLexer* FugaLexer_new(
-    void* gc
+    void* self
 );
 
-/**
-*** ### FugaLexer_free
-***
-*** Deconstruct the lexer.
-**/
-void FugaLexer_free(
-    FugaLexer* self
-);
 
 /**
 *** ### FugaLexer_readCode_

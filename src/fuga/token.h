@@ -62,9 +62,8 @@ FugaToken* FugaToken_new(
 ***     - Fuga* self: any Fuga object.
 *** - Return: the Fuga int equivalent of the given token's value.
 **/
-Fuga* FugaToken_int_(
-    FugaToken* token,
-    Fuga* self
+FugaInt* FugaToken_int(
+    FugaToken* self
 );
 
 /**
@@ -74,12 +73,11 @@ Fuga* FugaToken_int_(
 ***
 *** - Params:
 ***     - FugaToken* token
-***     - Fuga* self: any Fuga object.
+***     - void* self: any Fuga object.
 *** - Return: the Fuga string equivalent of the given token's value.
 **/
-Fuga* FugaToken_string_(
-    FugaToken* token,
-    Fuga* self
+FugaString* FugaToken_string(
+    FugaToken* self
 );
 
 /**
@@ -92,9 +90,8 @@ Fuga* FugaToken_string_(
 ***     - Fuga* self: any Fuga object.
 *** - Return: the Fuga symbol equivalent of the given token's value.
 **/
-Fuga* FugaToken_symbol_(
-    FugaToken* token,
-    Fuga* self
+FugaSymbol* FugaToken_symbol(
+    FugaToken* token
 );
 
 #endif
