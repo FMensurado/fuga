@@ -1,28 +1,26 @@
 #include "symbols.h"
 #include "test.h"
-#include "gc.h"
 #include <string.h>
 
 struct FugaSymbols {
     FugaSymbols* tree[256];
 };
 
-void _FugaSymbols_mark(void* _self) 
+void FugaSymbols_mark(void* _self) 
 {
     FugaSymbols* self = _self;
     for (size_t i = 0; i < 256; i++)
-        FugaGC_mark(self, self->tree[i]);
+        Fuga_mark_(self, self->tree[i]);
 }
 
-FugaSymbols* FugaSymbols_new(void* gc)
+FugaSymbols* FugaSymbols_new(void* self)
 {
-    FugaSymbols* self = FugaGC_alloc(gc, sizeof(FugaSymbols));
-    FugaGC_onMark(self, _FugaSymbols_mark);
-    memset(self, sizeof(FugaSymbols), 0);
-    return self;
+    FugaSymbols* syms = Fuga_clone_(FUGA->Object, sizeof(FugaSymbols));
+    Fuga_onMark_(syms, FugaSymbols_mark);
+    return syms;
 }
 
-Fuga* FugaSymbols_get(FugaSymbols* self, const char* name)
+FugaSymbol* FugaSymbols_get(FugaSymbols* self, const char* name)
 {
     ALWAYS(name);
     for (; *name; name++) {
@@ -32,13 +30,13 @@ Fuga* FugaSymbols_get(FugaSymbols* self, const char* name)
     }
     if (!self)
         return NULL;
-    return (Fuga*)(self->tree[0]);
+    return (FugaSymbol*)(self->tree[0]);
 }
 
 void FugaSymbols_set(
     FugaSymbols* self,
     const char* name,
-    Fuga* value
+    FugaSymbol* value
 ) {
     ALWAYS(name);
     ALWAYS(value);
@@ -55,7 +53,7 @@ void FugaSymbols_set(
 
 #ifdef TESTING
 TESTS(FugaSymbols) {
-    FugaGC *gc = FugaGC_start();
+    void *gc = Fuga_init();
     FugaSymbols *self = FugaSymbols_new(gc);
 
     const char* str1 = "abc";
@@ -63,10 +61,10 @@ TESTS(FugaSymbols) {
     const char* str3 = "";
     const char* str4 = "definitely";
     
-    Fuga* sym1 = FugaGC_alloc(gc, 4);
-    Fuga* sym2 = FugaGC_alloc(gc, 4);
-    Fuga* sym3 = FugaGC_alloc(gc, 4);
-    Fuga* sym4 = FugaGC_alloc(gc, 4);
+    FugaSymbol* sym1 = (FugaSymbol*)FUGA_STRING("do");
+    FugaSymbol* sym2 = (FugaSymbol*)FUGA_STRING("re");
+    FugaSymbol* sym3 = (FugaSymbol*)FUGA_STRING("mi");
+    FugaSymbol* sym4 = (FugaSymbol*)FUGA_STRING("fa");
 
     TEST(FugaSymbols_get(self, str1) == NULL);
     FugaSymbols_set(self, str1, sym1);
@@ -89,7 +87,7 @@ TESTS(FugaSymbols) {
     TEST(FugaSymbols_get(self, str3) == sym3);
     TEST(FugaSymbols_get(self, str4) == sym4);
 
-    FugaGC_end(gc);
+    Fuga_quit(gc);
 }
 #endif
 

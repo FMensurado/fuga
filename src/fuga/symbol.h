@@ -3,15 +3,21 @@
 
 #include "fuga.h"
 
-void FugaSymbol_init(Fuga*);
+struct FugaSymbol {
+    size_t size;
+    size_t length;
+    char data[];
+};
 
-#define FUGA_SYMBOL(x) FugaSymbol_new(self, (x))
-Fuga* FugaSymbol_new(Fuga*, const char*);
+void FugaSymbol_init(void*);
 
-bool  FugaSymbol_isValid(const char*);
+bool        FugaSymbol_isValid  (const char*);
 
-Fuga* FugaSymbol_str(Fuga*);
-Fuga* FugaSymbol_toString(Fuga*);
+#define FUGA_SYMBOL(x) FugaSymbol_new_(self, (x))
+
+FugaSymbol* FugaSymbol_new_     (void*, const char*);
+void* FugaSymbol_str      (void*);
+void* FugaSymbol_toString (void*);
 
 #endif
 

@@ -3,27 +3,23 @@
 
 #include "fuga.h"
 
-void FugaMethod_init(Fuga* self);
+void FugaMethod_init(void* self);
 
-Fuga* FugaMethod_new(Fuga* self, FugaMethod method);
-Fuga* FugaMethod_call(Fuga* self, Fuga* recv, Fuga* args);
+void* FugaMethod_new_(void* self, void* (*)(void*, void*, void*));
+void* FugaMethod_call(void* self, void* recv, void* args);
+void* FugaMethodN_new_(void* self, void* (*)(void*, void*));
+void* FugaMethod0_new_(void* self, void* (*)(void*));
+void* FugaMethod1_new_(void* self, void* (*)(void*, void*));
+void* FugaMethod2_new_(void* self, void* (*)(void*, void*, void*));
+void* FugaMethodStr_new_(void* self, void* (*)(void*));
+void* FugaMethod_method(void* scope, void* args, void* body);
 
-Fuga* FugaMethod_arg(Fuga* self, Fuga* (*)(Fuga*, Fuga*));
-#define FUGA_METHOD(fn) (FugaMethod_arg(self, (fn)))
+#define FUGA_METHOD(fn) (FugaMethodN_new_(self, (fn)))
+#define FUGA_METHOD_0ARG(fn) (FugaMethod0_new_(self, (fn)))
+#define FUGA_METHOD_1ARG(fn) (FugaMethod1_new_(self, (fn)))
+#define FUGA_METHOD_2ARG(fn) (FugaMethod2_new_(self, (fn)))
+#define FUGA_METHOD_STR(fn) (FugaMethodStr_new_(self, (fn)))
 
-Fuga* FugaMethod_0arg(Fuga* self, Fuga* (*)(Fuga*));
-#define FUGA_METHOD_0ARG(fn) (FugaMethod_0arg(self, (fn)))
-
-Fuga* FugaMethod_1arg(Fuga* self, Fuga* (*)(Fuga*, Fuga*));
-#define FUGA_METHOD_1ARG(fn) (FugaMethod_1arg(self, (fn)))
-
-Fuga* FugaMethod_2arg(Fuga* self, Fuga* (*)(Fuga*, Fuga*, Fuga*));
-#define FUGA_METHOD_2ARG(fn) (FugaMethod_2arg(self, (fn)))
-
-Fuga* FugaMethod_strMethod(Fuga* self, Fuga* (*)(Fuga*));
-#define FUGA_METHOD_STR(fn) (FugaMethod_strMethod(self, (fn)))
-
-Fuga* FugaMethod_method(Fuga* scope, Fuga* args, Fuga* body);
 
 #endif
 

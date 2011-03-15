@@ -3,11 +3,11 @@
 
 #include "fuga.h"
 
-void  FugaPrelude_init    (Fuga*);
-Fuga* FugaPrelude_equals  (Fuga* self, Fuga* args);
-Fuga* FugaPrelude_if      (Fuga* self, Fuga* args);
-Fuga* FugaPrelude_method  (Fuga* self, Fuga* args);
-Fuga* FugaPrelude_print   (Fuga* self, Fuga* args);
+void  FugaPrelude_init    (void*);
+void* FugaPrelude_equals  (void* self, void* args);
+void* FugaPrelude_if      (void* self, void* args);
+void* FugaPrelude_method  (void* self, void* args);
+void* FugaPrelude_print   (void* self, void* args);
 
 #endif
 

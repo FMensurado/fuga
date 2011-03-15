@@ -30,9 +30,9 @@ typedef struct FugaSlots FugaSlots;
 **/
 typedef struct FugaSlot FugaSlot;
 struct FugaSlot {
-    Fuga* value;
-    Fuga* name;
-    Fuga* doc;
+    void* value;
+    void* name;
+    void* doc;
     FugaIndex index;
 };
 
@@ -66,7 +66,7 @@ bool FugaSlots_hasByIndex(FugaSlots* slots, FugaIndex index);
 ***
 *** Determine whether there is a slot with the give symbol.
 **/
-bool FugaSlots_hasBySymbol(FugaSlots* slots, Fuga* symbol);
+bool FugaSlots_hasBySymbol(FugaSlots* slots, void* symbol);
 
 /**
 *** ## Get
@@ -81,10 +81,10 @@ FugaSlot* FugaSlots_getByIndex(FugaSlots* slots, FugaIndex index);
 ***
 *** Get the slot associated with a given symbol.
 **/
-FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, Fuga* name);
+FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, void* name);
 
 
-void FugaSlots_append(FugaSlots* slots, FugaSlot value);
+void FugaSlots_append_(FugaSlots* slots, FugaSlot value);
 
 /**
 *** ## Set
@@ -99,7 +99,7 @@ void FugaSlots_setByIndex(FugaSlots* slots, FugaIndex index, FugaSlot slot);
 ***
 *** Set or update the slot associated with a given symbol.
 **/
-void FugaSlots_setBySymbol(FugaSlots* slots, Fuga* name, FugaSlot slot);
+void FugaSlots_setBySymbol(FugaSlots* slots, void* name, FugaSlot slot);
 
 
 #endif

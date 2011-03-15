@@ -3,19 +3,23 @@
 
 #include "fuga.h"
 
+struct FugaString {
+    size_t size;
+    size_t length;
+    char data[];
+};
+
 #define FUGA_STRING(x) FugaString_new(self, (x))
-void  FugaString_init(Fuga*);
-Fuga* FugaString_new(Fuga*, const char*);
-Fuga* FugaString_toSymbol(Fuga*);
-void  FugaString_print(Fuga*);
-bool  FugaString_isEqualTo(Fuga* self, const char* str);
-Fuga* FugaString_str(Fuga*);
-
-Fuga* FugaString_sliceFrom(Fuga*, long start);
-Fuga* FugaString_sliceFromTo(Fuga*, long start, long end);
-Fuga* FugaString_sliceTo(Fuga*, long end);
-
-Fuga* FugaString_cat(Fuga*, Fuga*);
+void        FugaString_init     (void*);
+FugaString* FugaString_new      (void*, const char*);
+FugaSymbol* FugaString_toSymbol (FugaString*);
+void        FugaString_print    (FugaString*);
+bool        FugaString_is_      (FugaString* self, const char* str);
+void*       FugaString_str      (void*);
+FugaString* FugaString_from_    (FugaString*, long start);
+FugaString* FugaString_from_to_ (FugaString*, long start, long end);
+FugaString* FugaString_to_      (FugaString*, long end);
+void*       FugaString_cat_     (void*, void*);
 
 #endif
 

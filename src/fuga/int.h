@@ -3,33 +3,37 @@
 
 #include "fuga.h"
 
-void FugaInt_init(Fuga*);
+struct FugaInt {
+    long value;
+};
 
-#define FUGA_INT(x) FugaInt_new(self, (x))
-Fuga* FugaInt_new(Fuga*, long);
-long FugaInt_value(Fuga*);
-bool FugaInt_isEqualTo(Fuga*, long);
+void FugaInt_init(void*);
 
-Fuga* FugaInt_str(Fuga*);
+#define FUGA_INT(x) FugaInt_new_(self, (x))
+FugaInt* FugaInt_new_(void*, long);
+long FugaInt_value(FugaInt*);
+bool FugaInt_is_(FugaInt*, long);
+
+void* FugaInt_str(void*);
 
 // arithmetic
-Fuga* FugaInt_add(Fuga*, Fuga*);
-Fuga* FugaInt_sub(Fuga*, Fuga*);
-Fuga* FugaInt_mul(Fuga*, Fuga*);
-Fuga* FugaInt_fdiv(Fuga*, Fuga*);
-Fuga* FugaInt_mod(Fuga*, Fuga*);
+void* FugaInt_add(void*, void*);
+void* FugaInt_sub(void*, void*);
+void* FugaInt_mul(void*, void*);
+void* FugaInt_fdiv(void*, void*);
+void* FugaInt_mod(void*, void*);
 
 // comparison
-Fuga* FugaInt_eq(Fuga*, Fuga*);
-Fuga* FugaInt_neq(Fuga*, Fuga*);
-Fuga* FugaInt_gt(Fuga*, Fuga*);
-Fuga* FugaInt_lt(Fuga*, Fuga*);
-Fuga* FugaInt_ge(Fuga*, Fuga*);
-Fuga* FugaInt_le(Fuga*, Fuga*);
+void* FugaInt_eq    (void*, void*);
+void* FugaInt_neq   (void*, void*);
+void* FugaInt_gt    (void*, void*);
+void* FugaInt_lt    (void*, void*);
+void* FugaInt_ge    (void*, void*);
+void* FugaInt_le    (void*, void*);
 
 // operators that are binary and unary
-Fuga* FugaInt_addMethod(Fuga* self, Fuga* args);
-Fuga* FugaInt_subMethod(Fuga* self, Fuga* args);
+void* FugaInt_addMethod(void* self, void* args);
+void* FugaInt_subMethod(void* self, void* args);
 
 #endif
 

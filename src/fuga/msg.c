@@ -1,20 +1,33 @@
 #include "msg.h"
 #include "test.h"
 
-void FugaMsg_init(Fuga* self)
+const FugaType FugaMsg_type = {
+    .name = "Msg"
+};
+
+void FugaMsg_init(void* self)
 {
-    Fuga_setSlot(FUGA->Msg, FUGA_SYMBOL("str"),
-        FUGA_METHOD_STR(FugaMsg_str));
+    Fuga_set_to_(FUGA->Msg, "str", FUGA_METHOD_STR(FugaMsg_str));
 }
 
-Fuga* FugaMsg_new(Fuga* self, const char* name)
-{
+FugaMsg* FugaMsg_new_(
+    void* self,
+    const char* name
+) {
     ALWAYS(self); ALWAYS(name);
     return FugaMsg_fromSymbol(FUGA_SYMBOL(name));
 }
 
-Fuga* FugaMsg_fromSymbol(Fuga* self)
-{
+void FugaMsg_mark(
+    void* _self
+) {
+    FugaMsg* self = _self;
+    Fuga_mark_(self, self->name);
+}
+
+FugaMsg* FugaMsg_fromSymbol(
+    FugaSymbol* self
+) {
     ALWAYS(self);
     FUGA_NEED(self);
     if (!Fuga_isSymbol(self))
@@ -22,19 +35,17 @@ Fuga* FugaMsg_fromSymbol(Fuga* self)
             "Msg toSymbol: expected primitive symbol"
         );
 
-    Fuga* name = self;
-
-    self = Fuga_clone(FUGA->Msg);
-    self->type = FUGA_TYPE_MSG;
-    self->size = 1;
-    self->data = name;
-
-    return self;
+    FugaMsg* result = Fuga_clone_(FUGA->Msg, sizeof(FugaMsg));
+    Fuga_type_(result, &FugaMsg_type);
+    Fuga_onMark_(result, FugaMsg_mark);
+    result->name = self;
+    return result;
 }
 
-Fuga* FugaMsg_toSymbol(Fuga* self)
-{
-    Fuga* name = FugaMsg_name(self);
+FugaSymbol* FugaMsg_toSymbol(
+    FugaMsg* self
+) {
+    FugaSymbol* name = FugaMsg_name(self);
     FUGA_NEED(name);
     if (!Fuga_isSymbol(name))
         FUGA_RAISE(FUGA->TypeError,
@@ -43,32 +54,31 @@ Fuga* FugaMsg_toSymbol(Fuga* self)
     return name;
 }
 
-Fuga* FugaMsg_name(Fuga* self)
-{
+void* FugaMsg_name(
+    FugaMsg* self
+) {
     ALWAYS(self);
     FUGA_NEED(self);
     if (!Fuga_isMsg(self))
         FUGA_RAISE(FUGA->TypeError,
             "Msg name: expected primitive msg"
         );
-    return self->data;
+    return self->name;
 }
 
-Fuga* FugaMsg_args(Fuga* self)
-{
+void* FugaMsg_args(
+    FugaMsg* self
+) {
     ALWAYS(self);
     FUGA_NEED(self);
     if (!Fuga_isMsg(self))
         FUGA_RAISE(FUGA->TypeError,
             "Msg args: expected primitive msg"
         );
-
-    Fuga* args = Fuga_clone(FUGA->Object);
-    args->slots = self->slots;
-    return args;
+    return Fuga_slots(self);
 }
 
-Fuga* FugaMsg_eval(Fuga* self, Fuga* recv, Fuga* scope)
+void* FugaMsg_eval_in_(FugaMsg* self, void* recv, void* scope)
 {
     ALWAYS(self);    ALWAYS(recv);    ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(recv); FUGA_NEED(scope);
@@ -77,24 +87,26 @@ Fuga* FugaMsg_eval(Fuga* self, Fuga* recv, Fuga* scope)
             "Msg eval: expected primitive msg"
         );
 
-    Fuga* name = FugaMsg_name(self);
-    Fuga* args = Fuga_thunk(FugaMsg_args(self), scope);
+    void* name = FugaMsg_name(self);
+    void* args = Fuga_lazy_(FugaMsg_args(self), scope);
     return Fuga_send(recv, name, args);
 }
 
-Fuga* FugaMsg_str(Fuga* self)
+void* FugaMsg_str(void* self)
 {
-    Fuga* name = FugaMsg_name(self);
-    Fuga* namestr = Fuga_str(name);
+    ALWAYS(self);
+    FUGA_NEED(self);
+    void * name = FugaMsg_name(self);
+    FugaString* namestr = Fuga_str(name);
     FUGA_NEED(namestr);
     if (Fuga_isSymbol(name))
-        namestr = FugaString_sliceFrom(namestr, 1);
+        namestr = FugaString_from_(namestr, 1);
 
-    if (Fuga_hasNumSlots(self, 0)) {
+    if (Fuga_hasLength_(self, 0)) {
         return namestr;
     } else {
-        Fuga* argsstr = Fuga_strSlots(self);
-        return FugaString_cat(namestr, argsstr);
+        void* argsstr = Fuga_strSlots(self);
+        return FugaString_cat_(namestr, argsstr);
     }
 }
 

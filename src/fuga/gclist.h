@@ -48,16 +48,16 @@ void FugaGCList_init (FugaGCList* list);
 
 /**
 *** ## Adding Items
-*** ### FugaGCList_pushFront
+*** ### FugaGCList_push_Front
 ***
 *** Place an item at the start of the list.
 ***
 *** - Parameters:
 ***     - `FugaGCList* list`: pointer to the dummy of the list.
 ***     - `FugaGCList* item`: the item to be placed at the start.
-*** - See also: `FugaGCList_pushBack`
+*** - See also: `FugaGCList_push_Back`
 **/
-void FugaGCList_push(FugaGCList* list, FugaGCList* item);
+void FugaGCList_push_(FugaGCList* list, FugaGCList* item);
 
 /**
 *** ## Removing Items
@@ -89,7 +89,7 @@ FugaGCList* FugaGCList_pop(FugaGCList* list);
 
 /**
 *** ## Appending
-*** ### FugaGCList_appendFront
+*** ### FugaGCList_append_Front
 ***
 *** Concatenate the `src` list with the `dest` list (in that order), putting
 *** the result in `dest`, and leaving the `src` list empty.
@@ -99,9 +99,9 @@ FugaGCList* FugaGCList_pop(FugaGCList* list);
 ***     concatenated at the beginning.
 ***     - `FugaGCList* src`: The source list, which ends up empty.
 *** - Returns: void
-*** - See Also: `FugaGCList_appendBack`
+*** - See Also: `FugaGCList_append_Back`
 **/
-void FugaGCList_append(FugaGCList* dest, FugaGCList* src);
+void FugaGCList_append_(FugaGCList* dest, FugaGCList* src);
 
 /**
 *** ## Properties
@@ -116,7 +116,7 @@ void FugaGCList_append(FugaGCList* dest, FugaGCList* src);
 bool FugaGCList_empty(FugaGCList* list);
 
 /**
-*** ### FugaGCList_contains
+*** ### FugaGCList_contains_
 *** 
 *** Determine whether an item is a member of the list.
 *** 
@@ -125,7 +125,7 @@ bool FugaGCList_empty(FugaGCList* list);
 ***     - `void* data`: the item to search for.
 *** - Returns: true if the item is in the list, false otherwise.
 **/
-bool FugaGCList_contains(FugaGCList* list, void* data);
+bool FugaGCList_contains_(FugaGCList* list, void* data);
 
 #endif
 

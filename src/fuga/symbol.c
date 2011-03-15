@@ -4,46 +4,56 @@
 #include "test.h"
 #include "char.h"
 
-void FugaSymbol_init(Fuga* self)
-{
-    Fuga_setSlot(FUGA->Symbol, FUGA_SYMBOL("str"),
-        FUGA_METHOD_STR(FugaSymbol_str));
+const FugaType FugaSymbol_type = {
+    "Symbol"
+};
+
+void FugaSymbol_init(
+    void* self
+) {
+    Fuga_set_to_(FUGA->Symbol, "str", FUGA_METHOD_STR(FugaSymbol_str));
 }
 
-bool FugaSymbol_isValid(const char* value)
-{
+bool FugaSymbol_isValid(
+    const char* value
+) {
     ALWAYS(value);
     return *value;
     // FIXME: determine what makes a valid symbol.
 }
 
-Fuga* FugaSymbol_new(Fuga* self, const char* value)
-{
+FugaSymbol* FugaSymbol_new_(
+    void* self,
+    const char* value
+) {
     ALWAYS(self); ALWAYS(value);
     FUGA_CHECK(self);
     ALWAYS(FugaSymbol_isValid(value));
     
-    Fuga* result = FugaSymbols_get(FUGA->symbols, value);
-    if (result) return result;
+    FugaSymbol* result = FugaSymbols_get(FUGA->symbols, value);
+    if (result)
+        return result;
 
-    self = Fuga_clone(FUGA->Symbol);
-    self->type = FUGA_TYPE_SYMBOL;
-    self->size = strlen(value)+1;
-    self->data = FugaGC_alloc(self, self->size);
-    strcpy(self->data, value);
-    FugaSymbols_set(FUGA->symbols, value, self);
-    return self;
+    size_t size = strlen(value);
+    result = Fuga_clone_(FUGA->Symbol, sizeof(FugaSymbol) + size + 1);
+    Fuga_type_(result, &FugaSymbol_type);
+    result->size   = size;
+    result->length = size; // FIXME: determine actual length
+    memcpy(result->data, value, size+1);
+    FugaSymbols_set(FUGA->symbols, value, result);
+    return result;
 }
 
 #ifdef TESTING
 TESTS(FUGA_SYMBOL) {
-    Fuga* self = Fuga_init();
+    void* self = Fuga_init();
     TEST(Fuga_isSymbol(FUGA_SYMBOL("hello")));
     Fuga_quit(self);
 }
 #endif
 
-Fuga* FugaSymbol_str(Fuga* self) {
+void* FugaSymbol_str(void* _self) {
+    FugaSymbol* self = _self;
     ALWAYS(self);
     FUGA_CHECK(self);
     if (!Fuga_isSymbol(self)) {
@@ -52,17 +62,17 @@ Fuga* FugaSymbol_str(Fuga* self) {
         );
     }
     
-    char buffer[self->size+2];
+    char buffer[self->size+3];
     size_t index=0;
     buffer[index++] = ':';
     if (FugaChar_isOp(self->data))
         buffer[index++] = '\\';
-    memcpy(buffer+index, self->data, self->size);
+    memcpy(buffer+index, self->data, self->size+1);
     return FUGA_STRING(buffer);
 }
 
-Fuga* FugaSymbol_toString(Fuga* self) {
-    Fuga* result = FugaSymbol_str(self);
-    return FugaString_sliceFrom(result, 1);
+void* FugaSymbol_toString(void* self) {
+    void* result = FugaSymbol_str(self);
+    return FugaString_from_(result, 1);
 }
 

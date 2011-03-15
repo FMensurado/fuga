@@ -17,7 +17,7 @@ TESTS(FugaGCList_init) {
 #endif
 
 
-void FugaGCList_push(FugaGCList* list, FugaGCList* item) {
+void FugaGCList_push_(FugaGCList* list, FugaGCList* item) {
     NEVER(list == NULL);
     NEVER(item == NULL);
     item->prev = list;
@@ -27,15 +27,15 @@ void FugaGCList_push(FugaGCList* list, FugaGCList* item) {
 }
 
 #ifdef TESTING
-TESTS(FugaGCList_push) {
+TESTS(FugaGCList_push_) {
     FugaGCList a, b, c;
     FugaGCList_init(&a);
-    FugaGCList_push(&a, &c);
+    FugaGCList_push_(&a, &c);
     TEST(a.next == &c);
     TEST(a.prev == &c);
     TEST(c.next == &a);
     TEST(c.prev == &a);
-    FugaGCList_push(&a, &b);
+    FugaGCList_push_(&a, &b);
     TEST(a.next == &b);
     TEST(b.next == &c);
     TEST(c.next == &a);
@@ -56,8 +56,8 @@ void FugaGCList_unlink(FugaGCList* item) {
 TESTS(FugaGCList_unlink) {
     FugaGCList a, b, c;
     FugaGCList_init(&a);
-    FugaGCList_push(&a, &c);
-    FugaGCList_push(&a, &b);
+    FugaGCList_push_(&a, &c);
+    FugaGCList_push_(&a, &b);
     FugaGCList_unlink(&c);
     TEST(a.next == &b);
     TEST(a.prev == &b);
@@ -81,8 +81,8 @@ FugaGCList* FugaGCList_pop(FugaGCList* list) {
 TESTS(FugaGCList_pop) {
     FugaGCList a, b, c;
     FugaGCList_init(&a);
-    FugaGCList_push(&a, &c);
-    FugaGCList_push(&a, &b);
+    FugaGCList_push_(&a, &c);
+    FugaGCList_push_(&a, &b);
     TEST(FugaGCList_pop(&a) == &b);
     TEST(a.next == &c);
     TEST(a.prev == &c);
@@ -94,7 +94,7 @@ TESTS(FugaGCList_pop) {
 }
 #endif
 
-void FugaGCList_append (FugaGCList* dest, FugaGCList* src) {
+void FugaGCList_append_ (FugaGCList* dest, FugaGCList* src) {
     NEVER(dest == NULL);
     NEVER(src == NULL);
     NEVER(dest == src);
@@ -108,14 +108,14 @@ void FugaGCList_append (FugaGCList* dest, FugaGCList* src) {
 }
 
 #ifdef TESTING
-TESTS(FugaGCList_append) {
+TESTS(FugaGCList_append_) {
     FugaGCList d1, d2, i1, i2, i3;
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
-    FugaGCList_push(&d1, &i3);
-    FugaGCList_push(&d2, &i2);
-    FugaGCList_push(&d2, &i1);
-    FugaGCList_append(&d1, &d2);
+    FugaGCList_push_(&d1, &i3);
+    FugaGCList_push_(&d2, &i2);
+    FugaGCList_push_(&d2, &i1);
+    FugaGCList_append_(&d1, &d2);
     TEST(d2.next == &d2);
     TEST(d2.prev == &d2);
     TEST(d1.next == &i1);
@@ -130,15 +130,15 @@ TESTS(FugaGCList_append) {
     // now with empty lists
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
-    FugaGCList_append(&d1, &d2);
+    FugaGCList_append_(&d1, &d2);
     TEST(d1.next == &d1);
     TEST(d1.prev == &d1);
 
     // now with a single list.
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
-    FugaGCList_push(&d2, &i1);
-    FugaGCList_append(&d1, &d2);
+    FugaGCList_push_(&d2, &i1);
+    FugaGCList_append_(&d1, &d2);
     TEST(d1.next == &i1);
     TEST(d1.prev == &i1);
     TEST(i1.next == &d1);
@@ -147,9 +147,9 @@ TESTS(FugaGCList_append) {
     // now with an empty list on the right
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
-    FugaGCList_push(&d1, &i2);
-    FugaGCList_push(&d1, &i1);
-    FugaGCList_append(&d1, &d2);
+    FugaGCList_push_(&d1, &i2);
+    FugaGCList_push_(&d1, &i1);
+    FugaGCList_append_(&d1, &d2);
     TEST(d1.next == &i1);
     TEST(d1.prev == &i2);
     TEST(i1.next == &i2);
@@ -160,9 +160,9 @@ TESTS(FugaGCList_append) {
     // now with an empty list on the left
     FugaGCList_init(&d1);
     FugaGCList_init(&d2);
-    FugaGCList_push(&d2, &i2);
-    FugaGCList_push(&d2, &i1);
-    FugaGCList_append(&d1, &d2);
+    FugaGCList_push_(&d2, &i2);
+    FugaGCList_push_(&d2, &i1);
+    FugaGCList_append_(&d1, &d2);
     TEST(d1.next == &i1);
     TEST(d1.prev == &i2);
     TEST(i1.next == &i2);
@@ -182,12 +182,12 @@ TESTS(FugaGCList_empty) {
     FugaGCList d1, i1;
     FugaGCList_init(&d1);
     TEST( FugaGCList_empty(&d1));
-    FugaGCList_push(&d1, &i1);
+    FugaGCList_push_(&d1, &i1);
     TEST(!FugaGCList_empty(&d1));
 }
 #endif
 
-bool FugaGCList_contains(FugaGCList *list, void* data) {
+bool FugaGCList_contains_(FugaGCList *list, void* data) {
     FugaGCList *link;
     for(link = list->next; link != list; link = link->next) {
         if (link == data)
@@ -197,21 +197,21 @@ bool FugaGCList_contains(FugaGCList *list, void* data) {
 }
 
 #ifdef TESTING
-TESTS(FugaGCList_contains) {
+TESTS(FugaGCList_contains_) {
     FugaGCList d1, i1, i2;
     FugaGCList_init(&d1);
 
-    TEST(!FugaGCList_contains(&d1, &i1));
-    TEST(!FugaGCList_contains(&d1, &i2));
-    TEST(!FugaGCList_contains(&d1, &d1));
-    FugaGCList_push(&d1, &i1);
-    TEST( FugaGCList_contains(&d1, &i1));
-    TEST(!FugaGCList_contains(&d1, &i2));
-    TEST(!FugaGCList_contains(&d1, &d1));
-    FugaGCList_push(&d1, &i2);
-    TEST( FugaGCList_contains(&d1, &i1));
-    TEST( FugaGCList_contains(&d1, &i2));
-    TEST(!FugaGCList_contains(&d1, &d1));
+    TEST(!FugaGCList_contains_(&d1, &i1));
+    TEST(!FugaGCList_contains_(&d1, &i2));
+    TEST(!FugaGCList_contains_(&d1, &d1));
+    FugaGCList_push_(&d1, &i1);
+    TEST( FugaGCList_contains_(&d1, &i1));
+    TEST(!FugaGCList_contains_(&d1, &i2));
+    TEST(!FugaGCList_contains_(&d1, &d1));
+    FugaGCList_push_(&d1, &i2);
+    TEST( FugaGCList_contains_(&d1, &i1));
+    TEST( FugaGCList_contains_(&d1, &i2));
+    TEST(!FugaGCList_contains_(&d1, &d1));
 }
 #endif
 

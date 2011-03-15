@@ -6,11 +6,17 @@ typedef struct FugaSymbols FugaSymbols;
 
 #include "fuga.h"
 
-FugaSymbols* FugaSymbols_new(void* gc);
-Fuga* FugaSymbols_get(FugaSymbols* self, const char* name);
-void FugaSymbols_set(FugaSymbols* self,
+FugaSymbols* FugaSymbols_new(void* self);
+
+FugaSymbol* FugaSymbols_get(
+    FugaSymbols* self,
+    const char* name
+);
+
+void FugaSymbols_set(
+    FugaSymbols* self,
     const char* name,
-    Fuga* value
+    FugaSymbol* value
 );
 
 #endif

@@ -1,58 +1,53 @@
 #include "test.h"
 #include "int.h"
 
-void FugaInt_init(Fuga* self)
+void FugaInt_init(void* self)
 {
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("str"),
-        FUGA_METHOD_STR(FugaInt_str));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("+"),
-        FUGA_METHOD(FugaInt_addMethod));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("-"),
-        FUGA_METHOD(FugaInt_subMethod));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("*"),
-        FUGA_METHOD_1ARG(FugaInt_mul));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("//"),
-        FUGA_METHOD_1ARG(FugaInt_fdiv));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("%"),
-        FUGA_METHOD_1ARG(FugaInt_mod));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("=="),
-        FUGA_METHOD_1ARG(FugaInt_eq));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("!="),
-        FUGA_METHOD_1ARG(FugaInt_neq));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("<"),
-        FUGA_METHOD_1ARG(FugaInt_lt));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL(">"),
-        FUGA_METHOD_1ARG(FugaInt_gt));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL("<="),
-        FUGA_METHOD_1ARG(FugaInt_le));
-    Fuga_setSlot(FUGA->Int, FUGA_SYMBOL(">="),
-        FUGA_METHOD_1ARG(FugaInt_ge));
+    Fuga_set_to_(FUGA->Int, "str", FUGA_METHOD_STR(FugaInt_str));
+    Fuga_set_to_(FUGA->Int, "+",   FUGA_METHOD(FugaInt_addMethod));
+    Fuga_set_to_(FUGA->Int, "-",   FUGA_METHOD(FugaInt_subMethod));
+    Fuga_set_to_(FUGA->Int, "*",   FUGA_METHOD_1ARG(FugaInt_mul));
+    Fuga_set_to_(FUGA->Int, "//",  FUGA_METHOD_1ARG(FugaInt_fdiv));
+    Fuga_set_to_(FUGA->Int, "%",   FUGA_METHOD_1ARG(FugaInt_mod));
+    Fuga_set_to_(FUGA->Int, "==",  FUGA_METHOD_1ARG(FugaInt_eq));
+    Fuga_set_to_(FUGA->Int, "!=",  FUGA_METHOD_1ARG(FugaInt_neq));
+    Fuga_set_to_(FUGA->Int, "<",   FUGA_METHOD_1ARG(FugaInt_lt));
+    Fuga_set_to_(FUGA->Int, ">",   FUGA_METHOD_1ARG(FugaInt_gt));
+    Fuga_set_to_(FUGA->Int, "<=",  FUGA_METHOD_1ARG(FugaInt_le));
+    Fuga_set_to_(FUGA->Int, ">=",  FUGA_METHOD_1ARG(FugaInt_ge));
 }
 
-Fuga* FugaInt_new(Fuga* self, long value)
-{
+const FugaType FugaInt_type = {
+    "Int"
+};
+
+FugaInt* FugaInt_new_(
+    void* self,
+    long value
+) {
     ALWAYS(self);
-    self = Fuga_clone(self->root->Int);
-    self->type = FUGA_TYPE_INT;
-    self->data = (void*)value;
-    return self;
+    FugaInt* result = Fuga_clone_(FUGA->Int, sizeof(FugaInt));
+    Fuga_type_(result, &FugaInt_type);
+    result->value = value;
+    return result;
 }
 
-long FugaInt_value(Fuga* self)
+long FugaInt_value(FugaInt* self)
 {
     ALWAYS(self);
     ALWAYS(Fuga_isInt(self));
-    return (long)self->data;
+    return self->value;
 }
 
-bool FugaInt_isEqualTo(Fuga* self, long value)
+bool FugaInt_is_(FugaInt* self, long value)
 {
     ALWAYS(self);
     return Fuga_isInt(self) && (FugaInt_value(self) == value);
 }
 
-Fuga* FugaInt_str(Fuga* self)
+void* FugaInt_str(void* _self)
 {
+    FugaInt* self = _self;
     ALWAYS(self);
     FUGA_NEED(self);
     if (!Fuga_isInt(self))
@@ -61,7 +56,7 @@ Fuga* FugaInt_str(Fuga* self)
     char buffer[1024] = {0};
     size_t i = 0;
     size_t j = 0;
-    long value = (long)self->data;
+    long value = self->value;
     if (value == 0)
         return FUGA_STRING("0");
     if (value < 0) {
@@ -78,18 +73,19 @@ Fuga* FugaInt_str(Fuga* self)
     return FUGA_STRING(buffer);
 }
 
-Fuga* FugaInt_addMethod(Fuga* self, Fuga* args)
+void* FugaInt_addMethod(void* _self, void* args)
 {
+    FugaInt* self = _self;
     ALWAYS(self); ALWAYS(args);
     FUGA_NEED(self); FUGA_NEED(args);
     if (!Fuga_isInt(self))
         FUGA_RAISE(FUGA->TypeError, "Int +: expected primitive int");
 
-    Fuga* numSlots = Fuga_numSlots(args);
-    if (FugaInt_isEqualTo(numSlots, 0)) {
+    if (Fuga_hasLength_(args, 0)) {
         return self;
-    } else if (FugaInt_isEqualTo(numSlots, 1)) {
-        Fuga* other = Fuga_getSlot(args, FUGA_INT(0));
+    } else if (Fuga_hasLength_(args, 1)) {
+        FugaInt* other = Fuga_getAt_(args, 0);
+        FUGA_NEED(other);
         if (!Fuga_isInt(other))
             FUGA_RAISE(FUGA->TypeError, "Int +: expected primitive int");
         return FUGA_INT(FugaInt_value(self) + FugaInt_value(other));
@@ -98,18 +94,18 @@ Fuga* FugaInt_addMethod(Fuga* self, Fuga* args)
     }
 }
 
-Fuga* FugaInt_subMethod(Fuga* self, Fuga* args)
+void* FugaInt_subMethod(void* _self, void* args)
 {
+    FugaInt* self = _self;
     ALWAYS(self); ALWAYS(args);
     FUGA_NEED(self); FUGA_NEED(args);
     if (!Fuga_isInt(self))
         FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");
 
-    Fuga* numSlots = Fuga_numSlots(args);
-    if (FugaInt_isEqualTo(numSlots, 0)) {
+    if (Fuga_hasLength_(args, 0)) {
         return FUGA_INT(-FugaInt_value(self));
-    } else if (FugaInt_isEqualTo(numSlots, 1)) {
-        Fuga* other = Fuga_getSlot(args, FUGA_INT(0));
+    } else if (Fuga_hasLength_(args, 1)) {
+        FugaInt* other = Fuga_getAt_(args, 0);
         FUGA_NEED(other);
         if (!Fuga_isInt(other))
             FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");
@@ -119,8 +115,10 @@ Fuga* FugaInt_subMethod(Fuga* self, Fuga* args)
     }
 }
 
-Fuga* FugaInt_add(Fuga* self, Fuga* other)
+void* FugaInt_add(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -128,8 +126,10 @@ Fuga* FugaInt_add(Fuga* self, Fuga* other)
     return FUGA_INT(FugaInt_value(self) + FugaInt_value(other));
 }
 
-Fuga* FugaInt_sub(Fuga* self, Fuga* other)
+void* FugaInt_sub(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -137,8 +137,10 @@ Fuga* FugaInt_sub(Fuga* self, Fuga* other)
     return FUGA_INT(FugaInt_value(self) - FugaInt_value(other));
 }
 
-Fuga* FugaInt_mul(Fuga* self, Fuga* other)
+void* FugaInt_mul(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -146,8 +148,10 @@ Fuga* FugaInt_mul(Fuga* self, Fuga* other)
     return FUGA_INT(FugaInt_value(self) * FugaInt_value(other));
 }
 
-Fuga* FugaInt_fdiv(Fuga* self, Fuga* other)
+void* FugaInt_fdiv(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -155,8 +159,10 @@ Fuga* FugaInt_fdiv(Fuga* self, Fuga* other)
     return FUGA_INT(FugaInt_value(self) / FugaInt_value(other));
 }
 
-Fuga* FugaInt_mod(Fuga* self, Fuga* other)
+void* FugaInt_mod(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -164,8 +170,10 @@ Fuga* FugaInt_mod(Fuga* self, Fuga* other)
     return FUGA_INT(FugaInt_value(self) % FugaInt_value(other));
 }
 
-Fuga* FugaInt_eq(Fuga* self, Fuga* other)
+void* FugaInt_eq(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -173,8 +181,10 @@ Fuga* FugaInt_eq(Fuga* self, Fuga* other)
     return FUGA_BOOL(FugaInt_value(self) == FugaInt_value(other));
 }
 
-Fuga* FugaInt_neq(Fuga* self, Fuga* other)
+void* FugaInt_neq(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -182,8 +192,10 @@ Fuga* FugaInt_neq(Fuga* self, Fuga* other)
     return FUGA_BOOL(FugaInt_value(self) != FugaInt_value(other));
 }
 
-Fuga* FugaInt_lt(Fuga* self, Fuga* other)
+void* FugaInt_lt(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -191,8 +203,10 @@ Fuga* FugaInt_lt(Fuga* self, Fuga* other)
     return FUGA_BOOL(FugaInt_value(self) < FugaInt_value(other));
 }
 
-Fuga* FugaInt_gt(Fuga* self, Fuga* other)
+void* FugaInt_gt(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -200,8 +214,10 @@ Fuga* FugaInt_gt(Fuga* self, Fuga* other)
     return FUGA_BOOL(FugaInt_value(self) > FugaInt_value(other));
 }
 
-Fuga* FugaInt_le(Fuga* self, Fuga* other)
+void* FugaInt_le(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
@@ -209,8 +225,10 @@ Fuga* FugaInt_le(Fuga* self, Fuga* other)
     return FUGA_BOOL(FugaInt_value(self) <= FugaInt_value(other));
 }
 
-Fuga* FugaInt_ge(Fuga* self, Fuga* other)
+void* FugaInt_ge(void* _self, void* _other)
 {
+    FugaInt* self = _self;
+    FugaInt* other = _other;
     ALWAYS(self); ALWAYS(other);
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))

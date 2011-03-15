@@ -3,18 +3,20 @@
 
 #include "fuga.h"
 
-void FugaMsg_init(Fuga*);
+struct FugaMsg {
+    FugaSymbol* name;
+};
 
-#define FUGA_MSG(x) (FugaMsg_new(self, (x)))
-Fuga* FugaMsg_new(Fuga*, const char*);
-Fuga* FugaMsg_fromSymbol(Fuga*);
-Fuga* FugaMsg_toSymbol(Fuga*);
-Fuga* FugaMsg_eval(Fuga* self, Fuga* recv, Fuga* scope);
+void FugaMsg_init(void*);
 
-Fuga* FugaMsg_name(Fuga*);
-Fuga* FugaMsg_args(Fuga*);
-
-Fuga* FugaMsg_str(Fuga*);
+#define FUGA_MSG(x) (FugaMsg_new_(self, (x)))
+FugaMsg* FugaMsg_new_(void*, const char*);
+FugaMsg* FugaMsg_fromSymbol(FugaSymbol*);
+FugaSymbol* FugaMsg_toSymbol(FugaMsg*);
+void* FugaMsg_eval_in_(FugaMsg* self, void* recv, void* scope);
+void* FugaMsg_name(FugaMsg*);
+void* FugaMsg_args(FugaMsg*);
+void* FugaMsg_str(void*);
 
 #endif
 

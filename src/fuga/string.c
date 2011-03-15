@@ -1,32 +1,39 @@
 #include <string.h>
+#include <stdio.h>
 #include "string.h"
 #include "test.h"
 #include "symbol.h"
 #include "char.h"
 
-void FugaString_init(Fuga* self)
+const FugaType FugaString_type = {
+    .name = "String"
+};
+
+void FugaString_init(void* self)
 {
-    Fuga_setSlot(FUGA->String, FUGA_SYMBOL("str"),
-        FUGA_METHOD_STR(FugaString_str));
-    Fuga_setSlot(FUGA->String, FUGA_SYMBOL("++"),
-        FUGA_METHOD_1ARG(FugaString_cat));
+    Fuga_set_to_(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
+    Fuga_set_to_(FUGA->String, "++",  FUGA_METHOD_1ARG(FugaString_cat_));
 }
 
-Fuga* FugaString_new(Fuga* self, const char* value)
+FugaString* FugaString_new(void* self, const char* value)
 {
     ALWAYS(self); ALWAYS(value);
     FUGA_CHECK(self);
-    self = Fuga_clone(FUGA->String);
-    self->type = FUGA_TYPE_STRING;
-    self->size = strlen(value)+1;
-    self->data = FugaGC_alloc(self, self->size);
-    strcpy(self->data, value);
-    return self;
+    size_t size = strlen(value);
+    FugaString* result = Fuga_clone_(
+        FUGA->String, 
+        sizeof(FugaString) + size + 1
+    );
+    Fuga_type_(result, &FugaString_type);
+    result->size   = size;
+    result->length = size; // FIXME: determine actual string length
+    strcpy(result->data, value);
+    return result;
 }
 
 #ifdef TESTING
 TESTS(FUGA_STRING) {
-    Fuga* self = Fuga_init();
+    FugaString* self = Fuga_init();
     TEST(Fuga_isString(FUGA_STRING("")));
     TEST(Fuga_isString(FUGA_STRING("hello")));
     Fuga_quit(self);
@@ -34,7 +41,7 @@ TESTS(FUGA_STRING) {
 #endif
 
 
-Fuga* FugaString_toSymbol(Fuga* self)
+FugaSymbol* FugaString_toSymbol(FugaString* self)
 {
     ALWAYS(self);
 
@@ -53,8 +60,7 @@ Fuga* FugaString_toSymbol(Fuga* self)
     return FUGA_SYMBOL(self->data);
 }
 
-#include <stdio.h>
-void FugaString_print(Fuga* self)
+void FugaString_print(FugaString* self)
 {
     ALWAYS(self);
     ALWAYS(Fuga_isString(self));
@@ -63,7 +69,7 @@ void FugaString_print(Fuga* self)
 }
 
 
-bool FugaString_isEqualTo(Fuga* self, const char* str)
+bool FugaString_is_(FugaString* self, const char* str)
 {
     ALWAYS(self);
     self = Fuga_need(self);
@@ -71,8 +77,9 @@ bool FugaString_isEqualTo(Fuga* self, const char* str)
 }
 
 
-Fuga* FugaString_str(Fuga* self)
+void* FugaString_str(void* _self)
 {
+    FugaString* self = _self;
     ALWAYS(self);
     if (!Fuga_isString(self)) {
         FUGA_RAISE(FUGA->TypeError,
@@ -82,7 +89,7 @@ Fuga* FugaString_str(Fuga* self)
 
     char* c = self->data;
     size_t size = 0;
-    for (size_t i = 0; i < self->size-1;) {
+    for (size_t i = 0; i < self->size;) {
         size += FugaChar_sizeAfterEscape (c+i);
         i    += FugaChar_sizeBeforeEscape(c+i);
     }
@@ -90,19 +97,19 @@ Fuga* FugaString_str(Fuga* self)
     char* buffer = malloc(size+3);
     size_t index = 0;
     buffer[index++] = '"';
-    for (size_t i = 0; i < self->size-1;) {
+    for (size_t i = 0; i < self->size;) {
         FugaChar_escape(buffer+index, c+i);
         index += FugaChar_sizeAfterEscape (c+i);
         i     += FugaChar_sizeBeforeEscape(c+i);
     }
     buffer[index++] = '"';
     buffer[index++] = 0;
-    Fuga* result = FUGA_STRING(buffer);
+    FugaString* result = FUGA_STRING(buffer);
     free(buffer);
     return result;
 }
 
-Fuga* FugaString_sliceFrom(Fuga* self, long start)
+FugaString* FugaString_from_(FugaString* self, long start)
 {
     ALWAYS(self);
     FUGA_CHECK(self);
@@ -113,18 +120,22 @@ Fuga* FugaString_sliceFrom(Fuga* self, long start)
     }
 
     if (start < 0)
-        start += self->size - 1;
+        start += self->length;
         
-    // FIXME: self->size does not really represent length.
-    if (start < 0 || start >= self->size)
+    if (start >= self->length)
         return FUGA_STRING("");
 
+    if (start < 0)
+        return self;
+
     // FIXME: start is not really the right offset to the start'th char.
-    return FUGA_STRING((char*)self->data + start);
+    return FUGA_STRING(self->data + start);
 }
 
-Fuga* FugaString_cat(Fuga* self, Fuga* other)
+void* FugaString_cat_(void* _self, void* _other)
 {
+    FugaString* self  = _self;
+    FugaString* other = _other;
     ALWAYS(self); ALWAYS(other);
     if (!Fuga_isString(self) || !Fuga_isString(other)) {
         FUGA_RAISE(FUGA->TypeError,
@@ -132,9 +143,9 @@ Fuga* FugaString_cat(Fuga* self, Fuga* other)
         );
     }
 
-    char buffer[self->size + other->size];
-    memcpy(buffer,                self->data,  self->size-1);
-    memcpy(buffer + self->size-1, other->data, other->size);
+    char buffer[self->size + other->size + 1];
+    memcpy(buffer,               self->data,  self->size);
+    memcpy(buffer + self->size, other->data, other->size + 1);
     return FUGA_STRING(buffer);
 }
 
