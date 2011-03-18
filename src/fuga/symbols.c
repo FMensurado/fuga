@@ -6,6 +6,10 @@ struct FugaSymbols {
     FugaSymbols* tree[256];
 };
 
+const FugaType FugaSymbols_type = {
+    .name = "C FugaSymbols"
+};
+
 void FugaSymbols_mark(void* _self) 
 {
     FugaSymbols* self = _self;
@@ -16,6 +20,7 @@ void FugaSymbols_mark(void* _self)
 FugaSymbols* FugaSymbols_new(void* self)
 {
     FugaSymbols* syms = Fuga_clone_(FUGA->Object, sizeof(FugaSymbols));
+    Fuga_type_(syms, &FugaSymbols_type);
     Fuga_onMark_(syms, FugaSymbols_mark);
     return syms;
 }

@@ -68,11 +68,11 @@ struct FugaGCInfo {
 };
 
 struct FugaHeader {
-    FugaGCInfo  gc;
-    FugaRoot*   root;
-    const FugaType*   type;
-    FugaSlots*  slots;
-    void*       proto;
+    FugaGCInfo       gc;
+    FugaRoot*        root;
+    const FugaType*  type;
+    FugaSlots*       slots;
+    void*            proto;
 };
 
 
@@ -92,6 +92,8 @@ void Fuga_onMark_(void* self, void (*markFn)(void*));
 void Fuga_onFree_(void* self, void (*freeFn)(void*));
 void Fuga_mark_(void* self, void* child);
 void Fuga_collect(void* self);
+void Fuga_root(void* self);
+void Fuga_unroot(void* self);
 
 // Primitives
 const FugaType* Fuga_type   (void* self);

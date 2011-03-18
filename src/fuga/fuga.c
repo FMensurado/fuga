@@ -8,6 +8,8 @@
 void FugaRoot_mark(
     void* self
 ) {
+    Fuga_mark_(self, FUGA->symbols);
+
     Fuga_mark_(self, FUGA->Object);
     Fuga_mark_(self, FUGA->Prelude);
     Fuga_mark_(self, FUGA->Number);
@@ -21,7 +23,6 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->Bool);
     Fuga_mark_(self, FUGA->True);
     Fuga_mark_(self, FUGA->False);
-    Fuga_mark_(self, FUGA->nil);
 
     Fuga_mark_(self, FUGA->Exception);
     Fuga_mark_(self, FUGA->TypeError);
@@ -150,6 +151,8 @@ void FugaHeader_mark(
 ) {
     ALWAYS(header);
     NEVER(Fuga_isRaised(header));
+    header->gc.pass = FUGA_HEADER(header->root)->gc.pass;
+    Fuga_mark_(FUGA_DATA(header), header->root);
     Fuga_mark_(FUGA_DATA(header), header->slots);
     Fuga_mark_(FUGA_DATA(header), header->proto);
     if (header->gc.mark)
@@ -197,9 +200,9 @@ void* Fuga_clone_(
     void* self    = FUGA_DATA(header);
     header->root  = FUGA_HEADER(proto)->root;
     header->proto = proto;
-    header->gc.pass = FUGA_HEADER(FUGA)->gc.pass;
+    header->gc.pass = FUGA_HEADER(header->root)->gc.pass;
     FugaGCList_init(&header->gc.list);
-    FugaGCList_push_(&FUGA->white, &header->gc.list);
+    FugaGCList_push_(&FUGA->grey, &header->gc.list);
     return self;
 }
 
@@ -235,6 +238,28 @@ void Fuga_onFree_(
     FUGA_HEADER(self)->gc.free = freeFn;
 }
 
+void Fuga_root(
+    void* self
+) {
+    ALWAYS(self); NEVER(Fuga_isRaised(self));
+    FugaHeader* header = FUGA_HEADER(self);
+    NEVER(header->gc.root);
+    header->gc.root = true;
+    FugaGCList_unlink(&header->gc.list);
+    FugaGCList_push_(&FUGA->roots, &header->gc.list);
+}
+
+void Fuga_unroot(
+    void* self
+) {
+    ALWAYS(self); NEVER(Fuga_isRaised(self));
+    FugaHeader* header = FUGA_HEADER(self);
+    ALWAYS(header->gc.root);
+    header->gc.root = false;
+    FugaGCList_unlink(&header->gc.list);
+    FugaGCList_push_(&FUGA->grey, &header->gc.list);
+}
+
 void Fuga_mark_(
     void* self,
     void* child
@@ -243,20 +268,24 @@ void Fuga_mark_(
     if (!child) return;
     NEVER(Fuga_isRaised(self));
     NEVER(Fuga_isRaised(child));
-    self = FUGA;
-    if (FUGA_HEADER(child)->gc.pass != FUGA_HEADER(self)->gc.pass) {
-        FUGA_HEADER(child)->gc.pass  = FUGA_HEADER(self)->gc.pass;
-        FugaGCList_unlink(&FUGA_HEADER(child)->gc.list);
-        FugaGCList_push_(&FUGA->grey, &FUGA_HEADER(child)->gc.list);
+    unsigned pass = FUGA_HEADER(FUGA)->gc.pass;
+    FugaHeader* header = FUGA_HEADER(child);
+    if (header->gc.pass != pass) {
+        header->gc.pass = pass;
+        if (header->gc.root)
+            return;
+        FugaGCList_unlink(&header->gc.list);
+        FugaGCList_push_(&FUGA->grey, &header->gc.list);
     }
 }
+
 
 void Fuga_collect(
     void* self
 ) {
     ALWAYS(self);
     self = FUGA;
-    unsigned pass = ++(FUGA_HEADER(self)->gc.pass);
+    FUGA_HEADER(FUGA)->gc.pass += 1;
     FugaGCList_append_(&FUGA->white, &FUGA->grey);
     FugaGCList_append_(&FUGA->white, &FUGA->black);
     FugaGCList* iter = FUGA->roots.next;
@@ -264,11 +293,10 @@ void Fuga_collect(
     while (iter != &FUGA->roots) {
         header = (FugaHeader*)iter;
         iter = iter->next;
-        header->gc.pass = pass;
         FugaHeader_mark(header);
     }
     while (!FugaGCList_empty(&FUGA->grey)) {
-        iter   = FugaGCList_pop(&FUGA->grey);
+        iter = FugaGCList_pop(&FUGA->grey);
         header = (FugaHeader*)iter;
         FugaGCList_push_(&FUGA->black, iter);
         FugaHeader_mark(header);

@@ -7,7 +7,7 @@
 #define PROMPT1 ">>> "
 #define PROMPT2 "... "
 
-Fuga* read(
+void* read(
     FugaParser* parser
 ) {
     char buffer[1024];
@@ -25,15 +25,15 @@ Fuga* read(
     return FugaParser_block(parser);
 }
 
-Fuga* evalPrint(
-    Fuga* self,
-    Fuga* block
+void* evalPrint(
+    void* self,
+    void* block
 ) {
     FUGA_CHECK(block);
-    long length = FugaInt_value(Fuga_numSlots(block));
+    long length = FugaInt_value(Fuga_length(block));
     for (long i = 0; i < length; i++) {
-        Fuga* slot   = Fuga_getSlot(block, FUGA_INT(i));
-        Fuga* value  = Fuga_eval(slot, self, self);
+        void* slot   = Fuga_getAt_(block, i);
+        void* value  = Fuga_eval(slot, self, self);
         if (Fuga_isNil(value))
             continue;
         FUGA_CHECK(Fuga_print(value));
@@ -43,54 +43,54 @@ Fuga* evalPrint(
 
 void repl()
 {
-    Fuga *self = Fuga_init();
+    void* self = Fuga_init();
     FugaParser *parser = FugaParser_new(self);
     
     self = Fuga_clone(FUGA->Prelude);
-    FugaGC_root(self);
-    FugaGC_root(parser);
-    Fuga_setSlot(self, FUGA_SYMBOL("this"), self);
+    Fuga_root(self);
+    Fuga_root(parser);
+    Fuga_set_to_(self, "this", self);
 
     printf("Fuga 0.1. Use \"quit\" to quit.\n");
     while (1) {
-        Fuga* block = read(parser);
+        void* block = read(parser);
         if (!block) break;
-        Fuga* error = evalPrint(self, block);
+        void* error = evalPrint(self, block);
         if (error) Fuga_printException(error);
-        FugaGC_collect(self);
+        Fuga_collect(self);
     }
 
     Fuga_quit(self);
 }
 
-Fuga* runBlock(
-    Fuga* self
+void* runBlock(
+    void* self
 ) {
     FUGA_CHECK(self);
-    Fuga* block = self;
+    void* block = self;
     self = Fuga_clone(FUGA->Prelude);
-    Fuga* scope = Fuga_clone(self);
-    FUGA_CHECK(Fuga_setSlot(scope, FUGA_SYMBOL("this"), self));
+    void* scope = Fuga_clone(self);
+    FUGA_CHECK(Fuga_set_to_(scope, "this", self));
 
-    long numSlots = FugaInt_value(Fuga_numSlots(block));
+    long numSlots = FugaInt_value(Fuga_length(block));
     for (long i = 0; i < numSlots; i++) {
-        Fuga* slot = Fuga_getSlot(block, FUGA_INT(i));
+        void* slot = Fuga_getAt_(block, i);
         FUGA_CHECK(slot);
-        Fuga* result = Fuga_eval(slot, scope, scope);
+        void* result = Fuga_eval(slot, scope, scope);
         FUGA_CHECK(result);
         FUGA_CHECK(Fuga_print(result));
     }
     return FUGA->nil;
 }
 
-Fuga* loadFile(
-    Fuga* self,
+void* loadFile(
+    void* self,
     const char* filename
 ) {
     FugaParser *parser = FugaParser_new(self);
     if (!FugaParser_readFile_(parser, filename)) 
         FUGA_RAISE(FUGA->IOError, "can't load module");
-    Fuga* block = FugaParser_block(parser);
+    void* block = FugaParser_block(parser);
     // FIXME: ensure EOF
     FUGA_CHECK(runBlock(block));
     return FUGA->nil;
@@ -99,9 +99,9 @@ Fuga* loadFile(
 void runFile(
     const char* filename
 ) {
-    Fuga* self   = Fuga_init();
-    Fuga* result = loadFile(self, filename);
-    Fuga* error  = Fuga_catch(result);
+    void* self   = Fuga_init();
+    void* result = loadFile(self, filename);
+    void* error  = Fuga_catch(result);
     if (error)
         Fuga_printException(error);
 }
