@@ -3,18 +3,18 @@
 
 void FugaInt_init(void* self)
 {
-    Fuga_set_to_(FUGA->Int, "str", FUGA_METHOD_STR(FugaInt_str));
-    Fuga_set_to_(FUGA->Int, "+",   FUGA_METHOD(FugaInt_addMethod));
-    Fuga_set_to_(FUGA->Int, "-",   FUGA_METHOD(FugaInt_subMethod));
-    Fuga_set_to_(FUGA->Int, "*",   FUGA_METHOD_1ARG(FugaInt_mul));
-    Fuga_set_to_(FUGA->Int, "//",  FUGA_METHOD_1ARG(FugaInt_fdiv));
-    Fuga_set_to_(FUGA->Int, "%",   FUGA_METHOD_1ARG(FugaInt_mod));
-    Fuga_set_to_(FUGA->Int, "==",  FUGA_METHOD_1ARG(FugaInt_eq));
-    Fuga_set_to_(FUGA->Int, "!=",  FUGA_METHOD_1ARG(FugaInt_neq));
-    Fuga_set_to_(FUGA->Int, "<",   FUGA_METHOD_1ARG(FugaInt_lt));
-    Fuga_set_to_(FUGA->Int, ">",   FUGA_METHOD_1ARG(FugaInt_gt));
-    Fuga_set_to_(FUGA->Int, "<=",  FUGA_METHOD_1ARG(FugaInt_le));
-    Fuga_set_to_(FUGA->Int, ">=",  FUGA_METHOD_1ARG(FugaInt_ge));
+    Fuga_setS(FUGA->Int, "str", FUGA_METHOD_STR(FugaInt_str));
+    Fuga_setS(FUGA->Int, "+",   FUGA_METHOD(FugaInt_addMethod));
+    Fuga_setS(FUGA->Int, "-",   FUGA_METHOD(FugaInt_subMethod));
+    Fuga_setS(FUGA->Int, "*",   FUGA_METHOD_1ARG(FugaInt_mul));
+    Fuga_setS(FUGA->Int, "//",  FUGA_METHOD_1ARG(FugaInt_fdiv));
+    Fuga_setS(FUGA->Int, "%",   FUGA_METHOD_1ARG(FugaInt_mod));
+    Fuga_setS(FUGA->Int, "==",  FUGA_METHOD_1ARG(FugaInt_eq));
+    Fuga_setS(FUGA->Int, "!=",  FUGA_METHOD_1ARG(FugaInt_neq));
+    Fuga_setS(FUGA->Int, "<",   FUGA_METHOD_1ARG(FugaInt_lt));
+    Fuga_setS(FUGA->Int, ">",   FUGA_METHOD_1ARG(FugaInt_gt));
+    Fuga_setS(FUGA->Int, "<=",  FUGA_METHOD_1ARG(FugaInt_le));
+    Fuga_setS(FUGA->Int, ">=",  FUGA_METHOD_1ARG(FugaInt_ge));
 }
 
 const FugaType FugaInt_type = {
@@ -84,7 +84,7 @@ void* FugaInt_addMethod(void* _self, void* args)
     if (Fuga_hasLength_(args, 0)) {
         return self;
     } else if (Fuga_hasLength_(args, 1)) {
-        FugaInt* other = Fuga_getAt_(args, 0);
+        FugaInt* other = Fuga_getI(args, 0);
         FUGA_NEED(other);
         if (!Fuga_isInt(other))
             FUGA_RAISE(FUGA->TypeError, "Int +: expected primitive int");
@@ -105,7 +105,7 @@ void* FugaInt_subMethod(void* _self, void* args)
     if (Fuga_hasLength_(args, 0)) {
         return FUGA_INT(-FugaInt_value(self));
     } else if (Fuga_hasLength_(args, 1)) {
-        FugaInt* other = Fuga_getAt_(args, 0);
+        FugaInt* other = Fuga_getI(args, 0);
         FUGA_NEED(other);
         if (!Fuga_isInt(other))
             FUGA_RAISE(FUGA->TypeError, "Int -: expected primitive int");

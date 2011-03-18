@@ -11,7 +11,7 @@ const FugaType FugaSymbol_type = {
 void FugaSymbol_init(
     void* self
 ) {
-    Fuga_set_to_(FUGA->Symbol, "str", FUGA_METHOD_STR(FugaSymbol_str));
+    Fuga_setS(FUGA->Symbol, "str", FUGA_METHOD_STR(FugaSymbol_str));
 }
 
 bool FugaSymbol_isValid(

@@ -101,22 +101,22 @@ void* Fuga_init(
 
 
 void Fuga_initObject(void* self) {
-    Fuga_set_to_(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
-    Fuga_set_to_(FUGA->Object, "has", FUGA_METHOD_1ARG(Fuga_hasBy_));
-    Fuga_set_to_(FUGA->Object, "get", FUGA_METHOD_1ARG(Fuga_getBy_));
-    Fuga_set_to_(FUGA->Object, "set", FUGA_METHOD_2ARG(Fuga_setBy_to_));
-    Fuga_set_to_(FUGA->Object, "hasRaw", FUGA_METHOD_1ARG(Fuga_hasRawBy_));
-    Fuga_set_to_(FUGA->Object, "getRaw", FUGA_METHOD_1ARG(Fuga_getRawBy_));
-    Fuga_set_to_(FUGA->Object, "length",
+    Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
+    Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1ARG(Fuga_has));
+    Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1ARG(Fuga_get));
+    Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2ARG(Fuga_set));
+    Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1ARG(Fuga_hasRaw));
+    Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1ARG(Fuga_getRaw));
+    Fuga_setS(FUGA->Object, "length",
         FUGA_METHOD_0ARG((void*(*)(void*))Fuga_length));
 
     // *cough* sorry. this is here, but this location doesn't make sense
-    Fuga_setBy_to_(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
+    Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
 }
 
 void Fuga_initBool(void* self) {
-    Fuga_set_to_(FUGA->True,  "name", FUGA_STRING("true"));
-    Fuga_set_to_(FUGA->False, "name", FUGA_STRING("false"));
+    Fuga_setS(FUGA->True,  "name", FUGA_STRING("true"));
+    Fuga_setS(FUGA->False, "name", FUGA_STRING("false"));
 }
 
 #ifdef TESTING
@@ -550,7 +550,7 @@ FugaSlot* Fuga_getSlot_(void* self, void* name)
 /**
  * Does a slot have a name for a given index?
  */
-void* Fuga_hasNameBy_(void* self, void* name)
+void* Fuga_hasName(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
@@ -574,7 +574,7 @@ void* Fuga_hasNameBy_(void* self, void* name)
         return FUGA->False;
 }
 
-void* Fuga_hasDocBy_(void* self, void* name)
+void* Fuga_hasDoc(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
@@ -601,7 +601,7 @@ void* Fuga_hasDocBy_(void* self, void* name)
 /**
  * Does a slot have a name for a given index?
  */
-void* Fuga_getNameBy_(void* self, void* name)
+void* Fuga_getName(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
@@ -628,7 +628,7 @@ void* Fuga_getNameBy_(void* self, void* name)
     }
 }
 
-void* Fuga_getDocBy_(void* self, void* name)
+void* Fuga_getDoc(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
@@ -652,7 +652,7 @@ void* Fuga_getDocBy_(void* self, void* name)
         "getDoc: no slot with name"
     );
 }
-void* Fuga_setDocBy_to_(void* self, void* name, void* value)
+void* Fuga_setDoc(void* self, void* name, void* value)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
@@ -681,7 +681,7 @@ void* Fuga_setDocBy_to_(void* self, void* name, void* value)
 /**
  * Look in an object's slots.
  */
-void* Fuga_hasRawBy_(void* self, void* name)
+void* Fuga_hasRaw(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
@@ -702,86 +702,86 @@ void* Fuga_hasRawBy_(void* self, void* name)
 }
 
 #ifdef TESTING
-TESTS(Fuga_hasRawBy_) {
+TESTS(Fuga_hasRaw) {
     void* self = Fuga_init();
     
     void* a = Fuga_clone(FUGA->Object);
     void* b = Fuga_clone(a);
     void* c = Fuga_clone(b);
 
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, FUGA_SYMBOL("b"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, NULL, a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, a)));
 
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(a, FUGA_INT(0))));
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(b, FUGA_INT(0))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_INT(0))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_INT(1))));
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(b, FUGA_INT(1))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_INT(1))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_INT(42))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_INT(-1))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_INT(0))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(b, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(1))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(b, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(42))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(-1))));
 
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(a, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(b, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(b, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_SYMBOL("c"))));
 
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(a, FUGA_STRING("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_STRING("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_STRING("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_STRING("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(b, FUGA_STRING("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_STRING("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_STRING("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_STRING("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_STRING("c"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_STRING("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_STRING("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_STRING("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_STRING("b"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(b, FUGA_STRING("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_STRING("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_STRING("c"))));
 
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(a, FUGA_MSG("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_MSG("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_MSG("a"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_MSG("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasRawBy_(b, FUGA_MSG("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_MSG("b"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(a, FUGA_MSG("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(b, FUGA_MSG("c"))));
-    TEST( Fuga_isFalse (Fuga_hasRawBy_(c, FUGA_MSG("c"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_MSG("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_MSG("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_MSG("a"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_MSG("b"))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(b, FUGA_MSG("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_MSG("b"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_MSG("c"))));
 
-    TEST( Fuga_isRaised(Fuga_hasRawBy_(a, a)));
-    TEST( Fuga_isRaised(Fuga_hasRawBy_(a, FUGA->Int)));
-    TEST( Fuga_isRaised(Fuga_hasRawBy_(a, FUGA_STRING(""))));
-    TEST( Fuga_isRaised(Fuga_hasRawBy_(Fuga_raise(a), FUGA_INT(10))));
-    TEST( Fuga_isRaised(Fuga_hasRawBy_(a, Fuga_raise(FUGA_INT(10)))));
+    TEST( Fuga_isRaised(Fuga_hasRaw(a, a)));
+    TEST( Fuga_isRaised(Fuga_hasRaw(a, FUGA->Int)));
+    TEST( Fuga_isRaised(Fuga_hasRaw(a, FUGA_STRING(""))));
+    TEST( Fuga_isRaised(Fuga_hasRaw(Fuga_raise(a), FUGA_INT(10))));
+    TEST( Fuga_isRaised(Fuga_hasRaw(a, Fuga_raise(FUGA_INT(10)))));
 
 
     void* prim = FUGA_INT(10);
     void* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append_(obj, prim)));
-    TEST(Fuga_isTrue(Fuga_hasRawBy_(Fuga_lazy_(obj, self), FUGA_INT(0))));
-    TEST(Fuga_isTrue(Fuga_hasRawBy_(obj, Fuga_lazy_(FUGA_INT(0), self))));
-    TEST(Fuga_isTrue(Fuga_hasRawBy_(a,Fuga_lazy_(FUGA_SYMBOL("a"),self))));
+    TEST(Fuga_isTrue(Fuga_hasRaw(Fuga_lazy_(obj, self), FUGA_INT(0))));
+    TEST(Fuga_isTrue(Fuga_hasRaw(obj, Fuga_lazy_(FUGA_INT(0), self))));
+    TEST(Fuga_isTrue(Fuga_hasRaw(a,Fuga_lazy_(FUGA_SYMBOL("a"),self))));
 }
 #endif
 
 /**
  * Generic has.
  */ 
-void* Fuga_hasBy_(void* self, void* name)
+void* Fuga_has(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_CHECK(self);
     name = Fuga_toName(name);
     FUGA_CHECK(name);
 
-    void* result = Fuga_hasRawBy_(self, name);
+    void* result = Fuga_hasRaw(self, name);
     FUGA_CHECK(result);
     if (Fuga_isTrue(result))
         return result;
@@ -791,77 +791,77 @@ void* Fuga_hasBy_(void* self, void* name)
         );
 
     if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
-        return Fuga_hasBy_(FUGA_HEADER(self)->proto, name);
+        return Fuga_has(FUGA_HEADER(self)->proto, name);
 
     return FUGA->False;
 }
 
 #ifdef TESTING
-TESTS(Fuga_hasBy_) {
+TESTS(Fuga_has) {
     void* self = Fuga_init();
     
     void* a = Fuga_clone(FUGA->Object);
     void* b = Fuga_clone(a);
     void* c = Fuga_clone(b);
 
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, FUGA_SYMBOL("b"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, NULL, a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, a)));
 
-    TEST( Fuga_isTrue  (Fuga_hasBy_(a, FUGA_INT(0))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_INT(0))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_INT(0))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_INT(1))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_INT(1))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_INT(1))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(b, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_INT(2))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_INT(42))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_INT(-1))));
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_INT(0))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(0))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(1))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(1))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(2))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(42))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(-1))));
 
-    TEST( Fuga_isTrue  (Fuga_hasBy_(a, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(b, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_SYMBOL("c"))));
 
-    TEST( Fuga_isTrue  (Fuga_hasBy_(a, FUGA_STRING("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_STRING("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_STRING("a"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_STRING("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_STRING("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_STRING("b"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_STRING("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(b, FUGA_STRING("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_STRING("c"))));
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_STRING("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_STRING("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_STRING("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_STRING("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_STRING("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_STRING("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_STRING("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_STRING("c"))));
 
-    TEST( Fuga_isTrue  (Fuga_hasBy_(a, FUGA_MSG("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_MSG("a"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_MSG("a"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_MSG("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(b, FUGA_MSG("b"))));
-    TEST( Fuga_isTrue  (Fuga_hasBy_(c, FUGA_MSG("b"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(a, FUGA_MSG("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(b, FUGA_MSG("c"))));
-    TEST( Fuga_isFalse (Fuga_hasBy_(c, FUGA_MSG("c"))));
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_MSG("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_MSG("a"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_MSG("a"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_MSG("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(b, FUGA_MSG("b"))));
+    TEST( Fuga_isTrue  (Fuga_has(c, FUGA_MSG("b"))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_has(b, FUGA_MSG("c"))));
+    TEST( Fuga_isFalse (Fuga_has(c, FUGA_MSG("c"))));
 
-    TEST( Fuga_isRaised(Fuga_hasBy_(a, a)));
-    TEST( Fuga_isRaised(Fuga_hasBy_(a, FUGA->Int)));
-    TEST( Fuga_isRaised(Fuga_hasBy_(a, FUGA_STRING(""))));
-    TEST( Fuga_isRaised(Fuga_hasBy_(Fuga_raise(a), FUGA_INT(10))));
-    TEST( Fuga_isRaised(Fuga_hasBy_(a, Fuga_raise(FUGA_INT(10)))));
+    TEST( Fuga_isRaised(Fuga_has(a, a)));
+    TEST( Fuga_isRaised(Fuga_has(a, FUGA->Int)));
+    TEST( Fuga_isRaised(Fuga_has(a, FUGA_STRING(""))));
+    TEST( Fuga_isRaised(Fuga_has(Fuga_raise(a), FUGA_INT(10))));
+    TEST( Fuga_isRaised(Fuga_has(a, Fuga_raise(FUGA_INT(10)))));
 
     void* prim = FUGA_INT(10);
     void* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append_(obj, prim)));
-    TEST(Fuga_isTrue(Fuga_hasBy_(Fuga_lazy_(obj, self), FUGA_INT(0))));
-    TEST(Fuga_isTrue(Fuga_hasBy_(obj, Fuga_lazy_(FUGA_INT(0), self))));
-    TEST(Fuga_isTrue(Fuga_hasBy_(a,Fuga_lazy_(FUGA_SYMBOL("a"),self))));
+    TEST(Fuga_isTrue(Fuga_has(Fuga_lazy_(obj, self), FUGA_INT(0))));
+    TEST(Fuga_isTrue(Fuga_has(obj, Fuga_lazy_(FUGA_INT(0), self))));
+    TEST(Fuga_isTrue(Fuga_has(a,Fuga_lazy_(FUGA_SYMBOL("a"),self))));
 }
 #endif
 
@@ -870,7 +870,7 @@ TESTS(Fuga_hasBy_) {
 /**
  * Get the value of a slot, without looking in proto.
  */
-void* Fuga_getRawBy_(void* self, void* name)
+void* Fuga_getRaw(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
@@ -888,73 +888,73 @@ void* Fuga_getRawBy_(void* self, void* name)
 }
 
 #ifdef TESTING
-TESTS(Fuga_getRawBy_) {
+TESTS(Fuga_getRaw) {
     void* self = Fuga_init();
     
     void* a = Fuga_clone(FUGA->Object);
     void* b = Fuga_clone(a);
     void* c = Fuga_clone(b);
 
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("b"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, FUGA_SYMBOL("b"), b)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, NULL, c)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), b)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, c)));
 
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_INT(0))));
-    TEST( b  ==        (Fuga_getRawBy_(b, FUGA_INT(0))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_INT(0))));
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_INT(1))));
-    TEST( c  ==        (Fuga_getRawBy_(b, FUGA_INT(1))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_INT(1))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_INT(42))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_INT(-1))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_INT(0))));
+    TEST( b  ==        (Fuga_getRaw(b, FUGA_INT(0))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_INT(0))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_INT(1))));
+    TEST( c  ==        (Fuga_getRaw(b, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(42))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(-1))));
 
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_SYMBOL("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_SYMBOL("a"))));
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_SYMBOL("b"))));
-    TEST( b  ==        (Fuga_getRawBy_(b, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_SYMBOL("c"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_SYMBOL("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_getRaw(b, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_SYMBOL("c"))));
 
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_STRING("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_STRING("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_STRING("a"))));
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_STRING("b"))));
-    TEST( b  ==        (Fuga_getRawBy_(b, FUGA_STRING("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_STRING("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_STRING("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_STRING("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_STRING("c"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_STRING("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_STRING("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_getRaw(b, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_STRING("c"))));
 
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_MSG("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_MSG("a"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_MSG("a"))));
-    TEST( a  ==        (Fuga_getRawBy_(a, FUGA_MSG("b"))));
-    TEST( b  ==        (Fuga_getRawBy_(b, FUGA_MSG("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_MSG("b"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(a, FUGA_MSG("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(b, FUGA_MSG("c"))));
-    TEST( Fuga_isRaised(Fuga_getRawBy_(c, FUGA_MSG("c"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_MSG("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_MSG("a"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_getRaw(b, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_MSG("c"))));
 
     void* prim = FUGA_INT(10);
     void* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append_(obj, prim)));
-    TEST(prim == Fuga_getRawBy_(Fuga_lazy_(obj, self), FUGA_INT(0)));
-    TEST(prim == Fuga_getRawBy_(obj, Fuga_lazy_(FUGA_INT(0), self)));
-    TEST(a == Fuga_getRawBy_(a, Fuga_lazy_(FUGA_SYMBOL("a"), self)));
+    TEST(prim == Fuga_getRaw(Fuga_lazy_(obj, self), FUGA_INT(0)));
+    TEST(prim == Fuga_getRaw(obj, Fuga_lazy_(FUGA_INT(0), self)));
+    TEST(a == Fuga_getRaw(a, Fuga_lazy_(FUGA_SYMBOL("a"), self)));
 }
 #endif
 
 /**
  * Generic get.
  */
-void* Fuga_getBy_(void* self, void* name)
+void* Fuga_get(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
@@ -966,7 +966,7 @@ void* Fuga_getBy_(void* self, void* name)
         return slot->value;
 
     if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
-        return Fuga_getBy_(FUGA_HEADER(self)->proto, name);
+        return Fuga_get(FUGA_HEADER(self)->proto, name);
 
     // FIXME: give better error message
     FUGA_RAISE(FUGA->SlotError,
@@ -975,66 +975,66 @@ void* Fuga_getBy_(void* self, void* name)
 }
 
 #ifdef TESTING
-TESTS(Fuga_getBy_) {
+TESTS(Fuga_get) {
     void* self = Fuga_init();
     
     void* a = Fuga_clone(FUGA->Object);
     void* b = Fuga_clone(a);
     void* c = Fuga_clone(b);
 
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(a, FUGA_SYMBOL("b"), a)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, FUGA_SYMBOL("b"), b)));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(b, NULL, c)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("a"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(a, FUGA_SYMBOL("b"), a)));
+    TEST(!Fuga_isRaised(Fuga_set(b, FUGA_SYMBOL("b"), b)));
+    TEST(!Fuga_isRaised(Fuga_set(b, NULL, c)));
 
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_INT(0))));
-    TEST( b  ==        (Fuga_getBy_(b, FUGA_INT(0))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_INT(0))));
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_INT(1))));
-    TEST( c  ==        (Fuga_getBy_(b, FUGA_INT(1))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_INT(1))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getBy_(b, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_INT(2))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_INT(42))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_INT(-1))));
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(0))));
+    TEST( b  ==        (Fuga_get(b, FUGA_INT(0))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(0))));
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(1))));
+    TEST( c  ==        (Fuga_get(b, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(1))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(2))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(42))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(-1))));
 
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_SYMBOL("a"))));
-    TEST( a  ==        (Fuga_getBy_(b, FUGA_SYMBOL("a"))));
-    TEST( a  ==        (Fuga_getBy_(c, FUGA_SYMBOL("a"))));
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_SYMBOL("b"))));
-    TEST( b  ==        (Fuga_getBy_(b, FUGA_SYMBOL("b"))));
-    TEST( b  ==        (Fuga_getBy_(c, FUGA_SYMBOL("b"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(b, FUGA_SYMBOL("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_SYMBOL("c"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_SYMBOL("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_SYMBOL("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_SYMBOL("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_SYMBOL("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_SYMBOL("c"))));
 
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_STRING("a"))));
-    TEST( a  ==        (Fuga_getBy_(b, FUGA_STRING("a"))));
-    TEST( a  ==        (Fuga_getBy_(c, FUGA_STRING("a"))));
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_STRING("b"))));
-    TEST( b  ==        (Fuga_getBy_(b, FUGA_STRING("b"))));
-    TEST( b  ==        (Fuga_getBy_(c, FUGA_STRING("b"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_STRING("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(b, FUGA_STRING("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_STRING("c"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_STRING("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_STRING("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_STRING("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_STRING("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_STRING("c"))));
 
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_MSG("a"))));
-    TEST( a  ==        (Fuga_getBy_(b, FUGA_MSG("a"))));
-    TEST( a  ==        (Fuga_getBy_(c, FUGA_MSG("a"))));
-    TEST( a  ==        (Fuga_getBy_(a, FUGA_MSG("b"))));
-    TEST( b  ==        (Fuga_getBy_(b, FUGA_MSG("b"))));
-    TEST( b  ==        (Fuga_getBy_(c, FUGA_MSG("b"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(a, FUGA_MSG("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(b, FUGA_MSG("c"))));
-    TEST( Fuga_isRaised(Fuga_getBy_(c, FUGA_MSG("c"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(b, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(c, FUGA_MSG("a"))));
+    TEST( a  ==        (Fuga_get(a, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_get(b, FUGA_MSG("b"))));
+    TEST( b  ==        (Fuga_get(c, FUGA_MSG("b"))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_get(b, FUGA_MSG("c"))));
+    TEST( Fuga_isRaised(Fuga_get(c, FUGA_MSG("c"))));
 
     void* prim = FUGA_INT(10);
     void* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append_(obj, prim)));
-    TEST(prim == Fuga_getBy_(Fuga_lazy_(obj, self), FUGA_INT(0)));
-    TEST(prim == Fuga_getBy_(obj, Fuga_lazy_(FUGA_INT(0), self)));
-    TEST(a == Fuga_getBy_(a, Fuga_lazy_(FUGA_SYMBOL("a"), self)));
+    TEST(prim == Fuga_get(Fuga_lazy_(obj, self), FUGA_INT(0)));
+    TEST(prim == Fuga_get(obj, Fuga_lazy_(FUGA_INT(0), self)));
+    TEST(a == Fuga_get(a, Fuga_lazy_(FUGA_SYMBOL("a"), self)));
 
     Fuga_quit(self);
 }
@@ -1061,7 +1061,7 @@ void* Fuga_append_(void* self, void* value)
  * @param value Value to set.
  * @return nil on success, some raised exception otherwise.
  */
-void* Fuga_setBy_to_(void* self, void* name, void* value)
+void* Fuga_set(void* self, void* name, void* value)
 {
     ALWAYS(self); ALWAYS(value);
     FUGA_NEED(self);
@@ -1099,68 +1099,68 @@ void* Fuga_setBy_to_(void* self, void* name, void* value)
 }
 
 #ifdef TESTING
-TESTS(Fuga_setBy_to_) {
+TESTS(Fuga_set) {
     void* self = Fuga_init();
     void* a = Fuga_clone(FUGA->Object);
 
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_INT(0), a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_INT(1), a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_INT(0), a)) );
-    TEST( Fuga_isRaised (Fuga_setBy_to_(a, FUGA_INT(3), a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, NULL,        a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_INT(3), a)) );
-    TEST( Fuga_isRaised (Fuga_setBy_to_(a, FUGA_INT(-1), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(0), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(1), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(0), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(3), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, NULL,        a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(3), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(-1), a)) );
 
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_SYMBOL("b"), a)) );
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_SYMBOL("a"), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("a"), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("b"), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("a"), a)) );
 
-    TEST( Fuga_isNil    (Fuga_setBy_to_(a, FUGA_STRING("x"), a)) );
-    TEST( Fuga_isRaised (Fuga_setBy_to_(a, FUGA_STRING(""), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_STRING("x"), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, FUGA_STRING(""), a)) );
 
-    TEST( Fuga_isRaised (Fuga_setBy_to_(Fuga_raise(a), FUGA_INT(0), a)) );
-    TEST( Fuga_isRaised (Fuga_setBy_to_(a, Fuga_raise(FUGA_INT(0)), a)) );
-    TEST( Fuga_isRaised (Fuga_setBy_to_(a, FUGA_INT(0), Fuga_raise(a))) );
+    TEST( Fuga_isRaised (Fuga_set(Fuga_raise(a), FUGA_INT(0), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, Fuga_raise(FUGA_INT(0)), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(0), Fuga_raise(a))) );
 
     Fuga_quit(self);
 }
 #endif
 
 
-void* Fuga_has_         (void* self, const char* name)
-    { return Fuga_hasBy_        (self, FUGA_SYMBOL(name));   }
-void* Fuga_hasRaw_      (void* self, const char* name)
-    { return Fuga_hasRawBy_     (self, FUGA_SYMBOL(name));   }
-void* Fuga_hasDoc_      (void* self, const char* name)
-    { return Fuga_hasDocBy_     (self, FUGA_SYMBOL(name));   }
-void* Fuga_get_         (void* self, const char* name)
-    { return Fuga_getBy_        (self, FUGA_SYMBOL(name));   }
-void* Fuga_getRaw_      (void* self, const char* name)
-    { return Fuga_getRawBy_     (self, FUGA_SYMBOL(name));   }
-void* Fuga_getDoc_      (void* self, const char* name)
-    { return Fuga_getDocBy_     (self, FUGA_SYMBOL(name));   }
-void* Fuga_set_to_      (void* self, const char* name, void* value)
-    { return Fuga_setBy_to_     (self, FUGA_SYMBOL(name), value);   }
-void* Fuga_setDoc_to_   (void* self, const char* name, void* value)
-    { return Fuga_setDocBy_to_  (self, FUGA_SYMBOL(name), value);   }
+void* Fuga_hasS         (void* self, const char* name)
+    { return Fuga_has        (self, FUGA_SYMBOL(name));   }
+void* Fuga_hasRawS      (void* self, const char* name)
+    { return Fuga_hasRaw     (self, FUGA_SYMBOL(name));   }
+void* Fuga_hasDocS      (void* self, const char* name)
+    { return Fuga_hasDoc     (self, FUGA_SYMBOL(name));   }
+void* Fuga_getS         (void* self, const char* name)
+    { return Fuga_get        (self, FUGA_SYMBOL(name));   }
+void* Fuga_getRawS      (void* self, const char* name)
+    { return Fuga_getRaw     (self, FUGA_SYMBOL(name));   }
+void* Fuga_getDocS      (void* self, const char* name)
+    { return Fuga_getDoc     (self, FUGA_SYMBOL(name));   }
+void* Fuga_setS      (void* self, const char* name, void* value)
+    { return Fuga_set     (self, FUGA_SYMBOL(name), value);   }
+void* Fuga_setDocS   (void* self, const char* name, void* value)
+    { return Fuga_setDoc  (self, FUGA_SYMBOL(name), value);   }
 
 
-void* Fuga_hasAt_       (void* self, size_t index)
-    { return Fuga_hasBy_        (self, FUGA_INT(index));   }
-void* Fuga_hasNameAt_   (void* self, size_t index)
-    { return Fuga_hasNameBy_    (self, FUGA_INT(index));   }
-void* Fuga_hasDocAt_    (void* self, size_t index)
-    { return Fuga_hasDocBy_     (self, FUGA_INT(index));   }
-void* Fuga_getAt_       (void* self, size_t index)
-    { return Fuga_getBy_        (self, FUGA_INT(index));   }
-void* Fuga_getNameAt_   (void* self, size_t index)
-    { return Fuga_getNameBy_    (self, FUGA_INT(index));   }
-void* Fuga_getDocAt_    (void* self, size_t index)
-    { return Fuga_getDocBy_     (self, FUGA_INT(index));   }
-void* Fuga_setAt_to_    (void* self, size_t index, void* value)
-    { return Fuga_setBy_to_     (self, FUGA_INT(index), value);   }
-void* Fuga_setDocAt_to_ (void* self, size_t index, void* value)
-    { return Fuga_setDocBy_to_  (self, FUGA_INT(index), value);   }
+void* Fuga_hasI       (void* self, size_t index)
+    { return Fuga_has        (self, FUGA_INT(index));   }
+void* Fuga_hasNameI   (void* self, size_t index)
+    { return Fuga_hasName    (self, FUGA_INT(index));   }
+void* Fuga_hasDocI    (void* self, size_t index)
+    { return Fuga_hasDoc     (self, FUGA_INT(index));   }
+void* Fuga_getI       (void* self, size_t index)
+    { return Fuga_get        (self, FUGA_INT(index));   }
+void* Fuga_getNameI   (void* self, size_t index)
+    { return Fuga_getName    (self, FUGA_INT(index));   }
+void* Fuga_getDocI    (void* self, size_t index)
+    { return Fuga_getDoc     (self, FUGA_INT(index));   }
+void* Fuga_setI    (void* self, size_t index, void* value)
+    { return Fuga_set     (self, FUGA_INT(index), value);   }
+void* Fuga_setDocI (void* self, size_t index, void* value)
+    { return Fuga_setDoc  (self, FUGA_INT(index), value);   }
 
 
 /**
@@ -1193,7 +1193,7 @@ void* Fuga_send(void* self, void* name, void* args)
     ALWAYS(self);    ALWAYS(name);    ALWAYS(args);
     FUGA_NEED(self); FUGA_NEED(name); FUGA_CHECK(args);
 
-    void* method = Fuga_getBy_(self, name);
+    void* method = Fuga_get(self, name);
     return Fuga_call(method, self, args);
 }
 
@@ -1223,7 +1223,7 @@ void* Fuga_evalSlot(void* self, void* scope, void* result)
     FUGA_NEED(self); FUGA_NEED(result); FUGA_NEED(scope);
     
     scope = Fuga_clone(scope);
-    Fuga_setBy_to_(scope, FUGA_SYMBOL("this"), result);
+    Fuga_set(scope, FUGA_SYMBOL("this"), result);
     void* value = Fuga_eval(self, scope, scope);
     if (!Fuga_isNil(value))
         FUGA_CHECK(Fuga_append_(result, value));
@@ -1242,19 +1242,19 @@ TESTS(Fuga_eval) {
     TEST(prim == Fuga_eval(prim, self, self));
 
     void* scope = Fuga_clone(FUGA->Object);
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(scope, FUGA_SYMBOL("hello"),prim)));
+    TEST(!Fuga_isRaised(Fuga_set(scope, FUGA_SYMBOL("hello"),prim)));
     TEST(Fuga_is_(prim, Fuga_eval(FUGA_MSG("hello"), scope, scope)));
 
     void* obj = Fuga_clone(FUGA->Object);
     TEST(!Fuga_isRaised(Fuga_append_(obj, prim)));
     TEST(!Fuga_isRaised(Fuga_append_(obj, FUGA_MSG("hello"))));
-    TEST(!Fuga_isRaised(Fuga_setBy_to_(obj, FUGA_SYMBOL("hi"), prim)));
+    TEST(!Fuga_isRaised(Fuga_set(obj, FUGA_SYMBOL("hi"), prim)));
     void* eobj = Fuga_eval(obj, scope, scope);
     TEST(!Fuga_isRaised(eobj));
     TEST(Fuga_hasLength_((eobj), 3));
-    TEST(prim == Fuga_getBy_(eobj, FUGA_INT(0)));
-    TEST(prim == Fuga_getBy_(eobj, FUGA_INT(1)));
-    TEST(prim == Fuga_getBy_(eobj, FUGA_INT(2)));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(0)));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(1)));
+    TEST(prim == Fuga_get(eobj, FUGA_INT(2)));
 
     TEST(Fuga_isRaised(Fuga_eval(Fuga_raise(prim), scope, scope)));
     TEST(Fuga_isRaised(Fuga_eval(prim, Fuga_raise(scope), scope)));
@@ -1274,7 +1274,7 @@ void* Fuga_evalSlots(void* self, void* scope)
     long length = FugaInt_value(Fuga_length(self));
     ALWAYS(length >= 0);
     for (long i = 0; i < length; i++) {
-        void* slot = Fuga_getBy_(self, FUGA_INT(i));
+        void* slot = Fuga_get(self, FUGA_INT(i));
         FUGA_CHECK(Fuga_evalSlot(slot, scope, result));
     }
     return result;
@@ -1294,7 +1294,7 @@ void* Fuga_evalExpr(
         );
     }
     for (long i = 0; i < length; i++) {
-        void* part = Fuga_getBy_(self, FUGA_INT(i));
+        void* part = Fuga_get(self, FUGA_INT(i));
         recv = Fuga_eval(part, recv, scope);
         FUGA_CHECK(recv);
     }
@@ -1341,7 +1341,7 @@ TESTS(Fuga_str) {
     FUGA_STR_TEST(FUGA_MSG("+"), "\\+");
     // FIXME: add tests for objects and msgs with args.
 
-    FUGA_STR_TEST(Fuga_getBy_(FUGA->Int, FUGA_SYMBOL("str")),
+    FUGA_STR_TEST(Fuga_get(FUGA->Int, FUGA_SYMBOL("str")),
                   "method(...)");
 
     // test names
@@ -1363,8 +1363,8 @@ void* Fuga_strSlots(void* self)
 
     for (size_t slotNum = 0; slotNum < length; slotNum++) {
         void* fSlotNum = FUGA_INT(slotNum);
-        if (Fuga_isTrue(Fuga_hasNameBy_(self, fSlotNum))) {
-            void* name = Fuga_getNameBy_(self, fSlotNum);
+        if (Fuga_isTrue(Fuga_hasName(self, fSlotNum))) {
+            void* name = Fuga_getName(self, fSlotNum);
             name = FugaSymbol_toString(name);
             FUGA_CHECK(name);
             result = FugaString_cat_(result, name);
@@ -1372,7 +1372,7 @@ void* Fuga_strSlots(void* self)
             // FIXME: handle op msg edge case
         }
         FUGA_CHECK(result);
-        void* slot = Fuga_getBy_(self, FUGA_INT(slotNum));
+        void* slot = Fuga_get(self, FUGA_INT(slotNum));
         void* str  = Fuga_str(slot);
         FUGA_NEED(str);
         result = FugaString_cat_(result, str);
@@ -1388,7 +1388,7 @@ void Fuga_printException(void* self)
     ALWAYS(self);
     if (Fuga_isRaised(self))
         self = Fuga_catch(self);
-    void *msg = Fuga_getBy_(self, FUGA_SYMBOL("msg"));
+    void *msg = Fuga_get(self, FUGA_SYMBOL("msg"));
     printf("Exception raised:\n\t");
     if (Fuga_isString(msg)) {
         FugaString_print(msg);

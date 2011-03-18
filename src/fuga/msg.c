@@ -7,7 +7,7 @@ const FugaType FugaMsg_type = {
 
 void FugaMsg_init(void* self)
 {
-    Fuga_set_to_(FUGA->Msg, "str", FUGA_METHOD_STR(FugaMsg_str));
+    Fuga_setS(FUGA->Msg, "str", FUGA_METHOD_STR(FugaMsg_str));
 }
 
 FugaMsg* FugaMsg_new_(

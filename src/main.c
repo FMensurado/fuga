@@ -32,7 +32,7 @@ void* evalPrint(
     FUGA_CHECK(block);
     long length = FugaInt_value(Fuga_length(block));
     for (long i = 0; i < length; i++) {
-        void* slot   = Fuga_getAt_(block, i);
+        void* slot   = Fuga_getI(block, i);
         void* value  = Fuga_eval(slot, self, self);
         if (Fuga_isNil(value))
             continue;
@@ -49,7 +49,7 @@ void repl()
     self = Fuga_clone(FUGA->Prelude);
     Fuga_root(self);
     Fuga_root(parser);
-    Fuga_set_to_(self, "this", self);
+    Fuga_setS(self, "this", self);
 
     printf("Fuga 0.1. Use \"quit\" to quit.\n");
     while (1) {
@@ -70,11 +70,11 @@ void* runBlock(
     void* block = self;
     self = Fuga_clone(FUGA->Prelude);
     void* scope = Fuga_clone(self);
-    FUGA_CHECK(Fuga_set_to_(scope, "this", self));
+    FUGA_CHECK(Fuga_setS(scope, "this", self));
 
     long numSlots = FugaInt_value(Fuga_length(block));
     for (long i = 0; i < numSlots; i++) {
-        void* slot = Fuga_getAt_(block, i);
+        void* slot = Fuga_getI(block, i);
         FUGA_CHECK(slot);
         void* result = Fuga_eval(slot, scope, scope);
         FUGA_CHECK(result);

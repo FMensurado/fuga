@@ -7,7 +7,7 @@ const FugaType FugaMethod_type = {
 
 void FugaMethod_init(void* self)
 {
-    Fuga_set_to_(FUGA->Method, "str", FUGA_STRING("method(...)"));
+    Fuga_setS(FUGA->Method, "str", FUGA_STRING("method(...)"));
 }
 
 struct FugaMethod {
@@ -68,8 +68,8 @@ void* FugaMethodStr_call(void* _self, void* recv, void* args)
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 0))
         FUGA_RAISE(FUGA->TypeError, "str: expected no arguments");
-    if (Fuga_isTrue(Fuga_hasRaw_(recv, "name")))
-        return Fuga_getRaw_(recv, "name");
+    if (Fuga_isTrue(Fuga_hasRawS(recv, "name")))
+        return Fuga_getRawS(recv, "name");
     return self->method(recv);
 }
 
@@ -120,7 +120,7 @@ void* FugaMethod1_call(void* _self, void* recv, void* args)
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 1))
         FUGA_RAISE(FUGA->TypeError, "expected 1 argument");
-    void* arg0 = Fuga_getAt_(args, 0);
+    void* arg0 = Fuga_getI(args, 0);
     return self->method(recv, arg0);
 }
 
@@ -146,8 +146,8 @@ void* FugaMethod2_call(void* _self, void* recv, void* args)
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 2))
         FUGA_RAISE(FUGA->TypeError, "expected 2 arguments");
-    void* arg0 = Fuga_getAt_(args, 0);
-    void* arg1 = Fuga_getAt_(args, 1);
+    void* arg0 = Fuga_getI(args, 0);
+    void* arg1 = Fuga_getI(args, 1);
     return self->method(recv, arg0, arg1);
 }
 
@@ -191,11 +191,11 @@ void* FugaMethodFuga_scope(void* self, void* formals, void* actuals)
     if (numFormals != numActuals)
         FUGA_RAISE(FUGA->TypeError, "expected different number of args");
     for (long i = 0; i < numFormals; i++) {
-        void* formal = Fuga_getAt_(formals, i);
-        void* actual = Fuga_getAt_(actuals, i);
+        void* formal = Fuga_getI(formals, i);
+        void* actual = Fuga_getI(actuals, i);
         FUGA_CHECK(formal);
         FUGA_CHECK(actual);
-        FUGA_CHECK(Fuga_setBy_to_(self, formal, actual));
+        FUGA_CHECK(Fuga_set(self, formal, actual));
     }
     // FIXME: handle thunks
     return self;
@@ -209,7 +209,7 @@ void* FugaMethodFuga_call(void* _self, void* recv, void* args)
     ALWAYS(Fuga_isMethod(self));
     void* scope = FugaMethodFuga_scope(self->scope, self->args, args);
     FUGA_CHECK(scope);
-    FUGA_CHECK(Fuga_set_to_(scope, "self", recv));
+    FUGA_CHECK(Fuga_setS(scope, "self", recv));
     return Fuga_eval(self->body, scope, scope);
 }
 

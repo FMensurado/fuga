@@ -141,7 +141,7 @@ void* Fuga_catch(void* self);
 #define FUGA_RAISE(type, msg)                                           \
     do {                                                                \
         void* error##__LINE__ = Fuga_clone(type);                       \
-        Fuga_set_to_(error##__LINE__, "msg", FUGA_STRING(msg));         \
+        Fuga_setS(error##__LINE__, "msg", FUGA_STRING(msg));         \
         return Fuga_raise(error##__LINE__);                             \
     } while(0)
 
@@ -159,34 +159,34 @@ void* Fuga_slots    (void* self);
 FugaInt* Fuga_length       (void* self);
 bool     Fuga_hasLength_   (void* self, long length);
 
-void* Fuga_has_         (void* self, const char* name);
-void* Fuga_hasRaw_      (void* self, const char* name);
-void* Fuga_hasDoc_      (void* self, const char* name);
-void* Fuga_get_         (void* self, const char* name);
-void* Fuga_getRaw_      (void* self, const char* name);
-void* Fuga_getDoc_      (void* self, const char* name);
-void* Fuga_set_to_      (void* self, const char* name, void* value);
-void* Fuga_setDoc_to_   (void* self, const char* name, void* value);
+void* Fuga_hasS         (void* self, const char* name);
+void* Fuga_hasRawS      (void* self, const char* name);
+void* Fuga_hasDocS      (void* self, const char* name);
+void* Fuga_getS         (void* self, const char* name);
+void* Fuga_getRawS      (void* self, const char* name);
+void* Fuga_getDocS      (void* self, const char* name);
+void* Fuga_setS      (void* self, const char* name, void* value);
+void* Fuga_setDocS   (void* self, const char* name, void* value);
 
-void* Fuga_hasBy_       (void* self, void* name);
-void* Fuga_hasRawBy_    (void* self, void* name);
-void* Fuga_hasNameBy_   (void* self, void* name);
-void* Fuga_hasDocBy_    (void* self, void* name);
-void* Fuga_getBy_       (void* self, void* name);
-void* Fuga_getRawBy_    (void* self, void* name);
-void* Fuga_getNameBy_   (void* self, void* name);
-void* Fuga_getDocBy_    (void* self, void* name);
-void* Fuga_setBy_to_    (void* self, void* name, void* value);
-void* Fuga_setDocBy_to_ (void* self, void* name, void* value);
+void* Fuga_has       (void* self, void* name);
+void* Fuga_hasRaw    (void* self, void* name);
+void* Fuga_hasName   (void* self, void* name);
+void* Fuga_hasDoc    (void* self, void* name);
+void* Fuga_get       (void* self, void* name);
+void* Fuga_getRaw    (void* self, void* name);
+void* Fuga_getName   (void* self, void* name);
+void* Fuga_getDoc    (void* self, void* name);
+void* Fuga_set    (void* self, void* name, void* value);
+void* Fuga_setDoc (void* self, void* name, void* value);
 
-void* Fuga_hasAt_       (void* self, size_t index);
-void* Fuga_hasNameAt_   (void* self, size_t index);
-void* Fuga_hasDocAt_    (void* self, size_t index);
-void* Fuga_getAt_       (void* self, size_t index);
-void* Fuga_getNameAt_   (void* self, size_t index);
-void* Fuga_getDocAt_    (void* self, size_t index);
-void* Fuga_setAt_to_    (void* self, size_t index, void* value);
-void* Fuga_setDocAt_to_ (void* self, size_t index, void* value);
+void* Fuga_hasI       (void* self, size_t index);
+void* Fuga_hasNameI   (void* self, size_t index);
+void* Fuga_hasDocI    (void* self, size_t index);
+void* Fuga_getI       (void* self, size_t index);
+void* Fuga_getNameI   (void* self, size_t index);
+void* Fuga_getDocI    (void* self, size_t index);
+void* Fuga_setI    (void* self, size_t index, void* value);
+void* Fuga_setDocI (void* self, size_t index, void* value);
 
 void* Fuga_append_      (void* self, void* value);
 

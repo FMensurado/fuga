@@ -11,8 +11,8 @@ const FugaType FugaString_type = {
 
 void FugaString_init(void* self)
 {
-    Fuga_set_to_(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
-    Fuga_set_to_(FUGA->String, "++",  FUGA_METHOD_1ARG(FugaString_cat_));
+    Fuga_setS(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
+    Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1ARG(FugaString_cat_));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
