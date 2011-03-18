@@ -336,7 +336,10 @@ void _FugaLexer_lexSymbol(
     } else if (FugaChar_isName(self->code+1) || self->code[1] == '\\') {
         _FugaLexer_consume_(self, 1);
         _FugaLexer_lexName(self);
-        self->token->type = FUGA_TOKEN_SYMBOL;
+        if (self->token->type == FUGA_TOKEN_NAME)
+            self->token->type = FUGA_TOKEN_SYMBOL;
+        else
+            self->token->type = FUGA_TOKEN_ERROR;
     } else {
         _FugaLexer_lexOp(self);
     }
@@ -577,6 +580,10 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Good");
     FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "bye");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, ":65");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_ERROR);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     Fuga_quit(gc);
