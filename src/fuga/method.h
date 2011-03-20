@@ -21,9 +21,9 @@ void* FugaMethod_method(void* scope, void* args, void* body);
 void* FugaMethod_call(void* self, void* recv, void* args);
 
 #define FUGA_METHOD(fn) (FugaMethodN_new_(self, (FugaMethodFnN)(fn)))
-#define FUGA_METHOD_0ARG(fn) (FugaMethod0_new_(self,(FugaMethodFn0)(fn)))
-#define FUGA_METHOD_1ARG(fn) (FugaMethod1_new_(self,(FugaMethodFn1)(fn)))
-#define FUGA_METHOD_2ARG(fn) (FugaMethod2_new_(self,(FugaMethodFn2)(fn)))
+#define FUGA_METHOD_0(fn) (FugaMethod0_new_(self,(FugaMethodFn0)(fn)))
+#define FUGA_METHOD_1(fn) (FugaMethod1_new_(self,(FugaMethodFn1)(fn)))
+#define FUGA_METHOD_2(fn) (FugaMethod2_new_(self,(FugaMethodFn2)(fn)))
 #define FUGA_METHOD_STR(fn) (FugaMethodStr_new_(self,(FugaMethodFn0)fn))
 
 

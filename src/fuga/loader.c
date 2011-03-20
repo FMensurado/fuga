@@ -26,10 +26,10 @@ FugaLoader* FugaLoader_new(
     FUGA_CHECK(self);
     FugaLoader* loader = Fuga_clone(FUGA->Object);
 
-    Fuga_setS(loader, "setPath",  FUGA_METHOD_1ARG(FugaLoader_setPath_));
-    Fuga_setS(loader, "setLocal", FUGA_METHOD_1ARG(FugaLoader_setLocal_));
-    Fuga_setS(loader, "load",     FUGA_METHOD_1ARG(FugaLoader_load_));
-    Fuga_setS(loader, "import",   FUGA_METHOD_1ARG(FugaLoader_import_));
+    Fuga_setS(loader, "setPath",  FUGA_METHOD_1(FugaLoader_setPath_));
+    Fuga_setS(loader, "setLocal", FUGA_METHOD_1(FugaLoader_setLocal_));
+    Fuga_setS(loader, "load",     FUGA_METHOD_1(FugaLoader_load_));
+    Fuga_setS(loader, "import",   FUGA_METHOD_1(FugaLoader_import_));
 
     FugaLoader_setPath_(loader, _FugaLoader_getPath(loader));
     FugaLoader_setLocal_(loader, FUGA_STRING("."));

@@ -102,13 +102,13 @@ void* Fuga_init(
 
 void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
-    Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1ARG(Fuga_has));
-    Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1ARG(Fuga_get));
-    Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2ARG(Fuga_set));
-    Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1ARG(Fuga_hasRaw));
-    Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1ARG(Fuga_getRaw));
+    Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1(Fuga_has));
+    Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1(Fuga_get));
+    Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
+    Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
+    Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
     Fuga_setS(FUGA->Object, "length",
-        FUGA_METHOD_0ARG((void*(*)(void*))Fuga_length));
+        FUGA_METHOD_0((void*(*)(void*))Fuga_length));
 
     // *cough* sorry. this is here, but this location doesn't make sense
     Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
