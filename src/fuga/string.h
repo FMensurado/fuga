@@ -20,6 +20,7 @@ FugaString* FugaString_from_    (FugaString*, long start);
 FugaString* FugaString_from_to_ (FugaString*, long start, long end);
 FugaString* FugaString_to_      (FugaString*, long end);
 void*       FugaString_cat_     (void*, void*);
+void*       FugaString_split_   (FugaString*, FugaString*);
 
 #endif
 

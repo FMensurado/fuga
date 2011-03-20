@@ -1,4 +1,4 @@
 :Hello
 print("Hello, world!")
-print(:Hello, :World!)
+hello { print("Hello, world!") }
 

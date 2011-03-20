@@ -163,6 +163,7 @@ void* FugaMethod2_new_(void* self, void* (*method)(void*, void*, void*))
 // fuga method
 
 typedef struct {
+    void* (*call)   (void*, void*, void*);
     void* scope;
     void* args;
     void* body;
@@ -221,6 +222,7 @@ void* FugaMethod_method(void* self, void* args, void* body)
     FugaMethodFuga* result = Fuga_clone_(FUGA->Method, sizeof *result);
     Fuga_type_(result, &FugaMethod_type);
     Fuga_onMark_(result, FugaMethodFuga_mark);
+    result->call  = FugaMethodFuga_call;
     result->scope = self;
     result->args  = args;
     result->body  = body;

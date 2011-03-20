@@ -1,52 +1,39 @@
 #include "prelude.h"
 #include "method.h"
 #include "test.h"
+#include "loader.h"
 
 void FugaPrelude_init(
     void* self
 ) {
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Object"),  FUGA->Object);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Prelude"), FUGA->Prelude);
+    Fuga_setS(FUGA->Prelude, "Object",      FUGA->Object);
+    Fuga_setS(FUGA->Prelude, "Prelude",     FUGA->Prelude);
+    Fuga_setS(FUGA->Prelude, "Bool",        FUGA->Bool);
+    Fuga_setS(FUGA->Prelude, "true",        FUGA->True);
+    Fuga_setS(FUGA->Prelude, "false",       FUGA->False);
+    Fuga_setS(FUGA->Prelude, "nil",         FUGA->nil);
+    Fuga_setS(FUGA->Prelude, "Number",      FUGA->Number);
+    Fuga_setS(FUGA->Prelude, "Int",         FUGA->Int);
+    Fuga_setS(FUGA->Prelude, "String",      FUGA->String);
+    Fuga_setS(FUGA->Prelude, "Symbol",      FUGA->Symbol);
+    Fuga_setS(FUGA->Prelude, "Method",      FUGA->Method);
+    Fuga_setS(FUGA->Prelude, "Msg",         FUGA->Msg);
+    Fuga_setS(FUGA->Prelude, "Expr",        FUGA->Msg);
+    Fuga_setS(FUGA->Prelude, "Exception",   FUGA->Exception);
+    Fuga_setS(FUGA->Prelude, "SyntaxError", FUGA->SyntaxError);
+    Fuga_setS(FUGA->Prelude, "SlotError",   FUGA->SlotError);
+    Fuga_setS(FUGA->Prelude, "TypeError",   FUGA->TypeError);
+    Fuga_setS(FUGA->Prelude, "ValueError",  FUGA->ValueError);
+    Fuga_setS(FUGA->Prelude, "TypeError",   FUGA->TypeError);
+    Fuga_setS(FUGA->Prelude, "IOError",     FUGA->IOError);
+    Fuga_setS(FUGA->Prelude, "Loader",      FugaLoader_new(self));
 
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Bool"),    FUGA->Bool);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("true"),    FUGA->True);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("false"),   FUGA->False);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("nil"),     FUGA->nil);
+    Fuga_setS(FUGA->Prelude, "name",   FUGA_STRING("Prelude"));
+    Fuga_setS(FUGA->Prelude, "=",      FUGA_METHOD(FugaPrelude_equals));
+    Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
+    Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
+    Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
 
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Number"),  FUGA->Number);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Int"),     FUGA->Int);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("String"),  FUGA->String);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Symbol"),  FUGA->Symbol);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Method"),  FUGA->Method);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Msg"),     FUGA->Msg);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Expr"),    FUGA->Msg);
-
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("Exception"),
-                                       FUGA->Exception);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("SyntaxError"),
-                                       FUGA->SyntaxError);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("SlotError"),
-                                       FUGA->SlotError);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("TypeError"),
-                                       FUGA->TypeError);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("ValueError"),
-                                       FUGA->ValueError);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("TypeError"),
-                                       FUGA->TypeError);
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("IOError"),
-                                       FUGA->IOError);
-
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("name"),
-                                FUGA_STRING("Prelude"));
-
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("="),
-                                FUGA_METHOD(FugaPrelude_equals));
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("if"),
-                                FUGA_METHOD(FugaPrelude_if));
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("method"),
-                                FUGA_METHOD(FugaPrelude_method));
-    Fuga_set(FUGA->Prelude, FUGA_SYMBOL("print"),
-                                FUGA_METHOD(FugaPrelude_print));
 }
 
 void* FugaPrelude_equals(
