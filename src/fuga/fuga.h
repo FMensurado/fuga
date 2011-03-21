@@ -190,17 +190,26 @@ void* Fuga_setDocI (void* self, size_t index, void* value);
 
 void* Fuga_append_      (void* self, void* value);
 
+#define FUGA_FOR(i, slot, arg)                                      \
+    void* slot = Fuga_getI(arg, 0);                                 \
+    for (long length = FugaInt_value(Fuga_length(arg)), i = 0;      \
+         i < length;                                                \
+         i++, slot = Fuga_getI(arg, i))
+
 // Calling & Sending
 void* Fuga_call (void* self, void* recv, void* args);
 void* Fuga_send (void* self, void* msg, void* args);
 
 // Evaluation
 void* Fuga_eval         (void* self, void* recv, void* scope);
-void* Fuga_evalSlot     (void* self, void* scope, void* result);
 void* Fuga_evalSlots    (void* self, void* scope);
+void* Fuga_evalIn       (void* self, void* scope);
 void* Fuga_evalExpr     (void* self, void* recv, void* scope);
+void* Fuga_evalModule   (void* self);
 
 // Misc
+void* Fuga_load_ (void* self, const char* filename);
+
 void* Fuga_str(void* self);
 void* Fuga_strSlots(void* self);
 

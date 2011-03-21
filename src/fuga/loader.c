@@ -9,7 +9,7 @@ struct FugaLoader { int _unused; };
 
 FugaString* _FugaLoader_getPath(
         void* self
-        ) {
+) {
     ALWAYS(self);
     FUGA_CHECK(self);
     char* path = getenv("FUGAPATH");
@@ -62,37 +62,6 @@ void* FugaLoader_setLocal_(
     return Fuga_setS(self, "local", local);
 }
 
-void* _FugaLoader_runBlock(
-    void* self
-) {
-    FUGA_CHECK(self);
-    void* block = self;
-    self = Fuga_clone(FUGA->Prelude);
-    void* scope = Fuga_clone(self);
-    FUGA_CHECK(Fuga_setS(scope, "this", self));
-
-    long numSlots = FugaInt_value(Fuga_length(block));
-    for (long i = 0; i < numSlots; i++) {
-        void* slot = Fuga_getI(block, i);
-        FUGA_CHECK(slot);
-        void* result = Fuga_eval(slot, scope, scope);
-        FUGA_CHECK(result);
-    }
-    return self;
-}
-
-void* _FugaLoader_runFile_(
-    void* self,
-    const char* filename
-) {
-    FugaParser *parser = FugaParser_new(self);
-    if (!FugaParser_readFile_(parser, filename)) 
-        FUGA_RAISE(FUGA->IOError, "can't load module");
-    void* block = FugaParser_block(parser);
-    // FIXME: ensure EOF
-    FUGA_CHECK(block = _FugaLoader_runBlock(block));
-    return block;
-}
 
 FugaString* _FugaLoader_joinPath(
     FugaString* self,
@@ -114,41 +83,71 @@ void* FugaLoader_load_(
     if (!Fuga_isString(filename))
         FUGA_RAISE(FUGA->TypeError, "Loader load: expected a string");
 
-    // FIXME: check that there isn't local / global conflict
+    FugaString* local = Fuga_getS(self, "local");
+    local = _FugaLoader_joinPath(local, filename);
+    FUGA_NEED(local);
+    bool isLocal = Fuga_isTrue(FugaFile_exists_(self, local));
 
     void* paths = FugaString_split_(
         Fuga_getS(self, "path"),
         FUGA_STRING(":")
     );
     FUGA_NEED(paths);
-    long length = FugaInt_value(Fuga_length(paths));
-    for (int i = 0; i < length; i++) {
-        FugaString* path = Fuga_getI(paths, i); 
+    FUGA_FOR(i, path, paths) {
         FugaString* filepath = _FugaLoader_joinPath(path, filename);
         FUGA_CHECK(filepath);
-        if (Fuga_isTrue(FugaFile_exists_(self, filepath)))
-            return _FugaLoader_runFile_(self, filepath->data);
+        if (Fuga_isTrue(FugaFile_exists_(self, filepath))) {
+            if (isLocal)
+                FUGA_RAISE(FUGA->IOError,
+                    "local/global import conflict"
+                );
+            return Fuga_load_(self, filepath->data);
+        }
     }
+
+    if (isLocal)
+        return Fuga_load_(self, local->data);
 
     FUGA_RAISE(FUGA->IOError, "no such module");
 }
+
+FugaString* _FugaLoader_importName(
+    void* self
+) {
+    ALWAYS(self);
+    FUGA_NEED(self);
+    if (Fuga_isMsg(self))
+        self = FugaMsg_toSymbol(self);
+    if (Fuga_isSymbol(self))
+        self = FugaSymbol_toString(self);
+    if (Fuga_isString(self))
+        return self;
+    if (Fuga_isExpr(self)) {
+        FugaString* result;
+        FUGA_FOR(i, slot, self) {
+            FugaString* name = _FugaLoader_importName(slot);
+            if (i == 0)
+                result = name;
+            else
+                result = _FugaLoader_joinPath(result, name);
+            FUGA_CHECK(result);
+        }
+        return result;
+    }
+    FUGA_CHECK(self);
+    FUGA_RAISE(FUGA->TypeError, "Loader import: unexpected type");
+}
+
 
 void* FugaLoader_import_(
     FugaLoader* self,
     void*       arg
 ) {
-    ALWAYS(self);       ALWAYS(arg);
-    FUGA_CHECK(self);   FUGA_CHECK(arg);
-    if (Fuga_isMsg(arg)) {
-        arg = FugaMsg_toSymbol(arg);
-        FUGA_CHECK(arg);
-    }
-    if (Fuga_isSymbol(arg)) {
-        FugaString* str   = FugaSymbol_toString(arg);
-        FugaString* fname = FugaString_cat_(str, FUGA_STRING(".fg"));
-        FUGA_CHECK(fname);
-        return FugaLoader_load_(self, fname);
-    }
-    FUGA_RAISE(FUGA->TypeError, "Loader import: unexpected type");
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    FugaString* fname = _FugaLoader_importName(arg);
+    fname = FugaString_cat_(fname, FUGA_STRING(".fg"));
+    FUGA_CHECK(fname);
+    return FugaLoader_load_(self, fname);
 }
 

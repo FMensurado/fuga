@@ -30,9 +30,7 @@ void* evalPrint(
     void* block
 ) {
     FUGA_CHECK(block);
-    long length = FugaInt_value(Fuga_length(block));
-    for (long i = 0; i < length; i++) {
-        void* slot   = Fuga_getI(block, i);
+    FUGA_FOR(i, slot, block) {
         void* value  = Fuga_eval(slot, self, self);
         if (Fuga_isNil(value))
             continue;
@@ -63,44 +61,11 @@ void repl()
     Fuga_quit(self);
 }
 
-void* runBlock(
-    void* self
-) {
-    FUGA_CHECK(self);
-    void* block = self;
-    self = Fuga_clone(FUGA->Prelude);
-    void* scope = Fuga_clone(self);
-    FUGA_CHECK(Fuga_setS(scope, "this", self));
-
-    long numSlots = FugaInt_value(Fuga_length(block));
-    for (long i = 0; i < numSlots; i++) {
-        void* slot = Fuga_getI(block, i);
-        FUGA_CHECK(slot);
-        void* result = Fuga_eval(slot, scope, scope);
-        FUGA_CHECK(result);
-        FUGA_CHECK(Fuga_print(result));
-    }
-    return FUGA->nil;
-}
-
-void* loadFile(
-    void* self,
-    const char* filename
-) {
-    FugaParser *parser = FugaParser_new(self);
-    if (!FugaParser_readFile_(parser, filename)) 
-        FUGA_RAISE(FUGA->IOError, "can't load module");
-    void* block = FugaParser_block(parser);
-    // FIXME: ensure EOF
-    FUGA_CHECK(runBlock(block));
-    return FUGA->nil;
-}
-
 void runFile(
     const char* filename
 ) {
     void* self   = Fuga_init();
-    void* result = loadFile(self, filename);
+    void* result = Fuga_load_(self, filename);
     void* error  = Fuga_catch(result);
     if (error)
         Fuga_printException(error);

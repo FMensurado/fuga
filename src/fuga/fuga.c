@@ -2,6 +2,7 @@
 #include "test.h"
 #include "fuga.h"
 #include "prelude.h"
+#include "parser.h"
 
 #include <string.h>
 
@@ -1217,18 +1218,6 @@ void* Fuga_eval(void* self, void* recv, void* scope)
     return Fuga_evalSlots(self, scope);
 }
 
-void* Fuga_evalSlot(void* self, void* scope, void* result)
-{
-    ALWAYS(self); ALWAYS(result); ALWAYS(scope);
-    FUGA_NEED(self); FUGA_NEED(result); FUGA_NEED(scope);
-    
-    scope = Fuga_clone(scope);
-    Fuga_set(scope, FUGA_SYMBOL("this"), result);
-    void* value = Fuga_eval(self, scope, scope);
-    if (!Fuga_isNil(value))
-        FUGA_CHECK(Fuga_append_(result, value));
-    return value;
-}
 
 #ifdef TESTING
 TESTS(Fuga_eval) {
@@ -1264,18 +1253,37 @@ TESTS(Fuga_eval) {
 }
 #endif
 
-
+void* Fuga_evalSlot(void* self, void* scope, void* result, void* target)
+{
+    ALWAYS(self); ALWAYS(result); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(result); FUGA_NEED(scope);
+    
+    scope = Fuga_clone(scope);
+    Fuga_set(scope, FUGA_SYMBOL("this"), target);
+    void* value = Fuga_eval(self, scope, scope);
+    if (!Fuga_isNil(value))
+        FUGA_CHECK(Fuga_append_(result, value));
+    return value;
+}
 
 void* Fuga_evalSlots(void* self, void* scope)
 {
     ALWAYS(self); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(scope);
     void* result = Fuga_clone(FUGA->Object);
-    long length = FugaInt_value(Fuga_length(self));
-    ALWAYS(length >= 0);
-    for (long i = 0; i < length; i++) {
-        void* slot = Fuga_get(self, FUGA_INT(i));
-        FUGA_CHECK(Fuga_evalSlot(slot, scope, result));
+    FUGA_FOR(i, slot, self) {
+        FUGA_CHECK(Fuga_evalSlot(slot, scope, result, result));
+    }
+    return result;
+}
+
+void* Fuga_evalIn(void* self, void* scope)
+{
+    ALWAYS(self); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(scope);
+    void* result = Fuga_clone(FUGA->Object);
+    FUGA_FOR(i, slot, self) {
+        FUGA_CHECK(Fuga_evalSlot(slot, scope, result, scope));
     }
     return result;
 }
@@ -1301,6 +1309,28 @@ void* Fuga_evalExpr(
     return recv;
 }
 
+void* Fuga_evalModule(
+    void* self
+) {
+    ALWAYS(self); FUGA_NEED(self);
+    void* module = Fuga_clone(FUGA->Prelude);
+    // FIXME: add personalized loader
+    FUGA_CHECK(Fuga_evalIn(self, module));
+    return module;
+}
+
+void* Fuga_load_(
+    void* self,
+    const char* filename
+) {
+    FugaParser *parser = FugaParser_new(self);
+    if (!FugaParser_readFile_(parser, filename)) 
+        FUGA_RAISE(FUGA->IOError, "can't load module");
+    void* block  = FugaParser_block(parser);
+    // FIXME: ensure EOF
+    return Fuga_evalModule(block);
+
+}
 
 void* Fuga_str(void* self)
 {
