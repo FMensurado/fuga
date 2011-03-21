@@ -33,6 +33,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
+    Fuga_setS(FUGA->Prelude, "import", FUGA_METHOD(FugaPrelude_import));
 
 }
 
@@ -61,15 +62,15 @@ void* FugaPrelude_equals(
     if (Fuga_isMsg(lhs) || Fuga_isInt(lhs)) {
         recv = Fuga_get(recv, FUGA_SYMBOL("this"));
     } else if (Fuga_isExpr(lhs)) {
-        long numMsgs = FugaInt_value(Fuga_length(lhs));
-        for (long i = 0; i < numMsgs-1; i++) {
-            void* slot = Fuga_get(lhs, FUGA_INT(i));
-            FUGA_CHECK(slot);
-            recv = Fuga_get(recv, slot);
-            FUGA_CHECK(recv);
+        FUGA_FOR(i, slot, lhs) {
+            if (i < length-1) {
+                recv = Fuga_get(recv, slot);
+                FUGA_CHECK(recv);
+            } else {
+                lhs = slot;
+                FUGA_CHECK(lhs);
+            }
         }
-        lhs = Fuga_get(lhs, FUGA_INT(numMsgs-1));
-        FUGA_CHECK(lhs);
     }
 
     if (!(Fuga_isMsg(lhs) || Fuga_isInt(lhs))) {
@@ -174,12 +175,10 @@ void* FugaPrelude_print(
     void* args
 ) {
     FUGA_NEED(args);
-    size_t numSlots = FugaInt_value(Fuga_length(args));
-    // FIXME: use a string builder
     void* totalStr = FUGA_STRING("");
-    for (size_t i = 0; i < numSlots; i++) {
-        if (i > 0) totalStr = FugaString_cat_(totalStr, FUGA_STRING(" "));
-        void* arg = Fuga_get(args, FUGA_INT(i));
+    FUGA_FOR(i, arg, args) {
+        if (i > 0)
+            totalStr = FugaString_cat_(totalStr, FUGA_STRING(" "));
         FUGA_NEED(totalStr);
         if (!Fuga_isString(arg)) {
             arg = Fuga_str(arg);
@@ -189,6 +188,31 @@ void* FugaPrelude_print(
         FUGA_CHECK(totalStr);
     }
     FugaString_print(totalStr);
+    return FUGA->nil;
+}
+
+void* FugaPrelude_import(
+    void* self,
+    void* args
+) {
+    ALWAYS(self); ALWAYS(args);
+    FUGA_CHECK(self); FUGA_CHECK(args);
+    args = Fuga_lazySlots(args);
+    if (!Fuga_hasLength_(args, 1))
+        FUGA_RAISE(FUGA->SyntaxError, "import: expected only 1 arg");
+    void* arg = Fuga_lazyCode(Fuga_getI(args, 0));
+    FUGA_CHECK(arg);
+    FugaLoader* loader = Fuga_getS(self, "Loader");
+    FUGA_CHECK(loader);
+
+    args = Fuga_clone(FUGA->Object);
+    Fuga_append_(args, arg);
+    void* module = Fuga_send(loader, FUGA_SYMBOL("import"), args);
+    FUGA_CHECK(module);
+
+    // FIXME: what to do with packages???????
+    void* name = arg;
+    FUGA_CHECK(Fuga_set(self, name, module));
     return FUGA->nil;
 }
 
