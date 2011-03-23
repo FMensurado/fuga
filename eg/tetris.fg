@@ -22,7 +22,7 @@ window show
 import(Timer)
 timer = Timer new(
     interval = 0.5
-    onTick => tetris!
+    onTick { tetris! }
 )
 timer start
 

@@ -1,81 +1,60 @@
-module(loop)
 
-"""
-loop
-    Without modifiers, this is an infinite loop.
-    You can modify the loop using new(...), while(cond), for(x,xs), etc.
-    Then, run the loop using do(...), collect(...), yield(...), etc.
-    For example:
-        loop do(print("Hello!"))        # An infinite loop...
-        loop enum(i, 1, 20) do(p)
-"""
+:: An infinite loop.
 loop = (
-    
-    """
-    loop done? => Bool
-        Return whether the loop should end.
-    """
+    :: Is the loop over?
     done? = false
     
-    """
-    loop next! => void
-        Prepare for the next loop iteration (e.g., increment counters,
-        iterate through structures, eat pasta...)
-    """
+    :: Prepare for the next loop iteration.
     next! = void
     
-    """
-    loop build(env) => void
-        Build up the environment/scope for the loop body.
-        This is used by loop modifiers like `for` that need
-    """
-    build(env) => 
-        do(
-            env break = method(
-                ()      => throw(:break, void)
-                (value) => throw(:break, value)
-            )
-            env continue = throw(:continue)
-            void
-        )
+    :: Build up the environment/scope for the loop body.
+    :: This is used by loop modifiers like "for".
+    build(env) {
+        env break(value=nil) {
+            Break clone(value=value) raise
+        }
+        env continue {
+            Continue raise
+        }
+    }
 )
 
-"""
-loop new(args..) => loop
-    Create a new kind of loop.
-    The new loop works differently based on what slots are defined in args.
-    The different slots are:
-        done? => Bool
-        next! => void
-        build(env) => void
-    If those slots are defined in `args`, they are combined with the existing
-    loop. In other words, the effect is cumulative.
-    Refer to their documentation for more information on the slots mentioned above.
-"""
-loop new(args..) =>
-    do( loop = self clone
-        if (args has?(:done?)
-            loop done? => self proto done? || args done?)
-        if (args has?(:next!)
-            loop next! => self proto next! ; args next!)
-        if (args has?(:build)
-            loop build(env) => self proto build(env) ; args build(env))
-        loop )
+:: Create a new kind of loop.
+:: The new loop works differently based on what slots are defined.
+:: The slots are
+::     dont? => Bool
+::     next! => nil
+::     build(env) => nil
+:: If any of these slots are defined, they are combined with the existing
+:: loop. In other words, the effect is cumulative.
+loop new(..args) {
+    loop = self clone
+    if(args has?(:done?), loop done? { self proto done? || args done? })
+    if(args has?(:next!), loop next! { self proto next!,   args next! })
+    if(args has?(:build), loop build(scope) {
+                              self proto build(scope)
+                              args build(scope)
+                           }
+    loop
+}
+
 
 # Loop Conditions
 
-loop while(~condition) =>
+loop while(~condition) {
     self new(
-        done? => not(condition value)
+        done? { not(condition eval) }
     )
+}
 
-loop for(~x, xs) =>
+loop for(~x, xs) {
     self new(
         xs = var(xs iter)
-        done? => xs done?
-        next! => xs := xs next
-        build(env) => env set(x code, xs value)
+        done?       { xs done? }
+        next!       { xs := xs next }
+        build(env)  { env set(x code, xs value) }
     )
+}
 
 loop enum(~i) => self enum(~i, 0)
 loop enum(~i, start) =>
@@ -87,7 +66,7 @@ loop enum(~i, start) =>
 loop enum(~i, start, end) =>
     self new(
         x = var(start)
-        done? => x == end
+        done? => x >= end
         next! => x := x + 1
         build(env) => env set(i code, x)
     )
