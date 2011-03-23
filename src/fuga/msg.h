@@ -17,6 +17,7 @@ void* FugaMsg_eval_in_(FugaMsg* self, void* recv, void* scope);
 void* FugaMsg_name(FugaMsg*);
 void* FugaMsg_args(FugaMsg*);
 void* FugaMsg_str(void*);
+void* FugaMsg_match_(FugaMsg*, void*);
 
 #endif
 

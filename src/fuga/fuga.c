@@ -31,6 +31,7 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->IOError);
     Fuga_mark_(self, FUGA->ValueError);
     Fuga_mark_(self, FUGA->SyntaxError);
+    Fuga_mark_(self, FUGA->MatchError);
 }
 
 void Fuga_initObject (void* self);
@@ -62,6 +63,7 @@ void FugaRoot_init(
     FUGA->TypeError    = Fuga_clone(FUGA->Exception);
     FUGA->IOError      = Fuga_clone(FUGA->Exception);
     FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
+    FUGA->MatchError   = Fuga_clone(FUGA->Exception);
 
     FUGA->symbols = FugaSymbols_new(self);
 
@@ -108,11 +110,12 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
     Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
-    Fuga_setS(FUGA->Object, "length",
-        FUGA_METHOD_0((void*(*)(void*))Fuga_length));
+    Fuga_setS(FUGA->Object, "length", FUGA_METHOD_0(Fuga_length));
+    Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
 
     // *cough* sorry. this is here, but this location doesn't make sense
     Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
+
 }
 
 void Fuga_initBool(void* self) {
@@ -1163,6 +1166,33 @@ void* Fuga_setI    (void* self, size_t index, void* value)
 void* Fuga_setDocI (void* self, size_t index, void* value)
     { return Fuga_setDoc  (self, FUGA_INT(index), value);   }
 
+void* Fuga_extend_(
+    void* self,
+    void* other
+) {
+    ALWAYS(self);       ALWAYS(other);
+    FUGA_NEED(self);    FUGA_NEED(other);
+    FUGA_FOR(i, slot, other) {
+        FUGA_CHECK(Fuga_append_(self, slot));
+    }
+    return FUGA->nil;
+}
+
+void* Fuga_update_(
+    void* self,
+    void* other
+) {
+    ALWAYS(self);       ALWAYS(other);
+    FUGA_NEED(self);    FUGA_NEED(other);
+    FUGA_FOR(i, slot, other) {
+        if (Fuga_isTrue(Fuga_hasNameI(other, i))) {
+            void* name = Fuga_getNameI(other, i);
+            FUGA_CHECK(Fuga_set(self, name, slot));
+        }
+    }
+    return FUGA->nil;
+}
+
 
 /**
  * Call / resolve a method.
@@ -1282,9 +1312,8 @@ void* Fuga_evalIn(void* self, void* scope)
     ALWAYS(self); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(scope);
     void* result = Fuga_clone(FUGA->Object);
-    FUGA_FOR(i, slot, self) {
+    FUGA_FOR(i, slot, self)
         FUGA_CHECK(Fuga_evalSlot(slot, scope, result, scope));
-    }
     return result;
 }
 
@@ -1436,5 +1465,45 @@ void* Fuga_print(void* self)
     ALWAYS(Fuga_isString(str));
     FugaString_print(str);
     return FUGA->nil;
+}
+
+void* Fuga_match_(void* self, void* attempt)
+{
+    FUGA_NEED(self);
+    FUGA_CHECK(attempt);
+    void* arg = Fuga_clone(FUGA->Object);
+    FUGA_CHECK(Fuga_append_(arg, attempt));
+    return Fuga_send(self, FUGA_SYMBOL("match"), arg);
+}
+
+void* FugaObject_match_(void* self, void* attempt)
+{
+    FUGA_NEED(self);
+    FUGA_CHECK(attempt);
+
+    // check for lazySlots
+    FUGA_FOR(i, slot1, self) {
+        if (Fuga_isExpr(slot1) &&
+                Fuga_hasLength_(slot1, 2)       &&
+                Fuga_isMsg(Fuga_getI(slot1, 0)) &&
+                Fuga_hasLength_(slot1, 0)       &&
+                FugaSymbol_is_(Fuga_getI(slot1, 1), "~"))
+        {
+            attempt = Fuga_lazySlots(attempt);
+            break;
+        }
+    }
+
+    FUGA_NEED(attempt);
+    // FIXME: allow varargs
+    if (!Fuga_hasLength_(self, FugaInt_value(Fuga_length(attempt))))
+        FUGA_RAISE(FUGA->MatchError, "different lengths");
+    void* result = Fuga_clone(FUGA->Object);
+    FUGA_FOR(i, slot, self) {
+        void* resultSlot = Fuga_match_(slot, Fuga_getI(attempt, i));
+        FUGA_CHECK(resultSlot);
+        FUGA_CHECK(Fuga_update_(result, resultSlot));
+    }
+    return result;
 }
 

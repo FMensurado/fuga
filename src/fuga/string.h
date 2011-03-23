@@ -16,6 +16,7 @@ FugaSymbol* FugaString_toSymbol (FugaString*);
 void        FugaString_print    (FugaString*);
 bool        FugaString_is_      (FugaString* self, const char* str);
 void*       FugaString_str      (void*);
+void*       FugaString_match_   (FugaString* self, FugaString* other);
 FugaString* FugaString_from_    (FugaString*, long start);
 FugaString* FugaString_from_to_ (FugaString*, long start, long end);
 FugaString* FugaString_to_      (FugaString*, long end);

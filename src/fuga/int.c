@@ -4,6 +4,7 @@
 void FugaInt_init(void* self)
 {
     Fuga_setS(FUGA->Int, "str", FUGA_METHOD_STR(FugaInt_str));
+    Fuga_setS(FUGA->Int, "match", FUGA_METHOD_1(FugaInt_match_));
     Fuga_setS(FUGA->Int, "+",   FUGA_METHOD(FugaInt_addMethod));
     Fuga_setS(FUGA->Int, "-",   FUGA_METHOD(FugaInt_subMethod));
     Fuga_setS(FUGA->Int, "*",   FUGA_METHOD_1(FugaInt_mul));
@@ -71,6 +72,17 @@ void* FugaInt_str(void* _self)
         buffer[j++] = revbuffer[--i];
     buffer[j++] = 0;
     return FUGA_STRING(buffer);
+}
+
+void* FugaInt_match_(FugaInt* self, FugaInt* other) 
+{
+    FUGA_NEED(self);
+    FUGA_NEED(other);
+    if (!Fuga_isInt(self) || !Fuga_isInt(other))
+        FUGA_RAISE(FUGA->MatchError, "Int match: matches only on ints");
+    if (self->value != other->value)
+        FUGA_RAISE(FUGA->MatchError, "Int match: values don't match");
+    return Fuga_clone(FUGA->Object);
 }
 
 void* FugaInt_addMethod(void* _self, void* args)

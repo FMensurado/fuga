@@ -34,6 +34,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
     Fuga_setS(FUGA->Prelude, "import", FUGA_METHOD(FugaPrelude_import));
+    Fuga_setS(FUGA->Prelude, "match",  FUGA_METHOD(FugaPrelude_match));
 
 }
 
@@ -214,5 +215,43 @@ void* FugaPrelude_import(
     void* name = arg;
     FUGA_CHECK(Fuga_set(self, name, module));
     return FUGA->nil;
+}
+
+void* FugaPrelude_match(
+    void* self,
+    void* args
+) {
+    ALWAYS(self); ALWAYS(args);
+    args = Fuga_lazySlots(args);
+    FUGA_CHECK(self); FUGA_CHECK(args);
+    long length = FugaInt_value(Fuga_length(args));
+    if (length < 3) 
+        FUGA_RAISE(FUGA->TypeError, "match: expected at least 3 arguments");
+    if ((length - 1) % 2)
+        FUGA_RAISE(FUGA->TypeError, "match: expected odd number of args");
+
+    long numPatterns = (length-1) / 2;
+    void* value = Fuga_getI(args, 0);
+    for (long i = 0; i < numPatterns; i++) {
+        void* matcher = Fuga_getI(args, i*2 + 1);
+        matcher = Fuga_lazyCode(matcher);
+        FUGA_NEED(matcher);
+        void* result = Fuga_match_(matcher, value);
+        void* error = Fuga_catch(result);
+        if (error) { 
+            if (Fuga_isa_(error, FUGA->MatchError))
+                continue;
+            else
+                return Fuga_raise(error);
+        }
+        void* body = Fuga_getI(args, i*2 + 2);
+        FUGA_CHECK(body);
+        void* bodyCode = Fuga_lazyCode(body);
+        void* bodyScope = Fuga_lazyScope(body);
+        FUGA_CHECK(bodyScope = Fuga_clone(bodyScope));
+        FUGA_CHECK(Fuga_update_(bodyScope, result));
+        return Fuga_eval(bodyCode, bodyScope, bodyScope);
+    }
+    FUGA_RAISE(FUGA->TypeError, "match: no patterns matched");
 }
 

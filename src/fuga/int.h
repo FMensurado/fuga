@@ -15,6 +15,7 @@ long FugaInt_value(FugaInt*);
 bool FugaInt_is_(FugaInt*, long);
 
 void* FugaInt_str(void*);
+void* FugaInt_match_(FugaInt*, FugaInt*);
 
 // arithmetic
 void* FugaInt_add(void*, void*);

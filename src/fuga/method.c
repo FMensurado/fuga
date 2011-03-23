@@ -164,54 +164,49 @@ void* FugaMethod2_new_(void* self, void* (*method)(void*, void*, void*))
 
 typedef struct {
     void* (*call)   (void*, void*, void*);
-    void* scope;
-    void* args;
-    void* body;
 } FugaMethodFuga;
 
-void FugaMethodFuga_mark(void* _self)
+void* FugaMethodFuga_scope(void* self)
 {
-    FugaMethodFuga *self = _self;
-    Fuga_mark_(self, self->scope);
-    Fuga_mark_(self, self->args);
-    Fuga_mark_(self, self->body);
-}
-
-void* FugaMethodFuga_scope(void* self, void* formals, void* actuals)
-{
-    // FIXME: check to see if 'thunkSlots' is necessary
-    FUGA_NEED(self); FUGA_NEED(formals); FUGA_NEED(actuals);
-    self = Fuga_clone(self);
-    void* numFormalsF = Fuga_length(formals);
-    FUGA_CHECK(numFormalsF);
-    void* numActualsF = Fuga_length(actuals);
-    FUGA_CHECK(numActualsF);
-
-    long numFormals = FugaInt_value(numFormalsF);
-    long numActuals = FugaInt_value(numActualsF);
-    if (numFormals != numActuals)
-        FUGA_RAISE(FUGA->TypeError, "expected different number of args");
-    for (long i = 0; i < numFormals; i++) {
-        void* formal = Fuga_getI(formals, i);
-        void* actual = Fuga_getI(actuals, i);
-        FUGA_CHECK(formal);
-        FUGA_CHECK(actual);
-        FUGA_CHECK(Fuga_set(self, formal, actual));
-    }
-    // FIXME: handle thunks
-    return self;
+    return Fuga_getS(self, "scope");
 }
 
 
-void* FugaMethodFuga_call(void* _self, void* recv, void* args)
+void* FugaMethodFuga_args(void* self)
 {
-    FugaMethodFuga* self = _self;
+    return Fuga_getS(self, "args");
+}
+
+void* FugaMethodFuga_body(void* self)
+{
+    return Fuga_getS(self, "body");
+}
+
+void* FugaMethodFuga_call(void* self, void* recv, void* args)
+{
     FUGA_CHECK(self); FUGA_CHECK(recv); FUGA_CHECK(args);
+    void* scope   = FugaMethodFuga_scope (self);
+    void* formals = FugaMethodFuga_args  (self);
+    void* body    = FugaMethodFuga_body  (self);
+    FUGA_CHECK(scope); FUGA_CHECK(body); FUGA_CHECK(args);
     ALWAYS(Fuga_isMethod(self));
-    void* scope = FugaMethodFuga_scope(self->scope, self->args, args);
-    FUGA_CHECK(scope);
+    scope = Fuga_clone(scope);
+    void* matches = Fuga_match_(formals, args);
+    void* error = Fuga_catch(matches);
+    if (error) {
+        if (Fuga_isa_(error, FUGA->MatchError)) {
+            FUGA_RAISE(FUGA->TypeError,
+                "arguments do not match"
+            );
+        } else {
+            return Fuga_raise(error);
+        }
+    }
+
+    FUGA_CHECK(Fuga_update_(scope, matches));
     FUGA_CHECK(Fuga_setS(scope, "self", recv));
-    return Fuga_eval(self->body, scope, scope);
+    FUGA_CHECK(scope);
+    return Fuga_eval(body, scope, scope);
 }
 
 void* FugaMethod_method(void* self, void* args, void* body)
@@ -221,11 +216,11 @@ void* FugaMethod_method(void* self, void* args, void* body)
     FUGA_NEED(body);
     FugaMethodFuga* result = Fuga_clone_(FUGA->Method, sizeof *result);
     Fuga_type_(result, &FugaMethod_type);
-    Fuga_onMark_(result, FugaMethodFuga_mark);
     result->call  = FugaMethodFuga_call;
-    result->scope = self;
-    result->args  = args;
-    result->body  = body;
+
+    FUGA_CHECK(Fuga_setS(result, "scope", self));
+    FUGA_CHECK(Fuga_setS(result, "args",  args));
+    FUGA_CHECK(Fuga_setS(result, "body",  body));
     return result;
 }
 

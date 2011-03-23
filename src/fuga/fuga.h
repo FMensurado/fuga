@@ -53,6 +53,7 @@ struct FugaRoot {
     void* IOError;
     void* ValueError;
     void* SyntaxError;
+    void* MatchError;
 };
 
 struct FugaType {
@@ -189,6 +190,8 @@ void* Fuga_setI    (void* self, size_t index, void* value);
 void* Fuga_setDocI (void* self, size_t index, void* value);
 
 void* Fuga_append_      (void* self, void* value);
+void* Fuga_update_      (void* self, void* value);
+void* Fuga_extend_      (void* self, void* value);
 
 #define FUGA_FOR(i, slot, arg)                                      \
     void* slot = Fuga_getI(arg, 0);                                 \
@@ -215,6 +218,9 @@ void* Fuga_strSlots(void* self);
 
 void  Fuga_printException(void* self);
 void* Fuga_print(void* self);
+
+void* Fuga_match_(void* self, void* other);
+void* FugaObject_match_(void* self, void* other);
 
 #endif
 

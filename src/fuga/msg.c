@@ -7,7 +7,8 @@ const FugaType FugaMsg_type = {
 
 void FugaMsg_init(void* self)
 {
-    Fuga_setS(FUGA->Msg, "str", FUGA_METHOD_STR(FugaMsg_str));
+    Fuga_setS(FUGA->Msg, "str",   FUGA_METHOD_STR(FugaMsg_str));
+    Fuga_setS(FUGA->Msg, "match", FUGA_METHOD_1(FugaMsg_match_));
 }
 
 FugaMsg* FugaMsg_new_(
@@ -108,5 +109,19 @@ void* FugaMsg_str(void* self)
         void* argsstr = Fuga_strSlots(self);
         return FugaString_cat_(namestr, argsstr);
     }
+}
+
+void* FugaMsg_match_(FugaMsg* self, void* other) 
+{
+    FUGA_NEED(self);
+    FUGA_NEED(other);
+    if (!Fuga_isMsg(self))
+        FUGA_RAISE(FUGA->TypeError, "Msg match: self must be a msg");
+    if (!Fuga_hasLength_(self, 0)) 
+        FUGA_RAISE(FUGA->SyntaxError, "Msg match: msg can't have args");
+
+    void* result = Fuga_clone(FUGA->Object);
+    FUGA_CHECK(Fuga_set(result, self->name, other));
+    return result;
 }
 

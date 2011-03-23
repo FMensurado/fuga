@@ -13,6 +13,7 @@ void FugaString_init(void* self)
 {
     Fuga_setS(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
     Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1(FugaString_cat_));
+    Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
@@ -107,6 +108,19 @@ void* FugaString_str(void* _self)
     FugaString* result = FUGA_STRING(buffer);
     free(buffer);
     return result;
+}
+
+void* FugaString_match_(FugaString* self, FugaString* other) 
+{
+    FUGA_NEED(self);
+    FUGA_NEED(other);
+    if (!Fuga_isString(self) || !Fuga_isString(other))
+        FUGA_RAISE(FUGA->MatchError, "String match: matches only on strs");
+    if ((self->length != other->length) || (self->size != other->size))
+        FUGA_RAISE(FUGA->MatchError, "String match: lengths don't match");
+    if (memcmp(self->data, other->data, self->size))
+        FUGA_RAISE(FUGA->MatchError, "String match: no match");
+    return Fuga_clone(FUGA->Object);
 }
 
 FugaString* FugaString_from_(FugaString* self, long start)
