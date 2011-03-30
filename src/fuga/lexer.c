@@ -96,17 +96,20 @@ void _FugaLexer_lexString (FugaLexer*);
 void _FugaLexer_lexSymbol (FugaLexer*);
 void _FugaLexer_lexSpecial(FugaLexer*);
 void _FugaLexer_lexError  (FugaLexer*);
+void _FugaLexer_lexError_ (FugaLexer*, size_t);
 
 FugaToken* FugaLexer_peek(
     FugaLexer* self
 ) {
     if (!self->token) {
         _FugaLexer_strip(self);
-        self->token = FugaToken_new(self);
-        self->token->filename = self->filename;
-        self->token->line     = self->line;
-        self->token->column   = self->column;
-        _FugaLexer_lex(self);
+        if (!self->token) {
+            self->token = FugaToken_new(self);
+            self->token->filename = self->filename;
+            self->token->line     = self->line;
+            self->token->column   = self->column;
+            _FugaLexer_lex(self);
+        }
     }
     return self->token;
 }
@@ -195,6 +198,20 @@ void _FugaLexer_strip(
             i++;
         _FugaLexer_consume_(self, i);
         _FugaLexer_strip(self);
+    } else if(self->code[i] == '\\') {
+        if (self->code[i+1] == '#') {
+            while ((self->code[i] != '\0') &&
+                   (self->code[i] != '\n'))
+                i++;
+            if (self->code[i] == '\n') i++;
+            _FugaLexer_consume_(self, i);
+            _FugaLexer_strip(self);
+        } else if (self->code[i+1] == '\n') {
+            _FugaLexer_consume_(self, i+2);
+            _FugaLexer_strip(self);
+        } else {
+            _FugaLexer_consume_(self, i);
+        }
     } else {
         _FugaLexer_consume_(self, i);
     }
@@ -222,6 +239,12 @@ void _FugaLexer_lexError_(
     size_t num_chars
 ) {
     ALWAYS(self); ALWAYS(self->token); ALWAYS(self->code);
+    if (!self->token) {
+        self->token = FugaToken_new(self);
+        self->token->filename = self->filename;
+        self->token->line     = self->line;
+        self->token->column   = self->column;
+    }
     self->token->type = FUGA_TOKEN_ERROR;
     _FugaLexer_consume_(self, num_chars);
 }
