@@ -163,13 +163,16 @@ void* FugaParser_error_(
 }
 
 void* FugaParser_unfinished_(
-    FugaParser* parser,
+    FugaParser* self,
     const char* message
 ) {
-    ALWAYS(parser); ALWAYS(message);
-    void* self = parser->operators;
-    ALWAYS(self);
-    FUGA_RAISE(FUGA->SyntaxUnfinished, message);
+    ALWAYS(self); ALWAYS(message);
+    void* exceptionType;
+    if (FugaLexer_peek(self->lexer)->type == FUGA_TOKEN_END)
+        exceptionType = FUGA->SyntaxUnfinished;
+    else
+        exceptionType = FUGA->SyntaxError;
+    FUGA_RAISE(exceptionType, message);
 }
 
 #define FUGA_PARSER_EXPECT(parser, tokenType, name)             \
