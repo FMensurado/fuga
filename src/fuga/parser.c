@@ -162,10 +162,26 @@ void* FugaParser_error_(
     FUGA_RAISE(FUGA->SyntaxError, message);
 }
 
+void* FugaParser_unfinished_(
+    FugaParser* parser,
+    const char* message
+) {
+    ALWAYS(parser); ALWAYS(message);
+    void* self = parser->operators;
+    ALWAYS(self);
+    FUGA_RAISE(FUGA->SyntaxUnfinished, message);
+}
+
 #define FUGA_PARSER_EXPECT(parser, tokenType, name)             \
     do {                                                        \
         if (!FugaParser_advance_(parser, tokenType))            \
             return FugaParser_error_(parser, "expected " name); \
+    } while(0)
+
+#define FUGA_PARSER_EXPECT_UNFINISHED(parser, tokenType, name)       \
+    do {                                                             \
+        if (!FugaParser_advance_(parser, tokenType))                 \
+            return FugaParser_unfinished_(parser, "expected " name); \
     } while(0)
 
 void* _FugaParser_buildExpr_(
@@ -262,19 +278,19 @@ void* _FugaParser_derive_(
     case FUGA_TOKEN_LPAREN:
         self = FugaParser_block(parser);
         FUGA_CHECK(self);
-        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RPAREN, ")");
+        FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RPAREN, ")");
         return self;
 
     case FUGA_TOKEN_LBRACKET:
         self = FugaParser_expression(parser);
         FUGA_CHECK(self);
-        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RBRACKET, "]");
+        FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RBRACKET, "]");
         return self;
 
     case FUGA_TOKEN_LCURLY:
         self = FugaParser_block(parser);
         FUGA_CHECK(self);
-        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RCURLY, "}");
+        FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RCURLY, "}");
         return _FugaParser_buildMethod_(NULL, self);
 
     case FUGA_TOKEN_INT:    return FugaToken_int(token);
@@ -287,7 +303,7 @@ void* _FugaParser_derive_(
         if (FugaParser_advance_(parser, FUGA_TOKEN_LPAREN)) {
             void* slots = FugaParser_block(parser);
             FUGA_CHECK(slots);
-            FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RPAREN, ")");
+            FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RPAREN, ")");
             FUGA_HEADER(self)->slots = FUGA_HEADER(slots)->slots;
         }
         return self;
@@ -343,7 +359,7 @@ void* _FugaParser_derive_after_(
     case FUGA_TOKEN_LCURLY:
         self = FugaParser_block(parser);
         FUGA_CHECK(self);
-        FUGA_PARSER_EXPECT(parser, FUGA_TOKEN_RCURLY, "}");
+        FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RCURLY, "}");
         return _FugaParser_buildMethod_(expr, self);
 
     default:

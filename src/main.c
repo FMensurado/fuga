@@ -7,11 +7,12 @@
 #define PROMPT1 ">>> "
 #define PROMPT2 "... "
 
-void* read(
-    FugaParser* parser
+void* readAux(
+    FugaParser* parser,
+    FugaString* prefix
 ) {
+    void* self = parser;
     char buffer[1024];
-    printf(PROMPT1);
     fflush(stdout);
     fgets(buffer, 1024, stdin);
     if (feof(stdin)) {
@@ -21,8 +22,25 @@ void* read(
     if (strcmp(buffer, "quit\n") == 0) {
         return NULL;
     }
-    FugaParser_readCode_(parser, buffer);
-    return FugaParser_block(parser);
+    FugaString* code = FUGA_STRING(buffer);
+    code = FugaString_cat_(prefix, code);
+    FugaParser_readCode_(parser, code->data);
+    void* result = FugaParser_block(parser);
+    FUGA_TRY(result) {
+        FUGA_CATCH(FUGA->SyntaxUnfinished) {
+            printf(PROMPT2);
+            return readAux(parser, code);
+        }
+        FUGA_RERAISE;
+    }
+    return result;
+}
+
+void* read(
+    FugaParser* self
+) {
+    printf(PROMPT1);
+    return readAux(self, FUGA_STRING(""));
 }
 
 void* evalPrint(

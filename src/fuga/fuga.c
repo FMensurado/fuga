@@ -31,6 +31,7 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->IOError);
     Fuga_mark_(self, FUGA->ValueError);
     Fuga_mark_(self, FUGA->SyntaxError);
+    Fuga_mark_(self, FUGA->SyntaxUnfinished);
     Fuga_mark_(self, FUGA->MatchError);
 }
 
@@ -57,13 +58,14 @@ void FugaRoot_init(
     FUGA->Method = Fuga_clone(FUGA->Object);
     FUGA->Expr   = Fuga_clone(FUGA->Object);
 
-    FUGA->Exception    = Fuga_clone(FUGA->Object);
-    FUGA->SlotError    = Fuga_clone(FUGA->Exception);
-    FUGA->ValueError   = Fuga_clone(FUGA->Exception);
-    FUGA->TypeError    = Fuga_clone(FUGA->Exception);
-    FUGA->IOError      = Fuga_clone(FUGA->Exception);
-    FUGA->SyntaxError  = Fuga_clone(FUGA->Exception);
-    FUGA->MatchError   = Fuga_clone(FUGA->Exception);
+    FUGA->Exception         = Fuga_clone(FUGA->Object);
+    FUGA->SlotError         = Fuga_clone(FUGA->Exception);
+    FUGA->ValueError        = Fuga_clone(FUGA->Exception);
+    FUGA->TypeError         = Fuga_clone(FUGA->Exception);
+    FUGA->IOError           = Fuga_clone(FUGA->Exception);
+    FUGA->SyntaxError       = Fuga_clone(FUGA->Exception);
+    FUGA->SyntaxUnfinished  = Fuga_clone(FUGA->SyntaxError);
+    FUGA->MatchError        = Fuga_clone(FUGA->Exception);
 
     FUGA->symbols = FugaSymbols_new(self);
 

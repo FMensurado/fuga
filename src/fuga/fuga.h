@@ -53,6 +53,7 @@ struct FugaRoot {
     void* IOError;
     void* ValueError;
     void* SyntaxError;
+    void* SyntaxUnfinished;
     void* MatchError;
 };
 
@@ -152,6 +153,11 @@ void* Fuga_catch(void* self);
         if (error##__LINE__)                                            \
             return Fuga_raise(error##__LINE__);                         \
     } while(0)
+
+#define FUGA_TRY(result)   \
+    for (void *exception = Fuga_catch(result); exception; exception=NULL)
+#define FUGA_CATCH(type) if (Fuga_isa_(exception, type))
+#define FUGA_RERAISE     return Fuga_raise(exception)
 
 
 // Slot Manipulation
