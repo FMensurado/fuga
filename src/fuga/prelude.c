@@ -35,6 +35,8 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
     Fuga_setS(FUGA->Prelude, "import", FUGA_METHOD(FugaPrelude_import));
     Fuga_setS(FUGA->Prelude, "match",  FUGA_METHOD(FugaPrelude_match));
+    Fuga_setS(FUGA->Prelude, "do",     FUGA_METHOD(FugaPrelude_do));
+    Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
 
 }
 
@@ -233,25 +235,106 @@ void* FugaPrelude_match(
     long numPatterns = (length-1) / 2;
     void* value = Fuga_getI(args, 0);
     for (long i = 0; i < numPatterns; i++) {
-        void* matcher = Fuga_getI(args, i*2 + 1);
-        matcher = Fuga_lazyCode(matcher);
-        FUGA_NEED(matcher);
+        void* matcher = Fuga_lazyCode(Fuga_getI(args, i*2 + 1));
+        FUGA_CHECK(matcher);
         void* result = Fuga_match_(matcher, value);
-        void* error = Fuga_catch(result);
-        if (error) { 
-            if (Fuga_isa_(error, FUGA->MatchError))
-                continue;
-            else
-                return Fuga_raise(error);
+        bool matched = true;
+        FUGA_TRY(result) {
+            FUGA_CATCH(FUGA->MatchError)
+                matched = false;
+            FUGA_RERAISE;
         }
-        void* body = Fuga_getI(args, i*2 + 2);
-        FUGA_CHECK(body);
-        void* bodyCode = Fuga_lazyCode(body);
-        void* bodyScope = Fuga_lazyScope(body);
-        FUGA_CHECK(bodyScope = Fuga_clone(bodyScope));
-        FUGA_CHECK(Fuga_update_(bodyScope, result));
-        return Fuga_eval(bodyCode, bodyScope, bodyScope);
+        
+        if (matched) {
+            void* body = Fuga_getI(args, i*2 + 2);
+            FUGA_CHECK(body);
+            void* bodyCode = Fuga_lazyCode(body);
+            void* bodyScope = Fuga_lazyScope(body);
+            FUGA_CHECK(bodyScope = Fuga_clone(bodyScope));
+            FUGA_CHECK(Fuga_update_(bodyScope, result));
+            return Fuga_eval(bodyCode, bodyScope, bodyScope);
+        }
     }
     FUGA_RAISE(FUGA->TypeError, "match: no patterns matched");
 }
 
+void* FugaPrelude_do(
+    void* self,
+    void* args
+) {
+    ALWAYS(self); ALWAYS(args);
+    void* scope = Fuga_lazyScope(args);
+    void* code  = Fuga_lazyCode(args);
+    FUGA_CHECK(scope); FUGA_CHECK(code);
+    scope = Fuga_clone(scope);
+    FUGA_CHECK(Fuga_setS(scope, "this", scope));
+
+    void* result = Fuga_evalIn(code, scope);
+    FUGA_CHECK(result);
+    long  length = FugaInt_value(Fuga_length(result));
+    if (length == 0)
+        return FUGA->nil;
+    else
+        return Fuga_getI(result, length-1);
+}
+
+void* FugaPrelude_def(
+    void* self,
+    void* args
+) {
+    ALWAYS(self); ALWAYS(args);
+    void* scope = Fuga_lazyScope(args);
+    void* code  = Fuga_lazyCode(args);
+    FUGA_CHECK(scope); FUGA_CHECK(code);
+    if (Fuga_hasLength_(code, 0))
+        FUGA_RAISE(FUGA->TypeError, "def: expected at least one arg");
+
+    // get arguments
+    void* signature = Fuga_getI(code, 0);
+    void* body;
+    
+    if (Fuga_hasLength_(code, 1)) {
+        body = FUGA_MSG("nil");
+    } else if (Fuga_hasLength_(code, 2)) {
+        body = Fuga_getI(code, 1);
+    } else {
+        body = FUGA_MSG("do");
+        FUGA_FOR(i, slot, code) {
+            if (i > 0)
+                Fuga_append_(body, slot);
+        }
+   }
+
+    // break apart signature
+    void* owner;
+    void* name;
+    if (Fuga_isMsg(signature)) {
+        owner = Fuga_getS(scope, "this");
+        name  = FugaMsg_name(signature);
+        args  = FugaMsg_args(signature);
+    } else if (Fuga_isExpr(signature)) {
+        void* lastmsg;
+        void* ownerexpr = Fuga_clone(FUGA->Expr);
+        FUGA_FOR(i, slot, signature) {
+            if (i < length-1)
+                Fuga_append_(ownerexpr, slot);
+            else
+                lastmsg = slot;
+        }
+        owner = Fuga_eval(ownerexpr, scope, scope);
+        name  = FugaMsg_name(lastmsg);
+        args  = FugaMsg_args(lastmsg);
+    } else {
+        FUGA_RAISE(FUGA->TypeError,
+            "def: unexpected signature type"
+        );
+    }
+    FUGA_CHECK(owner); FUGA_CHECK(name); FUGA_CHECK(args);
+
+    // create the method
+    // FIXME: check to see if method already exists
+    void* method = FugaMethod_method(scope, args, body);
+    FUGA_CHECK(Fuga_set(owner, name, method));
+
+    return FUGA->nil;
+}
