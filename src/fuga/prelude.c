@@ -269,13 +269,10 @@ void* FugaPrelude_do(
     scope = Fuga_clone(scope);
     FUGA_CHECK(Fuga_setS(scope, "this", scope));
 
-    void* result = Fuga_evalIn(code, scope);
-    FUGA_CHECK(result);
-    long  length = FugaInt_value(Fuga_length(result));
-    if (length == 0)
-        return FUGA->nil;
-    else
-        return Fuga_getI(result, length-1);
+    void* result = FUGA->nil;
+    FUGA_FOR(i, slot, code)
+        FUGA_CHECK(result = Fuga_eval(slot, scope, scope));
+    return result;
 }
 
 void* FugaPrelude_def(
