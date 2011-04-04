@@ -204,29 +204,6 @@ void* _FugaParser_buildExpr_(
     }
 }
 
-void* _FugaParser_buildMethodBody(
-    void* self
-) {
-    FUGA_NEED(self);
-    if(Fuga_hasLength_(self, 1)) {
-        return Fuga_get(self, FUGA_INT(0));
-    } else {
-        void* body = FUGA_MSG("do");
-        FUGA_HEADER(body)->slots = FUGA_HEADER(self)->slots;
-        return body;
-    }
-}
-
-void* _FugaParser_buildMethod_(
-    void* self,
-    void* body
-) {
-    void* result = FUGA_MSG("def");
-    Fuga_append_(result, self);
-    Fuga_extend_(result, body);
-    return result;
-}
-
 /**
 *** ### _FugaParser_derive_
 *** 
@@ -321,7 +298,10 @@ void* _FugaParser_derive_after_(
         self = FugaParser_block(parser);
         FUGA_CHECK(self);
         FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RCURLY, "}");
-        return _FugaParser_buildMethod_(expr, self);
+        void* result = FUGA_MSG("def");
+        Fuga_append_(result, expr);
+        Fuga_extend_(result, self);
+        return result;
 
     default:
         FUGA_RAISE(FUGA->SyntaxError, "invalid syntax");
