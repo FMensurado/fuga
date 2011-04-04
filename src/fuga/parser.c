@@ -218,49 +218,13 @@ void* _FugaParser_buildMethodBody(
 }
 
 void* _FugaParser_buildMethod_(
-    void* prev,
-    void* block
+    void* self,
+    void* body
 ) {
-    void* self = block;
-    FUGA_CHECK(self);
-
-    void* body = _FugaParser_buildMethodBody(block);
-    void* args = NULL;
-
-
-    // separate args from prev.
-    if (prev) {
-        FUGA_CHECK(prev);
-        if (Fuga_isExpr(prev)) {
-            size_t last = FugaInt_value(Fuga_length(prev)) - 1;
-            void* lastF = FUGA_INT(last);
-            void*  msg  = Fuga_get(prev, lastF);
-            args = FugaMsg_args(msg);
-            void* name = FugaMsg_fromSymbol(FugaMsg_name(msg));
-            FUGA_CHECK(Fuga_set(prev, lastF, name));
-        } else if (Fuga_isMsg(prev)) {
-            args = FugaMsg_args(prev);
-            prev = FugaMsg_fromSymbol(FugaMsg_name(prev));
-        } else {
-            args = prev;
-            prev = NULL;
-        }
-    } else {
-        args = Fuga_clone(FUGA->Object);
-    }
-
-    void* rhs = FUGA_MSG("method");
-    FUGA_CHECK(Fuga_append_(rhs, args));
-    FUGA_CHECK(Fuga_append_(rhs, body));
-
-    if (prev) {
-        void* expr = FUGA_MSG("=");
-        FUGA_CHECK(Fuga_append_(expr, prev));
-        FUGA_CHECK(Fuga_append_(expr, rhs));
-        return expr;
-    } else {
-        return rhs;
-    }
+    void* result = FUGA_MSG("def");
+    Fuga_append_(result, self);
+    Fuga_extend_(result, body);
+    return result;
 }
 
 /**
@@ -289,12 +253,6 @@ void* _FugaParser_derive_(
         FUGA_CHECK(self);
         FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RBRACKET, "]");
         return self;
-
-    case FUGA_TOKEN_LCURLY:
-        self = FugaParser_block(parser);
-        FUGA_CHECK(self);
-        FUGA_PARSER_EXPECT_UNFINISHED(parser, FUGA_TOKEN_RCURLY, "}");
-        return _FugaParser_buildMethod_(NULL, self);
 
     case FUGA_TOKEN_INT:    return FugaToken_int(token);
     case FUGA_TOKEN_STRING: return FugaToken_string(token);
@@ -535,95 +493,34 @@ TESTS(FugaParser) {
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("[10, 20]", Fuga_isRaised(self));
 
-    FUGA_PARSER_TEST("{10}",
+    FUGA_PARSER_TEST("foo {}",
            !Fuga_isRaised(self)
         &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 0)
-        &&  FugaInt_is_(Fuga_get(self, FUGA_INT(1)), 10));
-    FUGA_PARSER_TEST("{}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 0)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(1)), 0));
-    FUGA_PARSER_TEST("{10, 20}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 0)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(1)), 2));
-    FUGA_PARSER_TEST("() {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 0)
-        &&  FugaInt_is_(Fuga_get(self, FUGA_INT(1)), 10));
-    FUGA_PARSER_TEST("(a) {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 1)
-        &&  FugaInt_is_(Fuga_get(self, FUGA_INT(1)), 10));
-    FUGA_PARSER_TEST("(a, b) {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 2)
-        &&  FugaInt_is_(Fuga_get(self, FUGA_INT(1)), 10));
+        &&  Fuga_hasLength_(self, 1)
+        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
+        );
     FUGA_PARSER_TEST("foo {10}",
            !Fuga_isRaised(self)
         &&  Fuga_isMsg(self)
         &&  Fuga_hasLength_(self, 2)
         &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_hasLength_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(0)),
-                0
-            )
-        &&  FugaInt_is_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(1)),
-                10
-            )
+        &&  Fuga_isInt(Fuga_get(self, FUGA_INT(1)))
+        );
+    FUGA_PARSER_TEST("foo {10, :hi}",
+           !Fuga_isRaised(self)
+        &&  Fuga_isMsg(self)
+        &&  Fuga_hasLength_(self, 3)
+        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
+        &&  Fuga_isInt(Fuga_get(self, FUGA_INT(1)))
+        &&  Fuga_isSymbol(Fuga_get(self, FUGA_INT(2)))
         );
     FUGA_PARSER_TEST("foo bar {10}",
            !Fuga_isRaised(self)
         &&  Fuga_isMsg(self)
         &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_isExpr(Fuga_get(self, FUGA_INT(0)))
-        &&  Fuga_hasLength_(Fuga_get(self, FUGA_INT(0)), 2)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_hasLength_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(0)),
-                0
-            )
-        &&  FugaInt_is_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(1)),
-                10
-            )
-        );
-    FUGA_PARSER_TEST("foo (bar, baz) {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_hasLength_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(0)),
-                2
-            )
-        &&  FugaInt_is_(
-                Fuga_get(Fuga_get(self, FUGA_INT(1)),
-                             FUGA_INT(1)),
-                10
-            )
+        &&  Fuga_isExpr(Fuga_getI(self, 0))
+        &&  Fuga_hasLength_(Fuga_getI(self, 0), 2)
+        &&  Fuga_isInt (Fuga_getI(self, 1))
         );
 
     Fuga_quit(self);
