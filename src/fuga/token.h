@@ -10,7 +10,6 @@ enum FugaTokenType {
     
     // simple tokens
     FUGA_TOKEN_SEPARATOR,
-    FUGA_TOKEN_EQUALS,
     FUGA_TOKEN_LPAREN,
     FUGA_TOKEN_RPAREN,
     FUGA_TOKEN_LBRACKET,

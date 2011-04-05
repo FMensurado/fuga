@@ -193,9 +193,13 @@ void _FugaLexer_strip(
         i++;
     if (self->code[i] == '#') {
         i++;
-        while ((self->code[i] != '\0') &&
-               (self->code[i] != '\n'))
+        while (1) {
+            while ((self->code[i] != '\0') && (self->code[i] != '\n'))
+                i++;
+            if (self->code[i-1] != '\\' || self->code[i] != '\n')
+                break;
             i++;
+        }
         _FugaLexer_consume_(self, i);
         _FugaLexer_strip(self);
     } else if(self->code[i] == '\\') {
@@ -322,17 +326,17 @@ void _FugaLexer_lexOp(
     FugaLexer* self
 ) {
     int i=0;
+    bool error;
+    if (self->code[0] == '?' || self->code[0] == '!')
+        error = true;
     while (FugaChar_isOp(self->code+i))
         i += FugaChar_size(self->code+i);
-    if (i == 1 && self->code[0] == '=') {
-        self->token->type = FUGA_TOKEN_EQUALS;
-        _FugaLexer_consume_(self, 1);
-    } else {
-        self->token->type = FUGA_TOKEN_OP;
-        self->token->value = _FugaLexer_prefix_(self, i);
-        if (self->code[0] == '(')
-            self->token->type = FUGA_TOKEN_NAME;
-    }
+    self->token->type = FUGA_TOKEN_OP;
+    self->token->value = _FugaLexer_prefix_(self, i);
+    if (self->code[0] == '(')
+        self->token->type = FUGA_TOKEN_NAME;
+    if (error)
+        self->token->type = FUGA_TOKEN_ERROR;
 }
 
 void _FugaLexer_lexDoc(
@@ -343,11 +347,30 @@ void _FugaLexer_lexDoc(
         _FugaLexer_consume_(self, 1);
 
     int i=0;
-    while (self->code[i] != '\n')
+    while(1) {
+        while (self->code[i] != '\n' && self->code[i] != 0)
+            i++;
+        if (self->code[i-1] != '\\' || self->code[i] != '\n')
+            break;
         i++;
+    }
+
+    char* value = malloc(i+2);
+    int index=0;
+    i = 0;
+    while(1) {
+        while (self->code[i] != '\n' && self->code[i] != 0)
+            value[index++] = self->code[i++];
+        if (self->code[i-1] != '\\' || self->code[i] != '\n')
+            break;
+        index--; i++;
+    }
+    value[index++] = '\n';
+    value[index++] = 0;
 
     self->token->type  = FUGA_TOKEN_DOC;
-    self->token->value = _FugaLexer_prefix_(self, i);
+    self->token->value = value;
+    _FugaLexer_consume_(self, i);
 }
 
 void _FugaLexer_lexSymbol(
@@ -490,6 +513,10 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST(FUGA_TOKEN_ERROR);
     FUGA_LEXER_TEST(FUGA_TOKEN_END);
 
+    FugaLexer_readCode_(self, "\"Hello,\nworld!\"");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_STRING, "Hello,\nworld!");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
     FugaLexer_readCode_(self, "\"Hello,\\nworld!\"");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_STRING, "Hello,\nworld!");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
@@ -534,21 +561,28 @@ TESTS(FugaLexer) {
 
     FugaLexer_readCode_(self, "a = b");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "a");
-    FUGA_LEXER_TEST    (FUGA_TOKEN_EQUALS);
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_OP, "=");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "b");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
-    FugaLexer_readCode_(self, "0");
-    FUGA_LEXER_TEST    (FUGA_TOKEN_INT);
+    // integers
+    FugaLexer_readCode_(self, "1");
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 1);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "123");
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 123);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaLexer_readCode_(self, "0");
     FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 0);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
-    FugaLexer_readCode_(self, "40");
-    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 40);
+    FugaLexer_readCode_(self, "077");
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 77);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
+    // names
     FugaLexer_readCode_(self, "1st");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "1st");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
@@ -573,6 +607,14 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "mi!");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
+    FugaLexer_readCode_(self, "_ _?!");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "_");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "_?!");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "?");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_ERROR);
+
     FugaLexer_readCode_(self, "][");
     FUGA_LEXER_TEST    (FUGA_TOKEN_RBRACKET);
     FUGA_LEXER_TEST    (FUGA_TOKEN_LBRACKET);
@@ -585,9 +627,10 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST    (FUGA_TOKEN_RPAREN);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
-    FugaLexer_readCode_(self, "\\+ :\\**");
+    FugaLexer_readCode_(self, "\\+ :\\** :\\:=");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "+");
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "**");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, ":=");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaLexer_readCode_(self, "a := b");
@@ -597,16 +640,31 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaLexer_readCode_(self, "::Hello\nthere:: Good\n:bye");
-    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Hello");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Hello\n");
     FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME,   "there");
-    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Good");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Good\n");
     FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_SYMBOL, "bye");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
+    FugaLexer_readCode_(self, ":: Hello\\\n there");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_DOC,    "Hello there\n");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
     FugaLexer_readCode_(self, ":65");
     FUGA_LEXER_TEST    (FUGA_TOKEN_ERROR);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "10#20\\\n30\n40");
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 10);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_SEPARATOR);
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 40);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "10\\\n20");
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 10);
+    FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 20);
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     Fuga_quit(gc);

@@ -133,9 +133,9 @@ size_t _FugaParser_lbp_(
     case FUGA_TOKEN_STRING:   return 2000;
     case FUGA_TOKEN_SYMBOL:   return 2000;
     case FUGA_TOKEN_NAME:     return 2000;
-    case FUGA_TOKEN_EQUALS:   return 1;
-    case FUGA_TOKEN_OP:
-        return FugaParser_precedence_(parser, token->value);
+    case FUGA_TOKEN_OP:       return 1000;
+/*  case FUGA_TOKEN_OP:         
+        return FugaParser_precedence_(parser, token->value); */
     default: return 0;
     }
 }
@@ -250,7 +250,8 @@ void* _FugaParser_derive_(
         self = FugaMsg_fromSymbol(FugaToken_symbol(token));
         FUGA_CHECK(self);
         void* part = FugaParser_expression_(parser, 2000);
-        return _FugaParser_buildExpr_(part, self);
+        FUGA_CHECK(Fuga_append_(self, part));
+        return self;
 
     default:
         FUGA_RAISE(FUGA->SyntaxError, "invalid syntax");
@@ -269,9 +270,6 @@ void* _FugaParser_derive_after_(
     void* expr
 ) {
     void* self = parser->operators;
-    void* name;
-    void* arg;
-    void* msg;
     switch (token->type) {
     case FUGA_TOKEN_ERROR:
         FUGA_RAISE(FUGA->SyntaxError, "invalid token");
@@ -280,19 +278,15 @@ void* _FugaParser_derive_after_(
         self = _FugaParser_derive_(parser, token);
         return _FugaParser_buildExpr_(expr, self);
 
-    case FUGA_TOKEN_EQUALS:
-        msg = FUGA_MSG("=");
-        Fuga_append_(msg, expr);
-        Fuga_append_(msg, FugaParser_expression_(parser, 1));
-        return msg;
-
     case FUGA_TOKEN_OP:
-        name = FugaToken_symbol(token);
-        arg  = FugaParser_expression_(parser,
-            FugaParser_precedence_(parser, token->value));
-        msg  = FugaMsg_fromSymbol(name);
-        Fuga_append_(msg, arg);
-        return _FugaParser_buildExpr_(expr, msg);
+        self = FugaMsg_fromSymbol(FugaToken_symbol(token));
+        FUGA_CHECK(Fuga_append_(self, expr));
+        FUGA_CHECK(Fuga_append_(self,
+            FugaParser_expression_(parser, 1000)
+        ));
+
+
+        return self;
 
     case FUGA_TOKEN_LCURLY:
         self = FugaParser_block(parser);
@@ -435,42 +429,33 @@ TESTS(FugaParser) {
         && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
     FUGA_PARSER_TEST("-42",
            !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
-        && Fuga_hasLength_(self, 2)
-        && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 42)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
-    FUGA_PARSER_TEST("10 + 20",
-           !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
-        && Fuga_hasLength_(self, 2)
-        && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && Fuga_isMsg(self)
+        && Fuga_hasLength_(self, 1)
+        && FugaInt_is_(Fuga_getI(self, 0), 42));
     FUGA_PARSER_TEST("10 = 20",
            !Fuga_isRaised(self)
         && Fuga_isMsg(self)
         && Fuga_hasLength_(self, 2)
         && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 10)
         && FugaInt_is_(Fuga_get(self, FUGA_INT(1)), 20));
-    FUGA_PARSER_TEST("10 * 20 * 30",
-           !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
-        && Fuga_hasLength_(self, 3)
-        && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(2))));
     FUGA_PARSER_TEST("10 + 20 * 30",
            !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
+        && Fuga_isMsg(self)
         && Fuga_hasLength_(self, 2)
-        && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && Fuga_isMsg(Fuga_getI(self, 0))
+        && Fuga_hasLength_(Fuga_getI(self, 0), 2));
     FUGA_PARSER_TEST("[10 + 20] * 30",
            !Fuga_isRaised(self)
-        && Fuga_isExpr(self)
-        && Fuga_hasLength_(self, 3)
-        && FugaInt_is_(Fuga_get(self, FUGA_INT(0)), 10)
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1)))
-        && Fuga_isMsg(Fuga_get(self, FUGA_INT(1))));
+        && Fuga_isMsg(self)
+        && Fuga_hasLength_(self, 2)
+        && Fuga_isMsg(Fuga_getI(self, 0))
+        && Fuga_hasLength_(Fuga_getI(self, 0), 2));
+    FUGA_PARSER_TEST("10 + [20 * 30]",
+           !Fuga_isRaised(self)
+        && Fuga_isMsg(self)
+        && Fuga_hasLength_(self, 2)
+        && Fuga_isMsg(Fuga_getI(self, 1))
+        && Fuga_hasLength_(Fuga_getI(self, 1), 2));
     FUGA_PARSER_TEST("[10, 20]", Fuga_isRaised(self));
 
     FUGA_PARSER_TEST("foo {}",
