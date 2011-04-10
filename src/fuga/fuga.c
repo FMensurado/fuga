@@ -3,6 +3,7 @@
 #include "fuga.h"
 #include "prelude.h"
 #include "parser.h"
+#include "path.h"
 
 #include <string.h>
 
@@ -24,6 +25,7 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->Bool);
     Fuga_mark_(self, FUGA->True);
     Fuga_mark_(self, FUGA->False);
+    Fuga_mark_(self, FUGA->Path);
 
     Fuga_mark_(self, FUGA->Exception);
     Fuga_mark_(self, FUGA->TypeError);
@@ -75,6 +77,8 @@ void FugaRoot_init(
     FugaSymbol_init(FUGA->Prelude);
     FugaMsg_init(FUGA->Prelude);
     FugaMethod_init(FUGA->Prelude);
+    FugaPath_init(FUGA->Prelude);
+
 
     Fuga_initObject(FUGA->Prelude);
     Fuga_initBool(FUGA->Prelude);

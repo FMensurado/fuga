@@ -45,6 +45,7 @@ struct FugaRoot {
     void* Bool;
     void* True;     // "true"  is reserved in C++ :-/
     void* False;    // "false" is also reserved
+    void* Path;
 
     // Exceptions
     void* Exception;
