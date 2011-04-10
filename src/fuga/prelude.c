@@ -3,6 +3,13 @@
 #include "test.h"
 #include "loader.h"
 
+void FugaPrelude_defOp(
+    void* self,
+    const char* name
+) {
+    Fuga_setS(FUGA->Prelude, name, FUGA_METHOD_OP(name));
+}
+
 void FugaPrelude_init(
     void* self
 ) {
@@ -38,6 +45,19 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "do",     FUGA_METHOD(FugaPrelude_do));
     Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
 
+    FugaPrelude_defOp(FUGA->Prelude, "==");
+    FugaPrelude_defOp(FUGA->Prelude, "<");
+    FugaPrelude_defOp(FUGA->Prelude, ">");
+    FugaPrelude_defOp(FUGA->Prelude, "<=");
+    FugaPrelude_defOp(FUGA->Prelude, ">=");
+
+    FugaPrelude_defOp(FUGA->Prelude, "+");
+    FugaPrelude_defOp(FUGA->Prelude, "-");
+    FugaPrelude_defOp(FUGA->Prelude, "*");
+    FugaPrelude_defOp(FUGA->Prelude, "/");
+    FugaPrelude_defOp(FUGA->Prelude, "//");
+    FugaPrelude_defOp(FUGA->Prelude, "%");
+    FugaPrelude_defOp(FUGA->Prelude, "++");
 }
 
 void* FugaPrelude_equals(

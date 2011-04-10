@@ -107,6 +107,48 @@ void* FugaMethod0_new_(void* self, void* (*method)(void*))
     return result;
 }
 
+// op method (i.e., converts +(a,b) into a +(b)).
+
+typedef struct {
+    void* (*call) (void*, void*, void*);
+    void* op;
+} FugaMethodOp;
+
+void* FugaMethodOp_call(void* _self, void* recv, void* args)
+{
+    FugaMethodOp* self = _self;
+    FUGA_CHECK(self); FUGA_CHECK(recv); FUGA_NEED(args);
+    if (Fuga_hasLength_(args, 1)) {
+        FUGA_CHECK(recv = Fuga_getI(args, 0));
+        FUGA_CHECK(args = Fuga_clone(FUGA->Object));
+        return Fuga_send(recv, self->op, args);
+    } else if (Fuga_hasLength_(args, 2)) {
+        void* arg;
+        FUGA_CHECK(recv = Fuga_getI(args, 0));
+        FUGA_CHECK(arg  = Fuga_getI(args, 1));
+        FUGA_CHECK(args = Fuga_clone(FUGA->Object));
+        FUGA_CHECK(Fuga_append_(args, arg));
+        return Fuga_send(recv, self->op, args);
+    } else {
+        FUGA_RAISE(FUGA->TypeError, "op expected 1 or 2 arguments");
+    }
+}
+
+void FugaMethodOp_mark(void* _self) {
+    FugaMethodOp* self = _self;
+    Fuga_mark_(self, self->op);
+}
+
+void* FugaMethodOp_new_(void* self, const char* name)
+{
+    FugaMethodOp* result = Fuga_clone_(FUGA->Method, sizeof(*result));
+    Fuga_type_(result, &FugaMethod_type);
+    result->call = FugaMethodOp_call;
+    result->op   = FUGA_SYMBOL(name);
+    Fuga_onMark_(result, FugaMethodOp_mark);
+    return result;
+}
+
 // 1 arg methods 
 
 typedef struct {
