@@ -14,6 +14,7 @@ void FugaString_init(void* self)
     Fuga_setS(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
     Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1(FugaString_cat_));
     Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));
+    Fuga_setS(FUGA->String, "split", FUGA_METHOD_1(FugaString_split_));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
@@ -161,33 +162,45 @@ FugaString* FugaString_from_to_(
     if (!Fuga_isString(self))
         FUGA_RAISE(FUGA->TypeError, "String slice: expected string");
     if (start < 0) start += self->length;
-    if (start < 0)
-        FUGA_RAISE(FUGA->ValueError,
-            "String slice: start index too negative"
-        );
+    if (start < 0) start = 0;
     if (end < 0) end += self->length;
-    if (end < 0)
-        FUGA_RAISE(FUGA->ValueError,
-            "String slice: end index too negative"
-        );
-
-    if (start >= self->length) return FUGA_STRING("");
-    if (end   >= self->length) end = self->length;
+    if (end < 0) end = 0;
+    if (end   > self->length) end = self->length;
     if (start >= end) return FUGA_STRING("");
 
     const char *src = self->data;
-    long i;
-    size_t size;
-    for (i=0; i < start; i++)
+    long i = 0;
+    size_t size = 0;
+    for (; i < start; i++)
         src += FugaChar_size(src); 
-    for (size=0; i < end; i++);
+    for (; i < end; i++)
         size += FugaChar_size(src + size);
-
+    
     char buffer[size+1];
     memcpy(buffer, src, size);
     buffer[size] = 0;
     return FUGA_STRING(buffer);
 }
+
+#ifdef TESTING
+TESTS(FugaString_from_to_) {
+    void* self = Fuga_init();
+    FugaString* src = FUGA_STRING("abcdefgh");
+
+    TEST(FugaString_is_(FugaString_from_to_(src, 0, 8), "abcdefgh"));
+    TEST(FugaString_is_(FugaString_from_to_(src, 0, 7), "abcdefg"));
+    TEST(FugaString_is_(FugaString_from_to_(src, 0, -1), "abcdefg"));
+    TEST(FugaString_is_(FugaString_from_to_(src, 1, -1), "bcdefg"));
+    TEST(FugaString_is_(FugaString_from_to_(src, 3, 5), "de"));
+    TEST(FugaString_is_(FugaString_from_to_(src, 4, 5), "e"));
+    TEST(FugaString_is_(FugaString_from_to_(src, -5, -2), "def"));
+    TEST(FugaString_is_(FugaString_from_to_(src, -10, -2), "abcdef"));
+    TEST(FugaString_is_(FugaString_from_to_(src, -5, -10), ""));
+    TEST(FugaString_is_(FugaString_from_to_(src, 0, 0), ""));
+
+    Fuga_quit(self);
+}
+#endif
 
 void* FugaString_cat_(void* _self, void* _other)
 {
@@ -285,14 +298,23 @@ FugaString* FugaString_at_(
 ***     ("Hello", "world!")
 ***     >>> "Foo Bar Baz" split("a ")
 ***     ("Foo", "B", "r", "B", "z")
+***     >>> " foo" split(" ")
+***     ("", "foo")
 ***     
 **/
 void* FugaString_split_(
     FugaString* self,
     FugaString* splitter
 ) {
-    ALWAYS(self);       ALWAYS(splitter);
-    FUGA_NEED(self);    FUGA_NEED(splitter);
+    bool ws = false;
+    ALWAYS(self);
+    FUGA_NEED(self);
+
+    if (!splitter) {
+        ws = true;
+        splitter = FUGA_STRING(" \t\r\n");
+    }
+    FUGA_NEED(splitter);
     if (!Fuga_isString(self) || !Fuga_isString(splitter))
         FUGA_RAISE(FUGA->TypeError,
             "String split: expected primitive strings"
@@ -308,14 +330,38 @@ void* FugaString_split_(
             frag = FugaString_from_to_(self, start, i);
             FUGA_CHECK(frag);
             start = i+1;
-            if (!FugaString_is_(frag, ""))
+            if (!ws || !FugaString_is_(frag, ""))
                 FUGA_CHECK(Fuga_append_(results, frag));
         }
     }
     frag = FugaString_from_(self, start);
     FUGA_CHECK(frag);
-    if (!FugaString_is_(frag, ""))
+    if (!ws || !FugaString_is_(frag, ""))
         FUGA_CHECK(Fuga_append_(results, frag));
     return results;
 }
+
+
+#ifdef TESTING
+#define FUGA_STRING_SPLIT_TEST(t, s, r) \
+    TEST(FugaString_is_(Fuga_str(FugaString_split_(FUGA_STRING(t), \
+                                        s ? FUGA_STRING(s) : NULL)), \
+                        r))
+TESTS(FugaString_split_) {
+    void* self = Fuga_init();
+
+    FUGA_STRING_SPLIT_TEST("Hello world!", " ",
+                           "(\"Hello\", \"world!\")")
+    FUGA_STRING_SPLIT_TEST("foo bar baz", " ",
+                           "(\"foo\", \"bar\", \"baz\")")
+    FUGA_STRING_SPLIT_TEST("foo bar baz", " a",
+                           "(\"foo\", \"b\", \"r\", \"b\", \"z\")")
+    FUGA_STRING_SPLIT_TEST(" a  b ", NULL,
+                           "(\"a\", \"b\")")
+    FUGA_STRING_SPLIT_TEST(" a  b ", " ",
+                           "(\"\", \"a\", \"\", \"b\", \"\")")
+
+    Fuga_quit(self);
+}
+#endif
 
