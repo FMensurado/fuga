@@ -490,19 +490,23 @@ bool Fuga_hasLength_(void* self, long value)
  * Converts a primitive into either an int or a symbol (raising an
  * exception on failure).
  */ 
-void* Fuga_toName(void* name)
+void* Fuga_toName(void* name, void* self)
 {
     ALWAYS(name);
     FUGA_NEED(name);
     if (Fuga_isSymbol(name))
         return name;
-    if (Fuga_isInt(name))
+    if (Fuga_isInt(name)) {
+        if (FugaInt_value(name) < 0) {
+            long length = FugaInt_value(Fuga_length(self));
+            name = FUGA_INT(FugaInt_value(name) + length);
+        }
         return name;
+    }
     if (Fuga_isString(name))
         return FugaString_toSymbol(name);
     if (Fuga_isMsg(name))
        return FugaMsg_toSymbol(name);
-    void* self = name;
     FUGA_RAISE(FUGA->TypeError,
         "toName: expected primitive int, symbol, string, or msg"
     );
@@ -511,13 +515,13 @@ void* Fuga_toName(void* name)
 #ifdef TESTING
 TESTS(Fuga_toName) {
     void* self = Fuga_init();
-    TEST(Fuga_isInt   (Fuga_toName(FUGA_INT   (10))));
-    TEST(Fuga_isSymbol(Fuga_toName(FUGA_SYMBOL("hello"))));
-    TEST(Fuga_isSymbol(Fuga_toName(FUGA_STRING("hello"))));
-    TEST(Fuga_isRaised(Fuga_toName(FUGA_STRING(""))));
-    TEST(Fuga_isSymbol(Fuga_toName(FUGA_MSG("hello"))));
-    TEST(Fuga_isRaised(Fuga_toName(FUGA->Int)));
-    TEST(Fuga_isRaised(Fuga_toName(Fuga_raise(FUGA_INT(10)))));
+    TEST(Fuga_isInt   (Fuga_toName(FUGA_INT   (10),  self)));
+    TEST(Fuga_isSymbol(Fuga_toName(FUGA_SYMBOL("hello"), self)));
+    TEST(Fuga_isSymbol(Fuga_toName(FUGA_STRING("hello"), self)));
+    TEST(Fuga_isRaised(Fuga_toName(FUGA_STRING(""), self)));
+    TEST(Fuga_isSymbol(Fuga_toName(FUGA_MSG("hello"), self)));
+    TEST(Fuga_isRaised(Fuga_toName(FUGA->Int, self)));
+    TEST(Fuga_isRaised(Fuga_toName(Fuga_raise(FUGA_INT(10)), self)));
     Fuga_quit(self);
 }
 #endif
@@ -588,7 +592,7 @@ void* Fuga_hasDoc(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_NEED(name);
     if (Fuga_isInt(name)) {
         if (FugaInt_value(name) < 0)
@@ -642,7 +646,7 @@ void* Fuga_getDoc(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_NEED(name);
     if (Fuga_isInt(name)) {
         if (FugaInt_value(name) < 0)
@@ -666,7 +670,7 @@ void* Fuga_setDoc(void* self, void* name, void* value)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self); FUGA_NEED(name);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_NEED(name);
     if (Fuga_isInt(name)) {
         if (FugaInt_value(name) < 0)
@@ -695,7 +699,7 @@ void* Fuga_hasRaw(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_CHECK(name);
 
     FugaHeader* header = FUGA_HEADER(self);
@@ -733,7 +737,8 @@ TESTS(Fuga_hasRaw) {
     TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(42))));
-    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(-1))));
+    TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_INT(-1))));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA_INT(-2))));
 
     TEST( Fuga_isTrue  (Fuga_hasRaw(a, FUGA_SYMBOL("a"))));
     TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_SYMBOL("a"))));
@@ -788,8 +793,6 @@ void* Fuga_has(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_CHECK(self);
-    name = Fuga_toName(name);
-    FUGA_CHECK(name);
 
     void* result = Fuga_hasRaw(self, name);
     FUGA_CHECK(result);
@@ -800,6 +803,7 @@ void* Fuga_has(void* self, void* name)
             "hasBy_: Expected boolean from hasRawBy_"
         );
 
+    name = Fuga_toName(name, self);
     if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
         return Fuga_has(FUGA_HEADER(self)->proto, name);
 
@@ -828,7 +832,8 @@ TESTS(Fuga_has) {
     TEST( Fuga_isFalse (Fuga_has(b, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_has(c, FUGA_INT(2))));
     TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(42))));
-    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(-1))));
+    TEST( Fuga_isTrue  (Fuga_has(a, FUGA_INT(-1))));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA_INT(-2))));
 
     TEST( Fuga_isTrue  (Fuga_has(a, FUGA_SYMBOL("a"))));
     TEST( Fuga_isTrue  (Fuga_has(b, FUGA_SYMBOL("a"))));
@@ -884,7 +889,7 @@ void* Fuga_getRaw(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_CHECK(name);
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
@@ -920,7 +925,9 @@ TESTS(Fuga_getRaw) {
     TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_INT(2))));
     TEST( Fuga_isRaised(Fuga_getRaw(c, FUGA_INT(2))));
     TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(42))));
-    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(-1))));
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_INT(-1))))
+    TEST( a  ==        (Fuga_getRaw(a, FUGA_INT(-2))))
+    TEST( Fuga_isRaised(Fuga_getRaw(a, FUGA_INT(-3))));
 
     TEST( a  ==        (Fuga_getRaw(a, FUGA_SYMBOL("a"))));
     TEST( Fuga_isRaised(Fuga_getRaw(b, FUGA_SYMBOL("a"))));
@@ -968,7 +975,7 @@ void* Fuga_get(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_CHECK(name);
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
@@ -1007,7 +1014,9 @@ TESTS(Fuga_get) {
     TEST( Fuga_isRaised(Fuga_get(b, FUGA_INT(2))));
     TEST( Fuga_isRaised(Fuga_get(c, FUGA_INT(2))));
     TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(42))));
-    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(-1))));
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(-1))));
+    TEST( a  ==        (Fuga_get(a, FUGA_INT(-2))));
+    TEST( Fuga_isRaised(Fuga_get(a, FUGA_INT(-3))));
 
     TEST( a  ==        (Fuga_get(a, FUGA_SYMBOL("a"))));
     TEST( a  ==        (Fuga_get(b, FUGA_SYMBOL("a"))));
@@ -1084,7 +1093,7 @@ void* Fuga_set(void* self, void* name, void* value)
     FUGA_NEED(name);
     if (Fuga_isNil(name))
         return Fuga_append_(self, value);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_CHECK(name);
 
     FugaSlot slot = {.name = name, .value = value, .doc = NULL};
@@ -1119,7 +1128,8 @@ TESTS(Fuga_set) {
     TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(3), a)) );
     TEST( Fuga_isNil    (Fuga_set(a, NULL,        a)) );
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(3), a)) );
-    TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(-1), a)) );
+    TEST( Fuga_isNil    (Fuga_set(a, FUGA_INT(-1), a)) );
+    TEST( Fuga_isRaised (Fuga_set(a, FUGA_INT(-5), a)) );
 
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("a"), a)) );
     TEST( Fuga_isNil    (Fuga_set(a, FUGA_SYMBOL("b"), a)) );
@@ -1140,7 +1150,7 @@ void* Fuga_del(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
     FUGA_NEED(self);
-    name = Fuga_toName(name);
+    name = Fuga_toName(name, self);
     FUGA_CHECK(name);
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
@@ -1169,23 +1179,23 @@ void* Fuga_delS         (void* self, const char* name)
     { return Fuga_del        (self, FUGA_SYMBOL(name));   }
 
 
-void* Fuga_hasI       (void* self, size_t index)
+void* Fuga_hasI       (void* self, long index)
     { return Fuga_has        (self, FUGA_INT(index));   }
-void* Fuga_hasNameI   (void* self, size_t index)
+void* Fuga_hasNameI   (void* self, long index)
     { return Fuga_hasName    (self, FUGA_INT(index));   }
-void* Fuga_hasDocI    (void* self, size_t index)
+void* Fuga_hasDocI    (void* self, long index)
     { return Fuga_hasDoc     (self, FUGA_INT(index));   }
-void* Fuga_getI       (void* self, size_t index)
+void* Fuga_getI       (void* self, long index)
     { return Fuga_get        (self, FUGA_INT(index));   }
-void* Fuga_getNameI   (void* self, size_t index)
+void* Fuga_getNameI   (void* self, long index)
     { return Fuga_getName    (self, FUGA_INT(index));   }
-void* Fuga_getDocI    (void* self, size_t index)
+void* Fuga_getDocI    (void* self, long index)
     { return Fuga_getDoc     (self, FUGA_INT(index));   }
-void* Fuga_setI    (void* self, size_t index, void* value)
+void* Fuga_setI    (void* self, long index, void* value)
     { return Fuga_set     (self, FUGA_INT(index), value);   }
-void* Fuga_setDocI (void* self, size_t index, void* value)
+void* Fuga_setDocI (void* self, long index, void* value)
     { return Fuga_setDoc  (self, FUGA_INT(index), value);   }
-void* Fuga_delI       (void* self, size_t index)
+void* Fuga_delI       (void* self, long index)
     { return Fuga_del        (self, FUGA_INT(index));   }
 
 void* Fuga_extend_(

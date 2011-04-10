@@ -195,15 +195,15 @@ void* Fuga_set       (void* self, void* name, void* value);
 void* Fuga_setDoc    (void* self, void* name, void* value);
 void* Fuga_del       (void* self, void* name);
 
-void* Fuga_hasI      (void* self, size_t index);
-void* Fuga_hasNameI  (void* self, size_t index);
-void* Fuga_hasDocI   (void* self, size_t index);
-void* Fuga_getI      (void* self, size_t index);
-void* Fuga_getNameI  (void* self, size_t index);
-void* Fuga_getDocI   (void* self, size_t index);
-void* Fuga_setI      (void* self, size_t index, void* value);
-void* Fuga_setDocI   (void* self, size_t index, void* value);
-void* Fuga_delI      (void* self, size_t index);
+void* Fuga_hasI      (void* self, long index);
+void* Fuga_hasNameI  (void* self, long index);
+void* Fuga_hasDocI   (void* self, long index);
+void* Fuga_getI      (void* self, long index);
+void* Fuga_getNameI  (void* self, long index);
+void* Fuga_getDocI   (void* self, long index);
+void* Fuga_setI      (void* self, long index, void* value);
+void* Fuga_setDocI   (void* self, long index, void* value);
+void* Fuga_delI      (void* self, long index);
 
 void* Fuga_append_   (void* self, void* value);
 void* Fuga_update_   (void* self, void* value);
