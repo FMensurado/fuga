@@ -15,6 +15,7 @@ void FugaString_init(void* self)
     Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1(FugaString_cat_));
     Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));
     Fuga_setS(FUGA->String, "split", FUGA_METHOD_1(FugaString_split_));
+    Fuga_setS(FUGA->String, "join",  FUGA_METHOD_1(FugaString_join_));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
@@ -360,6 +361,79 @@ TESTS(FugaString_split_) {
                            "(\"a\", \"b\")")
     FUGA_STRING_SPLIT_TEST(" a  b ", " ",
                            "(\"\", \"a\", \"\", \"b\", \"\")")
+
+    Fuga_quit(self);
+}
+#endif
+
+FugaString* FugaString_join_(
+    FugaString* self,
+    void* object
+) {
+    FUGA_NEED(self);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, 
+            "String join: expected self to be a primitive string"
+        );
+
+    FugaString* result = FUGA_STRING("");
+    FUGA_FOR(i, slot, object) {
+        FUGA_NEED(slot);
+        if (!Fuga_isString(slot)) {
+            slot = Fuga_str(slot);
+            if (!Fuga_isString(slot))
+                FUGA_RAISE(FUGA->TypeError,
+                    "String join: string conversion failed..."
+                );
+        }
+        
+        if (i > 0)
+            result = FugaString_cat_(result, self);
+        result = FugaString_cat_(result, slot); 
+        FUGA_CHECK(result);
+    }
+    return result;
+}
+
+#ifdef TESTING
+TESTS(FugaString_join_) {
+    void* self = Fuga_init();
+    void* parts;
+    FugaString *joiner, *result;
+
+    parts = Fuga_clone(FUGA->Object);
+    Fuga_append_(parts, FUGA_STRING("hello"));
+    Fuga_append_(parts, FUGA_STRING("world"));
+    joiner = FUGA_STRING(" ");
+    result = FugaString_join_(joiner, parts);
+    TEST(FugaString_is_(result, "hello world"));
+
+    parts = Fuga_clone(FUGA->Object);
+    Fuga_append_(parts, FUGA_STRING("hello"));
+    joiner = FUGA_STRING(" ");
+    result = FugaString_join_(joiner, parts);
+    TEST(FugaString_is_(result, "hello"));
+
+    parts = Fuga_clone(FUGA->Object);
+    Fuga_append_(parts, FUGA_STRING(""));
+    joiner = FUGA_STRING(" ");
+    result = FugaString_join_(joiner, parts);
+    TEST(FugaString_is_(result, ""));
+
+    parts = Fuga_clone(FUGA->Object);
+    Fuga_append_(parts, FUGA_INT(10));
+    Fuga_append_(parts, FUGA_INT(20));
+    joiner = FUGA_STRING(" ");
+    result = FugaString_join_(joiner, parts);
+    TEST(FugaString_is_(result, "10 20"));
+
+    parts = Fuga_clone(FUGA->Object);
+    Fuga_append_(parts, FUGA_INT(10));
+    Fuga_append_(parts, FUGA_INT(20));
+    Fuga_append_(parts, FUGA_INT(30));
+    joiner = FUGA_STRING(" + ");
+    result = FugaString_join_(joiner, parts);
+    TEST(FugaString_is_(result, "10 + 20 + 30"));
 
     Fuga_quit(self);
 }
