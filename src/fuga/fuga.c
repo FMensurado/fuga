@@ -1132,6 +1132,18 @@ TESTS(Fuga_set) {
 }
 #endif
 
+void* Fuga_del(void* self, void* name)
+{
+    ALWAYS(self); ALWAYS(name);
+    FUGA_NEED(self);
+    name = Fuga_toName(name);
+    FUGA_CHECK(name);
+
+    FugaSlot* slot = Fuga_getSlot_(self, name);
+    if (slot)
+        FugaSlots_delByIndex(FUGA_HEADER(self)->slots, slot->index);
+    return FUGA->nil;
+}
 
 void* Fuga_hasS         (void* self, const char* name)
     { return Fuga_has        (self, FUGA_SYMBOL(name));   }
@@ -1149,6 +1161,8 @@ void* Fuga_setS      (void* self, const char* name, void* value)
     { return Fuga_set     (self, FUGA_SYMBOL(name), value);   }
 void* Fuga_setDocS   (void* self, const char* name, void* value)
     { return Fuga_setDoc  (self, FUGA_SYMBOL(name), value);   }
+void* Fuga_delS         (void* self, const char* name)
+    { return Fuga_del        (self, FUGA_SYMBOL(name));   }
 
 
 void* Fuga_hasI       (void* self, size_t index)
@@ -1167,6 +1181,8 @@ void* Fuga_setI    (void* self, size_t index, void* value)
     { return Fuga_set     (self, FUGA_INT(index), value);   }
 void* Fuga_setDocI (void* self, size_t index, void* value)
     { return Fuga_setDoc  (self, FUGA_INT(index), value);   }
+void* Fuga_delI       (void* self, size_t index)
+    { return Fuga_del        (self, FUGA_INT(index));   }
 
 void* Fuga_extend_(
     void* self,

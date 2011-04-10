@@ -304,3 +304,29 @@ TESTS(FugaSlots_setBySymbol) {
 }
 #endif
 
+
+void FugaSlots_delByIndex(
+    FugaSlots* self,
+    FugaIndex index
+) {
+    ALWAYS(self);
+    if ((index >= 0) && (index < self->length)) {
+        for(FugaIndex i = index+1; i < self->length; i++) {
+            self->slots[i-1] = self->slots[i];
+            self->slots[i-1].index = i-1;
+        }
+        self->length--;
+    }
+}
+
+void FugaSlots_delBySymbol(
+    FugaSlots*  self,
+    void* symbol
+) {
+    ALWAYS(self); ALWAYS(symbol);
+    FugaSlot* slot = FugaSlots_getBySymbol(self, symbol);
+    if (slot) {
+        FugaSlots_delByIndex(self, slot->index);
+    }
+}
+

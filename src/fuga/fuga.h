@@ -159,6 +159,12 @@ void* Fuga_catch(void* self);
 #define FUGA_CATCH(type) if (Fuga_isa_(exception, type))
 #define FUGA_RERAISE     return Fuga_raise(exception)
 
+#define FUGA_IF(expr)                                               \
+    void* v##__LINE__ = (expr);                                     \
+    FUGA_CHECK(v##__LINE__);                                        \
+    if (!Fuga_isFalse(v##__LINE__) && !Fuga_isTrue(v##__LINE__))    \
+        FUGA_RAISE(FUGA->TypeError, "expected boolean");            \
+    if (Fuga_isTrue(v##__LINE__))
 
 // Slot Manipulation
 void* Fuga_slots    (void* self);
@@ -166,14 +172,15 @@ void* Fuga_slots    (void* self);
 FugaInt* Fuga_length       (void* self);
 bool     Fuga_hasLength_   (void* self, long length);
 
-void* Fuga_hasS         (void* self, const char* name);
-void* Fuga_hasRawS      (void* self, const char* name);
-void* Fuga_hasDocS      (void* self, const char* name);
-void* Fuga_getS         (void* self, const char* name);
-void* Fuga_getRawS      (void* self, const char* name);
-void* Fuga_getDocS      (void* self, const char* name);
+void* Fuga_hasS      (void* self, const char* name);
+void* Fuga_hasRawS   (void* self, const char* name);
+void* Fuga_hasDocS   (void* self, const char* name);
+void* Fuga_getS      (void* self, const char* name);
+void* Fuga_getRawS   (void* self, const char* name);
+void* Fuga_getDocS   (void* self, const char* name);
 void* Fuga_setS      (void* self, const char* name, void* value);
 void* Fuga_setDocS   (void* self, const char* name, void* value);
+void* Fuga_delS      (void* self, const char* name);
 
 void* Fuga_has       (void* self, void* name);
 void* Fuga_hasRaw    (void* self, void* name);
@@ -183,21 +190,23 @@ void* Fuga_get       (void* self, void* name);
 void* Fuga_getRaw    (void* self, void* name);
 void* Fuga_getName   (void* self, void* name);
 void* Fuga_getDoc    (void* self, void* name);
-void* Fuga_set    (void* self, void* name, void* value);
-void* Fuga_setDoc (void* self, void* name, void* value);
+void* Fuga_set       (void* self, void* name, void* value);
+void* Fuga_setDoc    (void* self, void* name, void* value);
+void* Fuga_del       (void* self, void* name);
 
-void* Fuga_hasI       (void* self, size_t index);
-void* Fuga_hasNameI   (void* self, size_t index);
-void* Fuga_hasDocI    (void* self, size_t index);
-void* Fuga_getI       (void* self, size_t index);
-void* Fuga_getNameI   (void* self, size_t index);
-void* Fuga_getDocI    (void* self, size_t index);
-void* Fuga_setI    (void* self, size_t index, void* value);
-void* Fuga_setDocI (void* self, size_t index, void* value);
+void* Fuga_hasI      (void* self, size_t index);
+void* Fuga_hasNameI  (void* self, size_t index);
+void* Fuga_hasDocI   (void* self, size_t index);
+void* Fuga_getI      (void* self, size_t index);
+void* Fuga_getNameI  (void* self, size_t index);
+void* Fuga_getDocI   (void* self, size_t index);
+void* Fuga_setI      (void* self, size_t index, void* value);
+void* Fuga_setDocI   (void* self, size_t index, void* value);
+void* Fuga_delI      (void* self, size_t index);
 
-void* Fuga_append_      (void* self, void* value);
-void* Fuga_update_      (void* self, void* value);
-void* Fuga_extend_      (void* self, void* value);
+void* Fuga_append_   (void* self, void* value);
+void* Fuga_update_   (void* self, void* value);
+void* Fuga_extend_   (void* self, void* value);
 
 #define FUGA_FOR(i, slot, arg)                                      \
     void* slot = Fuga_getI(arg, 0);                                 \
