@@ -107,7 +107,7 @@ void* FugaMethod0_new_(void* self, void* (*method)(void*))
     return result;
 }
 
-// op method (i.e., converts +(a,b) into a +(b)).
+// op method (i.e., converts +(a,b) into a +(b), or +(a) into a \+).
 
 typedef struct {
     void* (*call) (void*, void*, void*);
