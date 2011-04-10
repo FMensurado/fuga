@@ -19,7 +19,9 @@ FugaPath* FugaPath_new(
     FUGA_CHECK(self);
     FugaPath* path  = Fuga_clone(FUGA->Path);
     void*     parts = FugaString_split_(self, FUGA_STRING(FUGA_PATHSEP));
-    // FIXME: delete the last part if it is empty.
+    FUGA_CHECK(parts);
+    if (FugaString_is_(Fuga_getI(parts, -1), ""))
+        FUGA_CHECK(Fuga_delI(parts, -1));
     FUGA_CHECK(Fuga_setS(path, "parts", parts));
     return path;
 }
