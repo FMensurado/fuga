@@ -2,22 +2,11 @@
 #include "test.h"
 #include "parser.h"
 #include "file.h"
+#include "path.h"
 
 #include <stdlib.h>
 
 struct FugaLoader { int _unused; };
-
-FugaString* _FugaLoader_getPath(
-        void* self
-) {
-    ALWAYS(self);
-    FUGA_CHECK(self);
-    char* path = getenv("FUGAPATH");
-    if (!path)
-        return FUGA_STRING("");
-    else
-        return FUGA_STRING(path);
-}
 
 FugaLoader* FugaLoader_new(
     void* self
@@ -26,92 +15,73 @@ FugaLoader* FugaLoader_new(
     FUGA_CHECK(self);
     FugaLoader* loader = Fuga_clone(FUGA->Object);
 
-    Fuga_setS(loader, "setPath",  FUGA_METHOD_1(FugaLoader_setPath_));
+    Fuga_setS(loader, "setPaths", FUGA_METHOD_1(FugaLoader_setPaths_));
     Fuga_setS(loader, "setLocal", FUGA_METHOD_1(FugaLoader_setLocal_));
     Fuga_setS(loader, "load",     FUGA_METHOD_1(FugaLoader_load_));
     Fuga_setS(loader, "import",   FUGA_METHOD_1(FugaLoader_import_));
 
-    FugaLoader_setPath_(loader, _FugaLoader_getPath(loader));
+    FugaLoader_setPaths_(loader, FugaPath_FUGAPATH(loader));
     FugaLoader_setLocal_(loader, FUGA_STRING("."));
 
     return loader;
 }
 
 
-void* FugaLoader_setPath_(
+void* FugaLoader_setPaths_(
     FugaLoader* self,
-    FugaString* path
+    void* paths
 ) {
-    ALWAYS(self);     ALWAYS(path);
-    FUGA_CHECK(self); FUGA_NEED(path);
-    if (!Fuga_isString(path))
-        FUGA_RAISE(FUGA->TypeError, "Loader setPath: expected a string");
-    return Fuga_setS(self, "path", path);
+    ALWAYS(self);     ALWAYS(paths);
+    FUGA_CHECK(self); FUGA_NEED(paths);
+    return Fuga_setS(self, "paths", paths);
 }
 
 void* FugaLoader_setLocal_(
     FugaLoader* self,
-    FugaString* local
+    void*       local
 ) {
     ALWAYS(self);     ALWAYS(local);
     FUGA_CHECK(self); FUGA_NEED(local);
-    if (!Fuga_isString(local))
-        FUGA_RAISE(FUGA->TypeError,
-            "Loader setLocal: expected a string"
-        );
+    if (Fuga_isString(local))
+        local = FugaPath_new(local);
     return Fuga_setS(self, "local", local);
-}
-
-
-FugaString* _FugaLoader_joinPath(
-    FugaString* self,
-    FugaString* filename
-) {
-    // FIXME: don't duplicate separator
-    // FIXME: use portable separator (/ on unix, \ on windows)
-    self = FugaString_cat_(self, FUGA_STRING("/"));
-    return FugaString_cat_(self, filename);
 }
 
 
 void* FugaLoader_load_(
     FugaLoader* self,
-    FugaString* filename
+    void* filename
 ) {
     ALWAYS(self);     ALWAYS(filename);
     FUGA_CHECK(self); FUGA_NEED(filename);
-    if (!Fuga_isString(filename))
-        FUGA_RAISE(FUGA->TypeError, "Loader load: expected a string");
+    if (Fuga_isString(filename))
+        filename = FugaPath_new(filename);
 
-    FugaString* local = Fuga_getS(self, "local");
-    local = _FugaLoader_joinPath(local, filename);
-    FUGA_NEED(local);
-    bool isLocal = Fuga_isTrue(FugaFile_exists_(self, local));
+    FugaPath* local = FugaPath_join_(Fuga_getS(self, "local"), filename);
+    FUGA_CHECK(local);
+    bool isLocal = Fuga_isTrue(FugaPath_exists(local));
 
-    void* paths = FugaString_split_(
-        Fuga_getS(self, "path"),
-        FUGA_STRING(":")
-    );
+    void* paths = Fuga_getS(self, "paths");
     FUGA_NEED(paths);
     FUGA_FOR(i, path, paths) {
-        FugaString* filepath = _FugaLoader_joinPath(path, filename);
+        FugaPath* filepath = FugaPath_join_(path, filename);
         FUGA_CHECK(filepath);
-        if (Fuga_isTrue(FugaFile_exists_(self, filepath))) {
+        FUGA_IF(FugaPath_exists(filepath)) { 
             if (isLocal)
                 FUGA_RAISE(FUGA->IOError,
                     "local/global import conflict"
                 );
-            return Fuga_load_(self, filepath->data);
+            return FugaPath_load(filepath);
         }
     }
 
     if (isLocal)
-        return Fuga_load_(self, local->data);
+        return FugaPath_load(local);
 
     FUGA_RAISE(FUGA->IOError, "no such module");
 }
 
-FugaString* _FugaLoader_importName(
+FugaPath* _FugaLoader_importName(
     void* self
 ) {
     ALWAYS(self);
@@ -121,15 +91,15 @@ FugaString* _FugaLoader_importName(
     if (Fuga_isSymbol(self))
         self = FugaSymbol_toString(self);
     if (Fuga_isString(self))
-        return self;
+        return FugaPath_new(self);
     if (Fuga_isExpr(self)) {
-        FugaString* result;
+        FugaPath* result;
         FUGA_FOR(i, slot, self) {
-            FugaString* name = _FugaLoader_importName(slot);
+            FugaPath* name = _FugaLoader_importName(slot);
             if (i == 0)
                 result = name;
             else
-                result = _FugaLoader_joinPath(result, name);
+                result = FugaPath_join_(result, name);
             FUGA_CHECK(result);
         }
         return result;
@@ -145,8 +115,8 @@ void* FugaLoader_import_(
 ) {
     ALWAYS(self);
     FUGA_CHECK(self);
-    FugaString* fname = _FugaLoader_importName(arg);
-    fname = FugaString_cat_(fname, FUGA_STRING(".fg"));
+    FugaPath* fname = _FugaLoader_importName(arg);
+    fname = FugaPath_cat_(fname, FUGA_STRING(".fg"));
     FUGA_CHECK(fname);
     return FugaLoader_load_(self, fname);
 }

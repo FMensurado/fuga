@@ -60,6 +60,8 @@ void FugaRoot_init(
     FUGA->Method = Fuga_clone(FUGA->Object);
     FUGA->Expr   = Fuga_clone(FUGA->Object);
 
+    FUGA->Path = Fuga_clone(FUGA->Object);
+
     FUGA->Exception         = Fuga_clone(FUGA->Object);
     FUGA->SlotError         = Fuga_clone(FUGA->Exception);
     FUGA->ValueError        = Fuga_clone(FUGA->Exception);
