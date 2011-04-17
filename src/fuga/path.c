@@ -10,6 +10,18 @@ void FugaPath_init(
     void* self
 ) {
     ALWAYS(self);
+
+    Fuga_setS(FUGA->Path, "str",  FUGA_METHOD_STR(FugaPath_str));
+    Fuga_setS(FUGA->Path, "join", FUGA_METHOD_1  (FugaPath_join_));
+    Fuga_setS(FUGA->Path, "load", FUGA_METHOD_0  (FugaPath_load));
+    Fuga_setS(FUGA->Path, "exists", FUGA_METHOD_0 (FugaPath_exists));
+    Fuga_setS(FUGA->Path, "parent", FUGA_METHOD_0 (FugaPath_parent));
+    Fuga_setS(FUGA->Path, "FUGAPATH", FUGA_METHOD_0 (FugaPath_FUGAPATH));
+    Fuga_setS(FUGA->Path, "isAbsolute?",
+         FUGA_METHOD_0(FugaPath_isAbsolute));
+    Fuga_setS(FUGA->Path, "isRelative?",
+         FUGA_METHOD_0(FugaPath_isRelative));
+    Fuga_setS(FUGA->Path, "++", FUGA_METHOD_1  (FugaPath_cat_));
 }
 
 FugaPath* FugaPath_new(

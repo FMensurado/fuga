@@ -4,6 +4,7 @@
 #include "prelude.h"
 #include "parser.h"
 #include "path.h"
+#include "loader.h"
 
 #include <string.h>
 
@@ -1182,23 +1183,32 @@ void* Fuga_delS         (void* self, const char* name)
 
 
 void* Fuga_hasI       (void* self, long index)
-    { return Fuga_has        (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_has        (self, FUGA_INT(index));   }
 void* Fuga_hasNameI   (void* self, long index)
-    { return Fuga_hasName    (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_hasName    (self, FUGA_INT(index));   }
 void* Fuga_hasDocI    (void* self, long index)
-    { return Fuga_hasDoc     (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_hasDoc     (self, FUGA_INT(index));   }
 void* Fuga_getI       (void* self, long index)
-    { return Fuga_get        (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_get        (self, FUGA_INT(index));   }
 void* Fuga_getNameI   (void* self, long index)
-    { return Fuga_getName    (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_getName    (self, FUGA_INT(index));   }
 void* Fuga_getDocI    (void* self, long index)
-    { return Fuga_getDoc     (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_getDoc     (self, FUGA_INT(index));   }
 void* Fuga_setI    (void* self, long index, void* value)
-    { return Fuga_set     (self, FUGA_INT(index), value);   }
+    { FUGA_CHECK(self);
+      return Fuga_set     (self, FUGA_INT(index), value);   }
 void* Fuga_setDocI (void* self, long index, void* value)
-    { return Fuga_setDoc  (self, FUGA_INT(index), value);   }
+    { FUGA_CHECK(self);
+      return Fuga_setDoc  (self, FUGA_INT(index), value);   }
 void* Fuga_delI       (void* self, long index)
-    { return Fuga_del        (self, FUGA_INT(index));   }
+    { FUGA_CHECK(self);
+      return Fuga_del        (self, FUGA_INT(index));   }
 
 void* Fuga_extend_(
     void* self,
@@ -1375,9 +1385,26 @@ void* Fuga_evalExpr(
 void* Fuga_evalModule(
     void* self
 ) {
+    return Fuga_evalModule_(self, NULL);
+}
+
+void* Fuga_evalModule_(
+    void* self,
+    const char* filename
+) {
     ALWAYS(self); FUGA_NEED(self);
     void* module = Fuga_clone(FUGA->Prelude);
-    // FIXME: add personalized loader
+
+    if (filename) {
+        void* loader = Fuga_clone(Fuga_getS(FUGA->Prelude, "Loader"));
+        FugaPath* local = FugaPath_new(FUGA_STRING(filename));
+        local = FugaPath_parent(local);
+        FUGA_CHECK(loader);
+        FUGA_CHECK(local);
+        FUGA_CHECK(FugaLoader_setLocal_(loader, local));
+        FUGA_CHECK(Fuga_setS(module, "Loader", loader));
+    }
+
     FUGA_CHECK(Fuga_evalIn(self, module));
     return module;
 }
@@ -1391,7 +1418,7 @@ void* Fuga_load_(
         FUGA_RAISE(FUGA->IOError, "can't load module");
     void* block  = FugaParser_block(parser);
     // FIXME: ensure EOF
-    return Fuga_evalModule(block);
+    return Fuga_evalModule_(block, filename);
 
 }
 

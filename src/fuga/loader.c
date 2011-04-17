@@ -90,7 +90,7 @@ FugaPath* _FugaLoader_importName(
     if (Fuga_isSymbol(self))
         self = FugaSymbol_toString(self);
     if (Fuga_isString(self))
-        return FugaPath_new(self);
+        return FugaPath_new(FugaString_lower(self));
     if (Fuga_isExpr(self)) {
         FugaPath* result;
         FUGA_FOR(i, slot, self) {

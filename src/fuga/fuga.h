@@ -210,6 +210,7 @@ void* Fuga_update_   (void* self, void* value);
 void* Fuga_extend_   (void* self, void* value);
 
 #define FUGA_FOR(i, slot, arg)                                      \
+    FUGA_NEED(arg);                                                 \
     void* slot = Fuga_getI(arg, 0);                                 \
     for (long length = FugaInt_value(Fuga_length(arg)), i = 0;      \
          i < length;                                                \
@@ -225,6 +226,7 @@ void* Fuga_evalSlots    (void* self, void* scope);
 void* Fuga_evalIn       (void* self, void* scope);
 void* Fuga_evalExpr     (void* self, void* recv, void* scope);
 void* Fuga_evalModule   (void* self);
+void* Fuga_evalModule_  (void* self, const char* filename);
 
 // Misc
 void* Fuga_load_ (void* self, const char* filename);

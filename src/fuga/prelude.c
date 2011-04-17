@@ -25,7 +25,8 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "Symbol",      FUGA->Symbol);
     Fuga_setS(FUGA->Prelude, "Method",      FUGA->Method);
     Fuga_setS(FUGA->Prelude, "Msg",         FUGA->Msg);
-    Fuga_setS(FUGA->Prelude, "Expr",        FUGA->Msg);
+    Fuga_setS(FUGA->Prelude, "Expr",        FUGA->Expr);
+    Fuga_setS(FUGA->Prelude, "Path",        FUGA->Path);
     Fuga_setS(FUGA->Prelude, "Exception",   FUGA->Exception);
     Fuga_setS(FUGA->Prelude, "SyntaxError", FUGA->SyntaxError);
     Fuga_setS(FUGA->Prelude, "SlotError",   FUGA->SlotError);
@@ -220,6 +221,8 @@ void* FugaPrelude_import(
 ) {
     ALWAYS(self); ALWAYS(args);
     FUGA_CHECK(self); FUGA_CHECK(args);
+    void* target = Fuga_getS(Fuga_lazyScope(args), "this");
+    FUGA_CHECK(target);
     args = Fuga_lazySlots(args);
     if (!Fuga_hasLength_(args, 1))
         FUGA_RAISE(FUGA->SyntaxError, "import: expected only 1 arg");
@@ -233,9 +236,27 @@ void* FugaPrelude_import(
     void* module = Fuga_send(loader, FUGA_SYMBOL("import"), args);
     FUGA_CHECK(module);
 
-    // FIXME: what to do with packages???????
     void* name = arg;
-    FUGA_CHECK(Fuga_set(self, name, module));
+    if (Fuga_isExpr(name)) {
+        // packages -- very ad hoc ish. Do they need their own loader?
+        FUGA_FOR(i, slot, name) {
+            if (i < length-1) {
+                FUGA_IF(Fuga_has(target, slot)) {
+                    target = Fuga_get(target, slot);
+                    FUGA_NEED(self);
+                } else {
+                    void* package = Fuga_clone(FUGA->Object);
+                    FUGA_CHECK(package);
+                    FUGA_CHECK(Fuga_set(target, slot, package));
+                    target = package;
+                }
+            } else {
+                FUGA_CHECK(Fuga_set(target, slot, module));
+            }
+        }
+    } else {
+        FUGA_CHECK(Fuga_set(target, name, module));
+    }
     return FUGA->nil;
 }
 

@@ -136,3 +136,18 @@ void FugaChar_escape(
     }
 }
 
+void FugaChar_lower(char* dest, const char* src) {
+    if (*src >= 'A' && *src <= 'Z') {
+        *dest = *src + 'a' - 'A';
+    } else {
+        *dest = *src;
+    }
+}
+
+void FugaChar_upper(char* dest, const char* src) {
+    if (*src >= 'a' && *src <= 'z') {
+        *dest = *src + 'A' - 'a';
+    } else {
+        *dest = *src;
+    }
+}

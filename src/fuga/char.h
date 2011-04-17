@@ -26,5 +26,11 @@ size_t FugaChar_sizeAfterEscape(const char*);
 size_t FugaChar_sizeBeforeUnescape(const char*);
 size_t FugaChar_sizeAfterUnescape(const char*);
 
+// case. case conversion functions are, for now, guaranteed to
+//                          use the same amount of space, or less,
+//                          for the converted character
+void   FugaChar_lower(char* dest, const char* src);
+void   FugaChar_upper(char* dest, const char* src);
+
 #endif
 

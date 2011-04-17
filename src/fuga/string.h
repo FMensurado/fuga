@@ -23,6 +23,8 @@ FugaString* FugaString_to_      (FugaString*, long end);
 void*       FugaString_cat_     (void*, void*);
 void*       FugaString_split_   (FugaString*, FugaString*);
 FugaString* FugaString_join_    (FugaString*, void*);
+FugaString* FugaString_upper    (FugaString*);
+FugaString* FugaString_lower    (FugaString*);
 
 #endif
 

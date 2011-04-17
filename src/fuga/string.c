@@ -16,6 +16,8 @@ void FugaString_init(void* self)
     Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));
     Fuga_setS(FUGA->String, "split", FUGA_METHOD_1(FugaString_split_));
     Fuga_setS(FUGA->String, "join",  FUGA_METHOD_1(FugaString_join_));
+    Fuga_setS(FUGA->String, "lower", FUGA_METHOD_0(FugaString_lower));
+    Fuga_setS(FUGA->String, "upper", FUGA_METHOD_0(FugaString_upper));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
@@ -370,7 +372,7 @@ FugaString* FugaString_join_(
     FugaString* self,
     void* object
 ) {
-    FUGA_NEED(self);
+    FUGA_NEED(self); FUGA_NEED(object);
     if (!Fuga_isString(self))
         FUGA_RAISE(FUGA->TypeError, 
             "String join: expected self to be a primitive string"
@@ -439,3 +441,47 @@ TESTS(FugaString_join_) {
 }
 #endif
 
+
+FugaString* FugaString_lower(FugaString* self) {
+    FUGA_NEED(self);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String lower: not a string");
+
+    FugaString* dest = FUGA_STRING(self->data); // make a copy
+    FUGA_CHECK(dest);
+
+    size_t j = 0;
+    for (size_t i=0; i < self->size;
+        i += FugaChar_size(self->data+i),
+        j += FugaChar_size(dest->data+j))
+    {
+        ALWAYS(j < dest->size);
+        FugaChar_lower(dest->data+j, self->data+i);
+    }
+    dest->data[j] = 0;
+    dest->size    = j;
+
+    return dest;
+}
+
+FugaString* FugaString_upper(FugaString* self) {
+    FUGA_NEED(self);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String upper: not a string");
+
+    FugaString* dest = FUGA_STRING(self->data); // make a copy
+    FUGA_CHECK(dest);
+
+    size_t j = 0;
+    for (size_t i=0; i < self->size;
+        i += FugaChar_size(self->data+i),
+        j += FugaChar_size(dest->data+j))
+    {
+        ALWAYS(j < dest->size);
+        FugaChar_upper(dest->data+j, self->data+i);
+    }
+    dest->data[j] = 0;
+    dest->size    = j;
+
+    return dest;
+}
