@@ -281,8 +281,10 @@ void* FugaPrelude_match(
         void* result = Fuga_match_(matcher, value);
         bool matched = true;
         FUGA_TRY(result) {
-            FUGA_CATCH(FUGA->MatchError)
+            FUGA_CATCH(FUGA->MatchError) {
                 matched = false;
+                break;
+            }
             FUGA_RERAISE;
         }
         

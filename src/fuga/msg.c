@@ -1,4 +1,5 @@
 #include "msg.h"
+#include "thunk.h"
 #include "test.h"
 
 const FugaType FugaMsg_type = {
@@ -120,9 +121,11 @@ void* FugaMsg_str(void* self)
 void* FugaMsg_match_(FugaMsg* self, void* other) 
 {
     FUGA_NEED(self);
-    FUGA_NEED(other);
     if (!Fuga_isMsg(self))
         FUGA_RAISE(FUGA->TypeError, "Msg match: self must be a msg");
+    if (FugaMsg_is_(self, "~") && Fuga_hasLength_(self, 1))
+        return Fuga_match_(Fuga_getI(self, 0), FugaThunk_new(other));
+    FUGA_NEED(other);
     if (!Fuga_hasLength_(self, 0)) 
         FUGA_RAISE(FUGA->SyntaxError, "Msg match: msg can't have args");
 

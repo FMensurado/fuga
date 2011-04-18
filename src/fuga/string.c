@@ -205,11 +205,10 @@ TESTS(FugaString_from_to_) {
 }
 #endif
 
-void* FugaString_cat_(void* _self, void* _other)
+FugaString* FugaString_cat_(FugaString* self, FugaString* other)
 {
-    FugaString* self  = _self;
-    FugaString* other = _other;
     ALWAYS(self); ALWAYS(other);
+    FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isString(self) || !Fuga_isString(other)) {
         FUGA_RAISE(FUGA->TypeError,
             "String \\++: expected primitive strings"

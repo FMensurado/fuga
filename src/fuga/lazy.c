@@ -1,4 +1,5 @@
 #include "lazy.h"
+#include "thunk.h"
 #include "test.h"
 
 const FugaType FugaLazy_type = {
@@ -94,7 +95,13 @@ void* Fuga_lazySlots(void* _self)
     FUGA_FOR(i, slot, code) {
         FUGA_CHECK(slot);
         // FIXME: handle Thunk ~
-        FUGA_CHECK(Fuga_append_(result, Fuga_lazy_(slot, scope)));
+        if (FugaMsg_is_(slot, "~") && Fuga_hasLength_(slot, 1)) {
+            slot = Fuga_getI(slot, 0);
+            FugaThunk* thunk = Fuga_eval(slot, scope, scope);
+            FUGA_CHECK(Fuga_append_(result, FugaThunk_lazy(thunk)));
+        } else {
+            FUGA_CHECK(Fuga_append_(result, Fuga_lazy_(slot, scope)));
+        }
     }
 
     return result;
