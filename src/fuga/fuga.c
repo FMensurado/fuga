@@ -1486,7 +1486,7 @@ void* Fuga_strSlots(void* self)
             name = FugaSymbol_toString(name);
             FUGA_CHECK(name);
             result = FugaString_cat_(result, name);
-            result = FugaString_cat_(result, FUGA_STRING("="));
+            result = FugaString_cat_(result, FUGA_STRING(" = "));
             // FIXME: handle op msg edge case
         }
         FUGA_CHECK(result);
@@ -1542,12 +1542,7 @@ void* FugaObject_match_(void* self, void* attempt)
 
     // check for lazySlots
     FUGA_FOR(i, slot1, self) {
-        if (Fuga_isExpr(slot1) &&
-                Fuga_hasLength_(slot1, 2)       &&
-                Fuga_isMsg(Fuga_getI(slot1, 0)) &&
-                Fuga_hasLength_(slot1, 0)       &&
-                FugaSymbol_is_(Fuga_getI(slot1, 1), "~"))
-        {
+        if (FugaMsg_is_(slot1, "~")) {
             attempt = Fuga_lazySlots(attempt);
             break;
         }

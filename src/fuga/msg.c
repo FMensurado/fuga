@@ -11,6 +11,12 @@ void FugaMsg_init(void* self)
     Fuga_setS(FUGA->Msg, "match", FUGA_METHOD_1(FugaMsg_match_));
 }
 
+bool FugaMsg_is_(FugaMsg* self, const char* value) {
+    self = Fuga_need(self);
+    return Fuga_isMsg(self) &&
+           FugaSymbol_is_(self->name, value);
+}
+
 FugaMsg* FugaMsg_new_(
     void* self,
     const char* name

@@ -9,6 +9,8 @@ struct FugaMsg {
 
 void FugaMsg_init(void*);
 
+bool FugaMsg_is_(FugaMsg*, const char*);
+
 #define FUGA_MSG(x) (FugaMsg_new_(self, (x)))
 FugaMsg* FugaMsg_new_(void*, const char*);
 FugaMsg* FugaMsg_fromSymbol(FugaSymbol*);
