@@ -267,7 +267,7 @@ void* FugaPrelude_match(
     ALWAYS(self); ALWAYS(args);
     args = Fuga_lazySlots(args);
     FUGA_CHECK(self); FUGA_CHECK(args);
-    long length = FugaInt_value(Fuga_length(args));
+    long length = Fuga_length(args);
     if (length < 3) 
         FUGA_RAISE(FUGA->TypeError, "match: expected at least 3 arguments");
     if ((length - 1) % 2)

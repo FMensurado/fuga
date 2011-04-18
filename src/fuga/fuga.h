@@ -168,10 +168,13 @@ void* Fuga_catch(void* self);
     if (Fuga_isTrue(v##__LINE__))
 
 // Slot Manipulation
+
+
+
 void* Fuga_slots    (void* self);
 
-FugaInt* Fuga_length       (void* self);
-bool     Fuga_hasLength_   (void* self, long length);
+long Fuga_length     (void* self);
+bool Fuga_hasLength_ (void* self, long length);
 
 void* Fuga_hasS      (void* self, const char* name);
 void* Fuga_hasRawS   (void* self, const char* name);
@@ -212,9 +215,11 @@ void* Fuga_extend_   (void* self, void* value);
 #define FUGA_FOR(i, slot, arg)                                      \
     FUGA_NEED(arg);                                                 \
     void* slot = Fuga_getI(arg, 0);                                 \
-    for (long length = FugaInt_value(Fuga_length(arg)), i = 0;      \
+    for (long length = Fuga_length(arg),                            \
+         i = 0;                                                     \
          i < length;                                                \
-         i++, slot = Fuga_getI(arg, i))
+         i++,                                                       \
+         slot = Fuga_getI(arg, i))
 
 // Calling & Sending
 void* Fuga_call (void* self, void* recv, void* args);

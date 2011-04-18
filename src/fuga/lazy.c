@@ -91,9 +91,7 @@ void* Fuga_lazySlots(void* _self)
     void* scope  = self->scope;
     FUGA_CHECK(code); FUGA_CHECK(scope);
 
-    size_t numSlots = FugaInt_value(Fuga_length(code));
-    for (size_t i = 0; i < numSlots; i++) {
-        void* slot = Fuga_get(code, FUGA_INT(i));
+    FUGA_FOR(i, slot, code) {
         FUGA_CHECK(slot);
         // FIXME: handle Thunk ~
         FUGA_CHECK(Fuga_append_(result, Fuga_lazy_(slot, scope)));

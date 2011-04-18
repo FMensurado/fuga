@@ -471,14 +471,15 @@ TESTS(Fuga_isa) {
 /**
  * Return the number of slots.
  */
-FugaInt* Fuga_length(void* self)
+long Fuga_length(void* self)
 {
     ALWAYS(self);
-    FUGA_NEED(self);
+    NEVER(Fuga_isRaised(self));
+    NEVER(Fuga_isLazy(self));
     if (FUGA_HEADER(self)->slots)
-        return FUGA_INT(FugaSlots_length(FUGA_HEADER(self)->slots));
+        return FugaSlots_length(FUGA_HEADER(self)->slots);
     else
-        return FUGA_INT(0);
+        return 0;
 }
 
 bool Fuga_hasLength_(void* self, long value)
@@ -486,7 +487,7 @@ bool Fuga_hasLength_(void* self, long value)
     self = Fuga_need(self);
     if (Fuga_isRaised(self))
         return false;
-    return FugaInt_is_(Fuga_length(self), value);
+    return Fuga_length(self) == value;
 }
 
 /**
@@ -501,8 +502,7 @@ void* Fuga_toName(void* name, void* self)
         return name;
     if (Fuga_isInt(name)) {
         if (FugaInt_value(name) < 0) {
-            long length = FugaInt_value(Fuga_length(self));
-            name = FUGA_INT(FugaInt_value(name) + length);
+            name = FUGA_INT(FugaInt_value(name) + Fuga_length(self));
         }
         return name;
     }
@@ -579,7 +579,7 @@ void* Fuga_hasName(void* self, void* name)
         FUGA_RAISE(FUGA->ValueError,
             "hasName_: index < 0"
         );
-    if (FugaInt_value(name) >= FugaInt_value(Fuga_length(self)))
+    if (FugaInt_value(name) >= Fuga_length(self))
         FUGA_RAISE(FUGA->ValueError,
             "hasName_: index >= numSlots"
         );
@@ -602,7 +602,7 @@ void* Fuga_hasDoc(void* self, void* name)
             FUGA_RAISE(FUGA->ValueError,
                 "hasDoc: index < 0"
             );
-        if (FugaInt_value(name) >= FugaInt_value(Fuga_length(self)))
+        if (FugaInt_value(name) >= Fuga_length(self))
             FUGA_RAISE(FUGA->ValueError,
                 "hasDoc: index >= numSlots"
             );
@@ -630,7 +630,7 @@ void* Fuga_getName(void* self, void* name)
         FUGA_RAISE(FUGA->ValueError,
             "getName_: index < 0"
         );
-    if (FugaInt_value(name) >= FugaInt_value(Fuga_length(self)))
+    if (FugaInt_value(name) >= Fuga_length(self))
         FUGA_RAISE(FUGA->ValueError,
             "getName_: index >= numSlots"
         );
@@ -656,7 +656,7 @@ void* Fuga_getDoc(void* self, void* name)
             FUGA_RAISE(FUGA->ValueError,
                 "getDoc: index < 0"
             );
-        if (FugaInt_value(name) >= FugaInt_value(Fuga_length(self)))
+        if (FugaInt_value(name) >= Fuga_length(self))
             FUGA_RAISE(FUGA->ValueError,
                 "getDoc: index >= numSlots"
             );
@@ -680,7 +680,7 @@ void* Fuga_setDoc(void* self, void* name, void* value)
             FUGA_RAISE(FUGA->ValueError,
                 "setDoc: index < 0"
             );
-        if (FugaInt_value(name) >= FugaInt_value(Fuga_length(self)))
+        if (FugaInt_value(name) >= Fuga_length(self))
             FUGA_RAISE(FUGA->ValueError,
                 "setDoc: index >= numSlots"
             );
@@ -1252,7 +1252,7 @@ void* Fuga_call(void* self, void* recv, void* args)
     if (Fuga_isMethod(self))
         return FugaMethod_call(self, recv, args);
     FUGA_NEED(args);
-    if (FugaInt_value(Fuga_length(args)))
+    if (Fuga_length(args))
         FUGA_RAISE(FUGA->TypeError,
             "attempt to call a non-method with arguments"
         );
@@ -1368,7 +1368,7 @@ void* Fuga_evalExpr(
 ) {
     ALWAYS(self); ALWAYS(recv); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(recv); FUGA_NEED(scope);
-    long length = FugaInt_value(Fuga_length(self));
+    long length = Fuga_length(self);
     if (length < 1) {
         FUGA_RAISE(FUGA->ValueError,
             "Expr eval: can't evaluate empty expression"
@@ -1477,10 +1477,8 @@ void* Fuga_strSlots(void* self)
 {
     ALWAYS(self);
     FUGA_NEED(self);
-    long length = FugaInt_value(Fuga_length(self));
-
+    long length = Fuga_length(self);
     void* result = FUGA_STRING("(");
-
     for (size_t slotNum = 0; slotNum < length; slotNum++) {
         void* fSlotNum = FUGA_INT(slotNum);
         if (Fuga_isTrue(Fuga_hasName(self, fSlotNum))) {
@@ -1557,7 +1555,7 @@ void* FugaObject_match_(void* self, void* attempt)
 
     FUGA_NEED(attempt);
     // FIXME: allow varargs
-    if (!Fuga_hasLength_(self, FugaInt_value(Fuga_length(attempt))))
+    if (!Fuga_hasLength_(self, Fuga_length(attempt)))
         FUGA_RAISE(FUGA->MatchError, "different lengths");
     void* result = Fuga_clone(FUGA->Object);
     FUGA_FOR(i, slot, self) {
