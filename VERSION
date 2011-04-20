@@ -1,2 +1,20 @@
 1.0a
-2011 04 20
+
+Fuga has three version numbers.
+
+The first is the major version number. This denotes significant language
+changes, backward-compatibility breaking changes, or a gestalt of all
+revisions and minor changes into a single, neat package.
+
+The second number, after the dot, is the minor version number. This
+denotes smaller changes to the language, including small
+backward-compatibility breaking changes. In general, this is used
+to introduce new features.
+
+The third number is actually a letter -- the revision letter. Typically,
+a new release of Fuga will have its flaws. The revision letter goes up
+as attempts are made to improve the quality or completeness of the
+current release. The letter is also used for bugfixes. Note that this
+system is different from the 'alpha', 'beta', etc system. The letters
+don't really imply anything about the finishedness of a release.
+
