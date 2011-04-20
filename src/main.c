@@ -65,7 +65,7 @@ void repl()
     self = Fuga_clone(FUGA->Prelude);
     Fuga_root(self);
     Fuga_root(parser);
-    Fuga_setS(self, "this", self);
+    Fuga_setS(self, "_this", self);
 
     printf("Fuga 0.1. Use \"quit\" to quit.\n");
     while (1) {

@@ -570,12 +570,13 @@ void* Fuga_catch(void* self);
 *** statement. If `expr` is a raised exception, this passes it on. If
 *** `expr` is anything else, this raises an exception.
 **/
-#define FUGA_IF(expr)                                               \
-    void* v##__LINE__ = (expr);                                     \
-    FUGA_CHECK(v##__LINE__);                                        \
-    if (!Fuga_isFalse(v##__LINE__) && !Fuga_isTrue(v##__LINE__))    \
-        FUGA_RAISE(FUGA->TypeError, "expected boolean");            \
-    if (Fuga_isTrue(v##__LINE__))
+#define FUGA_IF(expr)                                                   \
+    void* value##__LINE__ = (expr);                                       \
+    if (Fuga_isRaised(value##__LINE__))                                   \
+        return value##__LINE__;                                           \
+    if (!Fuga_isFalse(value##__LINE__) && !Fuga_isTrue(value##__LINE__))    \
+        FUGA_RAISE(FUGA->TypeError, "expected boolean");                \
+    if (Fuga_isTrue(value##__LINE__))
 
 // Slot Manipulation
 

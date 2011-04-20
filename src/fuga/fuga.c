@@ -1331,26 +1331,24 @@ TESTS(Fuga_eval) {
 }
 #endif
 
-void* Fuga_evalSlot(void* self, void* scope, void* result, void* target)
-{
-    ALWAYS(self); ALWAYS(result); ALWAYS(scope);
-    FUGA_NEED(self); FUGA_NEED(result); FUGA_NEED(scope);
-    
-    scope = Fuga_clone(scope);
-    Fuga_set(scope, FUGA_SYMBOL("this"), target);
-    void* value = Fuga_eval(self, scope, scope);
-    if (!Fuga_isNil(value))
-        FUGA_CHECK(Fuga_append_(result, value));
-    return value;
-}
-
 void* Fuga_evalSlots(void* self, void* scope)
 {
     ALWAYS(self); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(scope);
+    void* escope = Fuga_clone(scope);
     void* result = Fuga_clone(FUGA->Object);
-    FUGA_FOR(i, slot, self) {
-        FUGA_CHECK(Fuga_evalSlot(slot, scope, result, result));
+    FUGA_CHECK(Fuga_setS(escope, "_this", result));
+    FUGA_FOR(i, slot, self) { 
+        FUGA_IF(Fuga_hasDocI(self, i)) {
+            void* doc = Fuga_getDocI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_doc", doc));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_doc"));
+        }
+        void* value = Fuga_eval(slot, escope, escope);
+        FUGA_CHECK(value);
+        if (!Fuga_isNil(value))
+            FUGA_CHECK(Fuga_append_(result, value));
     }
     return result;
 }
@@ -1359,10 +1357,19 @@ void* Fuga_evalIn(void* self, void* scope)
 {
     ALWAYS(self); ALWAYS(scope);
     FUGA_NEED(self); FUGA_NEED(scope);
-    void* result = Fuga_clone(FUGA->Object);
-    FUGA_FOR(i, slot, self)
-        FUGA_CHECK(Fuga_evalSlot(slot, scope, result, scope));
-    return result;
+    void* escope = Fuga_clone(scope);
+    FUGA_CHECK(Fuga_setS(escope, "_this", scope));
+    void* value = FUGA->nil;
+    FUGA_FOR(i, slot, self) {
+        FUGA_IF(Fuga_hasDocI(self, i)) {
+            void* doc = Fuga_getDocI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_doc", doc));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_doc"));
+        }
+        FUGA_CHECK(value = Fuga_eval(slot, escope, escope));
+    }
+    return value;
 }
 
 void* Fuga_evalExpr(

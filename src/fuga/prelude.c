@@ -78,13 +78,14 @@ void* FugaPrelude_equals(
     if (!Fuga_hasLength_(code, 2))
         FUGA_RAISE(FUGA->TypeError, "=: expected 2 arguments");
 
+
     void* recv = scope;
-    void* lhs = Fuga_get(code, FUGA_INT(0));
-    void* rhs = Fuga_get(code, FUGA_INT(1));
+    void* lhs  = Fuga_get(code, FUGA_INT(0));
+    void* rhs  = Fuga_get(code, FUGA_INT(1));
     FUGA_NEED(lhs); FUGA_NEED(rhs);
-    
+
     if (Fuga_isMsg(lhs) || Fuga_isInt(lhs)) {
-        recv = Fuga_get(recv, FUGA_SYMBOL("this"));
+        recv = Fuga_get(recv, FUGA_SYMBOL("_this"));
     } else if (Fuga_isExpr(lhs)) {
         FUGA_FOR(i, slot, lhs) {
             if (i < length-1) {
@@ -108,6 +109,8 @@ void* FugaPrelude_equals(
     rhs = Fuga_eval(rhs, scope, scope);
     FUGA_CHECK(rhs);
     FUGA_CHECK(Fuga_set(recv, lhs, rhs));
+    FUGA_IF(Fuga_hasS(scope, "_doc"))
+        FUGA_CHECK(Fuga_setDoc(recv, lhs, Fuga_getS(scope, "_doc")));
     return FUGA->nil;
 }
 
@@ -124,7 +127,7 @@ TESTS(FugaPrelude_equals) {
     void* foo   = Fuga_clone(FUGA->Object);
     void* result;
 
-    Fuga_set(scope, FUGA_SYMBOL("this"), dest);
+    Fuga_set(scope, FUGA_SYMBOL("_this"), dest);
     Fuga_set(scope, FUGA_SYMBOL("foo"),  foo);
 
     args = Fuga_clone(FUGA->Object);
@@ -221,7 +224,7 @@ void* FugaPrelude_import(
 ) {
     ALWAYS(self); ALWAYS(args);
     FUGA_CHECK(self); FUGA_CHECK(args);
-    void* target = Fuga_getS(Fuga_lazyScope(args), "this");
+    void* target = Fuga_getS(Fuga_lazyScope(args), "_this");
     FUGA_CHECK(target);
     args = Fuga_lazySlots(args);
     if (!Fuga_hasLength_(args, 1))
@@ -310,7 +313,7 @@ void* FugaPrelude_do(
     void* code  = Fuga_lazyCode(args);
     FUGA_CHECK(scope); FUGA_CHECK(code);
     scope = Fuga_clone(scope);
-    FUGA_CHECK(Fuga_setS(scope, "this", scope));
+    FUGA_CHECK(Fuga_setS(scope, "_this", scope));
 
     void* result = FUGA->nil;
     FUGA_FOR(i, slot, code)
@@ -349,7 +352,7 @@ void* FugaPrelude_def(
     void* owner;
     void* name;
     if (Fuga_isMsg(signature)) {
-        owner = Fuga_getS(scope, "this");
+        owner = Fuga_getS(scope, "_this");
         name  = FugaMsg_name(signature);
         args  = FugaMsg_args(signature);
     } else if (Fuga_isExpr(signature)) {
@@ -386,5 +389,7 @@ void* FugaPrelude_def(
 
     method = FugaMethod_method(scope, args, body);
     FUGA_CHECK(Fuga_set(owner, name, method));
+  { FUGA_IF(Fuga_hasS(scope, "_doc"))
+        FUGA_CHECK(Fuga_setDoc(owner, name, Fuga_getS(scope, "_doc"))); }
     return FUGA->nil;
 }
