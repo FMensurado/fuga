@@ -371,10 +371,20 @@ void* FugaPrelude_def(
     }
     FUGA_CHECK(owner); FUGA_CHECK(name); FUGA_CHECK(args);
 
-    // create the method
-    // FIXME: check to see if method already exists
-    void* method = FugaMethod_method(scope, args, body);
-    FUGA_CHECK(Fuga_set(owner, name, method));
+    // create the method (or add pattern if method already exists)
 
+    void* method;
+
+    FUGA_IF(Fuga_has(owner, name)) {
+        method = Fuga_get(owner, name);
+        if (Fuga_isMethod(method)) {
+            // FIXME: make patterns be scope aware
+            FUGA_CHECK(FugaMethod_addPattern(method, args, body));
+            return FUGA->nil;
+        }
+    }
+
+    method = FugaMethod_method(scope, args, body);
+    FUGA_CHECK(Fuga_set(owner, name, method));
     return FUGA->nil;
 }

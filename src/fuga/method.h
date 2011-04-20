@@ -19,6 +19,7 @@ void* FugaMethod2_new_(void* self, FugaMethodFn2);
 void* FugaMethodStr_new_(void* self, FugaMethodFn0);
 void* FugaMethodOp_new_(void* self, const char* name);
 void* FugaMethod_method(void* scope, void* args, void* body);
+void* FugaMethod_addPattern(void* scope, void* args, void* body);
 void* FugaMethod_call(void* self, void* recv, void* args);
 
 #define FUGA_METHOD(fn) (FugaMethodN_new_(self, (FugaMethodFnN)(fn)))

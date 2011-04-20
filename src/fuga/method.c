@@ -213,7 +213,6 @@ void* FugaMethodFuga_scope(void* self)
     return Fuga_getS(self, "scope");
 }
 
-
 void* FugaMethodFuga_args(void* self)
 {
     return Fuga_getS(self, "args");
@@ -228,27 +227,30 @@ void* FugaMethodFuga_call(void* self, void* recv, void* args)
 {
     FUGA_CHECK(self); FUGA_CHECK(recv); FUGA_CHECK(args);
     void* scope   = FugaMethodFuga_scope (self);
-    void* formals = FugaMethodFuga_args  (self);
-    void* body    = FugaMethodFuga_body  (self);
-    FUGA_CHECK(scope); FUGA_CHECK(body); FUGA_CHECK(args);
+    void* argss   = FugaMethodFuga_args  (self);
+    void* bodys   = FugaMethodFuga_body  (self);
+    FUGA_CHECK(scope); FUGA_CHECK(bodys); FUGA_CHECK(argss);
     ALWAYS(Fuga_isMethod(self));
-    scope = Fuga_clone(scope);
-    void* matches = Fuga_match_(formals, args);
-    void* error = Fuga_catch(matches);
-    if (error) {
-        if (Fuga_isa_(error, FUGA->MatchError)) {
-            FUGA_RAISE(FUGA->TypeError,
-                "arguments do not match"
-            );
-        } else {
-            return Fuga_raise(error);
+    FUGA_CHECK(scope = Fuga_clone(scope));
+    FUGA_CHECK(Fuga_setS(scope, "self", recv));
+
+    FUGA_FOR(i, formals, argss) {
+        void* match = Fuga_match_(formals, args);
+        FUGA_TRY(match) {
+            match = NULL;
+            FUGA_CATCH(FUGA->MatchError)
+                break; 
+            FUGA_RERAISE;
+        }
+        if (match) {
+            void* body = Fuga_getI(bodys, i);
+            FUGA_CHECK(body);
+            FUGA_CHECK(Fuga_update_(scope, match));
+            return Fuga_eval(body, scope, scope);
         }
     }
 
-    FUGA_CHECK(Fuga_update_(scope, matches));
-    FUGA_CHECK(Fuga_setS(scope, "self", recv));
-    FUGA_CHECK(scope);
-    return Fuga_eval(body, scope, scope);
+    FUGA_RAISE(FUGA->TypeError, "no patterns match");
 }
 
 void* FugaMethod_method(void* self, void* args, void* body)
@@ -258,11 +260,22 @@ void* FugaMethod_method(void* self, void* args, void* body)
     FUGA_NEED(body);
     FugaMethodFuga* result = Fuga_clone_(FUGA->Method, sizeof *result);
     Fuga_type_(result, &FugaMethod_type);
-    result->call  = FugaMethodFuga_call;
-
+    result->call = FugaMethodFuga_call;
+    void* argss = Fuga_clone(FUGA->Object); Fuga_append_(argss, args);
+    void* bodys = Fuga_clone(FUGA->Object); Fuga_append_(bodys, body);
     FUGA_CHECK(Fuga_setS(result, "scope", self));
-    FUGA_CHECK(Fuga_setS(result, "args",  args));
-    FUGA_CHECK(Fuga_setS(result, "body",  body));
+    FUGA_CHECK(Fuga_setS(result, "args",  argss));
+    FUGA_CHECK(Fuga_setS(result, "body",  bodys));
     return result;
+}
+
+void* FugaMethod_addPattern(void* self, void* args, void* body)
+{
+    FUGA_NEED(self);
+    FUGA_NEED(args);
+    FUGA_NEED(body);
+    FUGA_CHECK(Fuga_append_(Fuga_getS(self, "args"), args));
+    FUGA_CHECK(Fuga_append_(Fuga_getS(self, "body"), body));
+    return FUGA->nil;
 }
 
