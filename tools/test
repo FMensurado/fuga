@@ -19,8 +19,7 @@ def filename_o(module):
     return "bin/%s.o" % module
 
 def modulename(filename):
-    suffix = filename[-2:]
-    if suffix in ['.h', '.c']:
+    if filename[-2:] in ['.h', '.c']:
         return filename[:-2]
     return filename
 
@@ -44,18 +43,6 @@ def is_package(package):
     return not not (
         glob.glob("src/%s/*.c" % package) or
         glob.glob("src/%s/*.h" % package)
-    )
-
-def module_of(name):
-    return '/'.join(name.split('_')[:-1])
-
-def prefix(module, *varg):
-    return '_'.join(module.split('/') + list(varg))
-
-def is_function(name):
-    return '_' in name and (
-        is_module(module_of(name)) or
-        is_package(module_of(name))
     )
 
 def run(name, command):
@@ -118,10 +105,6 @@ int main() {
 def test_module(module):
     run_testsuites(module, testsuites(module))
 
-def test_function(name):
-    module = module_of(name)
-    run_testsuites(module, [name])
-
 def test_package(package):
     import glob
     modules = glob.glob('src/%s/*.c' % package)
@@ -176,8 +159,6 @@ def main():
         test_all()
     elif is_module(modulename(sys.argv[1])):
         test_module(modulename(sys.argv[1]))
-    elif is_function(sys.argv[1]):
-        test_function(sys.argv[1])
     elif is_package(sys.argv[1]):
         test_package(sys.argv[1])
     else:
