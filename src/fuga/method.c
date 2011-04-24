@@ -117,6 +117,7 @@ typedef struct {
 void* FugaMethodOp_call(void* _self, void* recv, void* args)
 {
     FugaMethodOp* self = _self;
+    args = Fuga_lazySlots(args);
     FUGA_CHECK(self); FUGA_CHECK(recv); FUGA_NEED(args);
     if (Fuga_hasLength_(args, 1)) {
         FUGA_CHECK(recv = Fuga_getI(args, 0));
