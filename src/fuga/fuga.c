@@ -903,10 +903,16 @@ void* Fuga_getRaw(void* self, void* name)
     if (slot)
         return slot->value;
 
-    // FIXME: give better error message
-    FUGA_RAISE(FUGA->SlotError,
-        "getRawBy_: No slot with given name."
-    );
+    // raise SlotError
+    FugaString *msg = FUGA_STRING("getRaw: no slot named '");
+    if (Fuga_isSymbol(name))
+        msg = FugaString_cat_(msg, FugaSymbol_toString(name));
+    else
+        msg = FugaString_cat_(msg, Fuga_str(name));
+    msg = FugaString_cat_(msg, FUGA_STRING("'"));
+    void* error = Fuga_clone(FUGA->SlotError);
+    FUGA_CHECK(Fuga_setS(error, "msg", msg));
+    return Fuga_raise(error);
 }
 
 #ifdef TESTING
@@ -992,10 +998,16 @@ void* Fuga_get(void* self, void* name)
     if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
         return Fuga_get(FUGA_HEADER(self)->proto, name);
 
-    // FIXME: give better error message
-    FUGA_RAISE(FUGA->SlotError,
-        "getBy_: No slot with given name."
-    );
+    // raise SlotError
+    FugaString *msg = FUGA_STRING("get: no slot named '");
+    if (Fuga_isSymbol(name))
+        msg = FugaString_cat_(msg, FugaSymbol_toString(name));
+    else
+        msg = FugaString_cat_(msg, Fuga_str(name));
+    msg = FugaString_cat_(msg, FUGA_STRING("'"));
+    void* error = Fuga_clone(FUGA->SlotError);
+    FUGA_CHECK(Fuga_setS(error, "msg", msg));
+    return Fuga_raise(error);
 }
 
 #ifdef TESTING
@@ -1498,7 +1510,6 @@ void* Fuga_strSlots(void* self)
             FUGA_CHECK(name);
             result = FugaString_cat_(result, name);
             result = FugaString_cat_(result, FUGA_STRING(" = "));
-            // FIXME: handle op msg edge case
         }
         FUGA_CHECK(result);
         void* slot = Fuga_get(self, FUGA_INT(slotNum));
@@ -1518,7 +1529,7 @@ void Fuga_printException(void* self)
     if (Fuga_isRaised(self))
         self = Fuga_catch(self);
     void *msg = Fuga_get(self, FUGA_SYMBOL("msg"));
-    printf("Exception raised:\n\t");
+    printf("EXCEPTION:\n\t");
     if (Fuga_isString(msg)) {
         FugaString_print(msg);
     } else {
