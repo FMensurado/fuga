@@ -94,7 +94,6 @@ void* Fuga_lazySlots(void* _self)
 
     FUGA_FOR(i, slot, code) {
         FUGA_CHECK(slot);
-        // FIXME: handle Thunk ~
         if (FugaMsg_is_(slot, "~") && Fuga_hasLength_(slot, 1)) {
             slot = Fuga_getI(slot, 0);
             FugaThunk* thunk = Fuga_eval(slot, scope, scope);
