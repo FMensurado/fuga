@@ -168,18 +168,24 @@ void* FugaPrelude_if(
     FUGA_NEED(self);
     args = Fuga_lazySlots(args);
     FUGA_CHECK(args);
-    // FIXME: allow multiple arguments (2 or more).
-    if (!Fuga_hasLength_(args, 3))
-        FUGA_RAISE(FUGA->TypeError, "if: expected 3 arguments");
-    void* cond = Fuga_get(args, FUGA_INT(0));
-    FUGA_NEED(cond);
-    if (Fuga_isTrue(cond))
-        return Fuga_needOnce(Fuga_get(args, FUGA_INT(1)));
-    if (Fuga_isFalse(cond))
-        return Fuga_needOnce(Fuga_get(args, FUGA_INT(2)));
-    FUGA_RAISE(FUGA->TypeError,
-        "if: condition must be a boolean"
-    );
+
+    long length = Fuga_length(args);
+    if (length < 2)
+        FUGA_RAISE(FUGA->TypeError, "if: expected 2 or more arguments");
+    for (long i = 0; i < length-1; i += 2) {
+        void* cond = Fuga_getI(args, i);
+        FUGA_NEED(cond);
+        if (Fuga_isTrue(cond))
+            return Fuga_needOnce(Fuga_getI(args, i+1));
+        if (!Fuga_isFalse(cond))
+            FUGA_RAISE(FUGA->TypeError,
+                "if: expected condition to be boolean"
+            );
+    }
+    if (length & 1)
+        return Fuga_needOnce(Fuga_getI(args, length-1));
+    else
+        return FUGA->nil;
 }
 
 void* FugaPrelude_method(
