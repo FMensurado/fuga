@@ -94,6 +94,8 @@ void FugaRoot_init(
     if (!Fuga_isRaised(Prelude)) {
         Fuga_delS(Prelude, "Loader");
         Fuga_update_(FUGA->Prelude, Prelude);
+    } else {
+        Fuga_printException(Prelude);
     }
 }
 
@@ -129,12 +131,21 @@ void* Fuga_protoM(void* self) {
     FUGA_RAISE(FUGA->ValueError, "proto: Object has no proto");
 }
 
+void* Fuga_cloneM(void* self, void* args) {
+    FUGA_NEED(self);
+    FUGA_NEED(args);
+    void* result = Fuga_clone(self);
+    FUGA_CHECK(result);
+    FUGA_HEADER(result)->slots = FUGA_HEADER(args)->slots;
+    return result;
+}
 
 void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
     Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1(Fuga_has));
     Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1(Fuga_get));
     Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
+    Fuga_setS(FUGA->Object, "del", FUGA_METHOD_1(Fuga_del));
     Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
     Fuga_setS(FUGA->Object, "hasName", FUGA_METHOD_1(Fuga_hasName));
@@ -144,9 +155,17 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "setDoc", FUGA_METHOD_2(Fuga_setDoc));
     Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
     Fuga_setS(FUGA->Object, "len",    FUGA_METHOD_0(Fuga_length));
-    Fuga_setS(FUGA->Object, "proto",  FUGA_METHOD_0(Fuga_protoM));
     Fuga_setS(FUGA->Object, "slots",  FUGA_METHOD_0(Fuga_slots));
     Fuga_setS(FUGA->Object, "dir",    FUGA_METHOD_0(Fuga_dir));
+    Fuga_setS(FUGA->Object, "append", FUGA_METHOD_1(Fuga_append_));
+    Fuga_setS(FUGA->Object, "extend", FUGA_METHOD_1(Fuga_extend_));
+    Fuga_setS(FUGA->Object, "update", FUGA_METHOD_1(Fuga_update_));
+
+    Fuga_setS(FUGA->Object, "eval",   FUGA_METHOD_2(Fuga_eval));
+    Fuga_setS(FUGA->Object, "evalIn", FUGA_METHOD_1(Fuga_evalIn));
+
+    Fuga_setS(FUGA->Object, "proto",  FUGA_METHOD_0(Fuga_protoM));
+    Fuga_setS(FUGA->Object, "clone",  FUGA_METHOD(Fuga_cloneM));
 
     // *cough* sorry. this is here, but this location doesn't make sense
     Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
@@ -743,11 +762,14 @@ void* Fuga_setDoc(void* self, void* name, void* value)
     }
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
-    if (!slot && slot->doc)
+    if (slot)
+        slot->doc = value;
+    else if (!Fuga_isInt(name) && Fuga_proto(self))
+        return Fuga_setDoc(Fuga_proto(self), name, value);
+    else 
         FUGA_RAISE(FUGA->SlotError,
             "setDoc: no slot with name"
         );
-    slot->doc = value;
     return FUGA->nil;
 }
 

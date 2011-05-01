@@ -34,6 +34,8 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "ValueError",  FUGA->ValueError);
     Fuga_setS(FUGA->Prelude, "TypeError",   FUGA->TypeError);
     Fuga_setS(FUGA->Prelude, "IOError",     FUGA->IOError);
+    Fuga_setS(FUGA->Prelude, "Thunk",       FUGA->Thunk);
+    Fuga_setS(FUGA->Prelude, "Path",        FUGA->Path);
     Fuga_setS(FUGA->Prelude, "Loader",      FugaLoader_new(self));
 
     Fuga_setS(FUGA->Prelude, "name",   FUGA_STRING("Prelude"));

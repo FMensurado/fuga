@@ -10,3 +10,22 @@ lazy(~x) { x lazy }
 .(      ~x) { x scope get(x code) }
 .(recv, ~x) { recv    get(x code) }
 
+
+Msg  recv(scope) { scope }
+Expr recv(scope) {
+    newExpr = Expr clone
+    newExpr extend(self)
+    newExpr del(-1)
+    newExpr eval(scope, scope)
+}
+
+Expr name { self get(-1) name }
+
+Thunk recv { self code recv(self scope) }
+Thunk name { self code name }
+
+:: Add documentation to an existing slot.
+redoc(~x) {
+    x recv setDoc(x name, x scope get(:_doc))
+}
+
