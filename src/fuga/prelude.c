@@ -508,7 +508,7 @@ void* FugaPrelude_help(
 
             void* line = FUGA_STRING("        ");
             line = FugaString_cat_(line, FugaSymbol_toString(name));
-            line = FugaString_cat_(line, FUGA_STRING("\t"));
+            line = FugaString_cat_(line, FUGA_STRING("\t\t"));
             line = FugaString_cat_(line, doc);
             FUGA_CHECK(line);
             FugaString_print(line);

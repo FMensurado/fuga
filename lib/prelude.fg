@@ -11,7 +11,10 @@ lazy(~x) { x lazy }
 .(recv, ~x) { recv    get(x code) }
 
 
+:: The last message receiver in a given scope.
 Msg  recv(scope) { scope }
+
+:: The last message receiver in a given scope.
 Expr recv(scope) {
     newExpr = Expr clone
     newExpr extend(self)
@@ -19,13 +22,171 @@ Expr recv(scope) {
     newExpr eval(scope, scope)
 }
 
+:: The name of last the last message.
 Expr name { self get(-1) name }
 
+:: The last message receiver.
 Thunk recv { self code recv(self scope) }
+
+:: The last message.
 Thunk name { self code name }
 
+
 :: Add documentation to an existing slot.
+:: Example:
+::
+::     :: New documentation.
+::     redoc(existing slot)
 redoc(~x) {
     x recv setDoc(x name, x scope get(:_doc))
 }
 
+#####################################################
+################## Documentation ####################
+#####################################################
+
+:: String representation of self.
+:: By convention, if self hasRaw(:_name), _name is returned instead.
+redoc(Object str)
+
+:: Does self or prototypes have a slot?
+:: Look in prototypes if the object doesn't have a slot with the given
+:: name. Do not look in prototypes if an index is used. A negative index
+:: is used to indicate a slot starting from the end.
+::
+::     self has(name)
+::     self has(index)
+redoc(Object has)
+
+:: Get slot value in self or prototypes.
+:: Look in prototypes if the object doesn't have a slot with the given
+:: name. Do not look in prototypes if an index is used. A negative index
+:: is used to indicate a slot starting from the end.
+::
+::     self get(name)
+::     self get(index)
+redoc(Object get)
+
+:: Create slot or update slot value.
+:: Do not touch prototypes -- affect only the called object directly.
+:: 
+::     self set(name, value)
+::     self set(value, index)
+redoc(Object set)
+
+:: Delete slot.
+::
+::     self del(name)
+::     self del(index)
+redoc(Object del)
+
+:: Does self have a slot?
+:: Do not look in prototypes.
+::
+::     self hasRaw(name)
+::     self hasRaw(index)
+redoc(Object hasRaw)
+
+:: Get slot value in self. 
+:: Do not look in prototypes.
+::
+::     self getRaw(name)
+::     self getRaw(index)
+redoc(Object getRaw)
+
+:: Is a slot a named slot?
+::
+::     self hasName(index)
+redoc(Object hasName)
+
+:: Get the name associated with a slot.
+:: 
+::     self getName(index)
+redoc(Object getName)
+
+:: Does the given slot have documentation?
+:: Looks for documentation in prototypes.
+::
+::     self hasDoc(name)
+::     self hasDoc(index)
+redoc(Object hasDoc)
+
+:: Get the documentation associated with a particular slot.
+:: Looks for documentation in prototypes.
+::
+::     self getDoc(name)
+::     self getDoc(index)
+redoc(Object getDoc)
+
+:: Set or change the documentation for a particular slot. 
+:: Looks for the slot in prototypes.
+::
+::     self setDoc(name, value)
+::     self setDoc(index, value)
+redoc(Object setDoc)
+
+:: Match pattern to value.
+:: Return a dictionary of captured names on success. Raise MatchError
+:: on failure.
+::
+::     self match(value)
+redoc(Object match)
+
+:: Number of slots in self.
+::
+::     self len
+redoc(Object len)
+
+:: The slots of self, without prototype or primitive.
+:: 
+::     self slots
+redoc(Object slots)
+
+:: Directory of all messages that self replies to.
+::
+::     self dir
+redoc(Object dir)
+
+:: Add a slot to the object at the end.
+:: Creates a new slot with the new highest index.
+:: 
+::     self append(value)
+redoc(Object append)
+
+:: Append all slots from the argument to self.
+::
+::     self extend(other)
+redoc(Object extend)
+
+:: Set all named slots from the argument to self.
+:: 
+::     self update(other)
+redoc(Object update)
+
+:: Evaluate code object.
+:: Takes a lexical scope and a current message receiver (usually
+:: the same). Irreflexive evaluation (slots can't be referenced
+:: directly). Returns the evaluated value.
+:: 
+::     self eval(scope, receiver)
+redoc(Object eval)
+
+:: Evaluate code object reflexively.
+:: Takes a lexical scope, which will be updated with the named
+:: slots of the evaluated value.
+::
+::     self evalIn(scope)
+redoc(Object evalIn)
+
+:: The object's prototype.
+:: Raises ValueError if there is no prototype (only happens for
+:: Object).
+::
+::     self proto
+redoc(Object proto)
+
+:: Create a new object with prototype and given slots.
+:: The prototype is self.
+:: 
+::     self clone(slots...)
+redoc(Object clone)
