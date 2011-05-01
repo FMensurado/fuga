@@ -1,11 +1,11 @@
 all: test main
 
 try: all
-	./fuga
+	tools/try
 
 test:
 	tools/test fuga
 
-main::
+main:
 	tools/make --executable --test main && mv main fuga
 

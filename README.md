@@ -13,12 +13,13 @@ Use `make`:
 
 ## To Run
 
-The executable file is `fuga`, so to run it:
+The executable file is `fuga`. However, to run it properly, you must
+use tools/try:
 
-    $ ./fuga
+    $ tools/try
 
 This opens up an interactive interpreter. To run a Fuga file, specify
 the filename:
 
-    $ ./fuga filename.fg
+    $ tools/try filename.fg
 

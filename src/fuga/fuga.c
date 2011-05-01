@@ -86,9 +86,15 @@ void FugaRoot_init(
     FugaPath_init(FUGA->Prelude);
     FugaThunk_init(FUGA->Prelude);
 
-
     Fuga_initObject(FUGA->Prelude);
     Fuga_initBool(FUGA->Prelude);
+
+    void* Loader  = Fuga_getS(FUGA->Prelude, "Loader");
+    void* Prelude = FugaLoader_load_(Loader, FUGA_STRING("prelude.fg"));
+    if (!Fuga_isRaised(Prelude)) {
+        Fuga_delS(Prelude, "Loader");
+        Fuga_update_(FUGA->Prelude, Prelude);
+    }
 }
 
 /**
