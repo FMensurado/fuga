@@ -580,7 +580,9 @@ void* Fuga_catch(void* self);
 
 // Slot Manipulation
 
+void* Fuga_proto    (void* self);
 void* Fuga_slots    (void* self);
+void* Fuga_dir      (void* self);
 
 long Fuga_length     (void* self);
 bool Fuga_hasLength_ (void* self, long length);

@@ -86,9 +86,15 @@ void FugaRoot_init(
     FugaPath_init(FUGA->Prelude);
     FugaThunk_init(FUGA->Prelude);
 
-
     Fuga_initObject(FUGA->Prelude);
     Fuga_initBool(FUGA->Prelude);
+
+    void* Loader  = Fuga_getS(FUGA->Prelude, "Loader");
+    void* Prelude = FugaLoader_load_(Loader, FUGA_STRING("prelude.fg"));
+    if (!Fuga_isRaised(Prelude)) {
+        Fuga_delS(Prelude, "Loader");
+        Fuga_update_(FUGA->Prelude, Prelude);
+    }
 }
 
 /**
@@ -533,6 +539,14 @@ TESTS(Fuga_toName) {
 }
 #endif
 
+void* Fuga_proto(
+    void* self
+) {
+    ALWAYS(self);
+    FUGA_NEED(self);
+    return FUGA_HEADER(self)->proto;
+}
+
 /**
  * Return a vanilla object that shares its slots with self.
  */
@@ -544,6 +558,23 @@ void* Fuga_slots(
     if (!FUGA_HEADER(self)->slots)
         FUGA_HEADER(self)->slots = FugaSlots_new(self);
     return FUGA_HEADER(self)->slots;
+}
+
+void* Fuga_dir(
+    void* self
+) {
+    FUGA_NEED(self);
+    void* dir = Fuga_clone(FUGA->Object);
+    long length = Fuga_length(self);
+    for (long i = 0; i < length; i++) {
+        FUGA_IF(Fuga_hasNameI(self, i))
+            FUGA_CHECK(Fuga_append_(dir, Fuga_getNameI(self,i)));
+    }
+    void* proto = Fuga_proto(self);
+    if (proto && !Fuga_isRaised(proto))
+        FUGA_CHECK(Fuga_extend_(dir, Fuga_dir(proto)));
+    // FIXME: remove duplicates
+    return dir;
 }
 
 /**
@@ -613,10 +644,13 @@ void* Fuga_hasDoc(void* self, void* name)
     }
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
-    if (slot->doc)
+    if (slot && slot->doc) {
         return FUGA->True;
-    else
+    } else if (FUGA_HEADER(self)->proto) {
+        return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
+    } else {
         return FUGA->False;
+    }
 }
 
 /**
@@ -669,6 +703,8 @@ void* Fuga_getDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc)
         return slot->doc;
+    if (FUGA_HEADER(self)->proto)
+        return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
     FUGA_RAISE(FUGA->SlotError,
         "getDoc: no slot with name"
     );

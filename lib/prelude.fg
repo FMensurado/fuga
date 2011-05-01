@@ -1,0 +1,12 @@
+
+:: Evaluate lazily.
+lazy(~x) { x lazy }
+
+:: Prevent evaluation of code.
+`(~x) { x code }
+
+:: Get slot without activating it.
+:: Usually used to get a method without activating it.
+.(      ~x) { x scope get(x code) }
+.(recv, ~x) { recv    get(x code) }
+

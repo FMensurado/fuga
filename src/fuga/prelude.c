@@ -45,6 +45,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "match",  FUGA_METHOD(FugaPrelude_match));
     Fuga_setS(FUGA->Prelude, "do",     FUGA_METHOD(FugaPrelude_do));
     Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
+    Fuga_setS(FUGA->Prelude, "help",   FUGA_METHOD(FugaPrelude_help));
 
     FugaPrelude_defOp(FUGA->Prelude, "==");
     FugaPrelude_defOp(FUGA->Prelude, "<");
@@ -168,18 +169,24 @@ void* FugaPrelude_if(
     FUGA_NEED(self);
     args = Fuga_lazySlots(args);
     FUGA_CHECK(args);
-    // FIXME: allow multiple arguments (2 or more).
-    if (!Fuga_hasLength_(args, 3))
-        FUGA_RAISE(FUGA->TypeError, "if: expected 3 arguments");
-    void* cond = Fuga_get(args, FUGA_INT(0));
-    FUGA_NEED(cond);
-    if (Fuga_isTrue(cond))
-        return Fuga_needOnce(Fuga_get(args, FUGA_INT(1)));
-    if (Fuga_isFalse(cond))
-        return Fuga_needOnce(Fuga_get(args, FUGA_INT(2)));
-    FUGA_RAISE(FUGA->TypeError,
-        "if: condition must be a boolean"
-    );
+
+    long length = Fuga_length(args);
+    if (length < 2)
+        FUGA_RAISE(FUGA->TypeError, "if: expected 2 or more arguments");
+    for (long i = 0; i < length-1; i += 2) {
+        void* cond = Fuga_getI(args, i);
+        FUGA_NEED(cond);
+        if (Fuga_isTrue(cond))
+            return Fuga_needOnce(Fuga_getI(args, i+1));
+        if (!Fuga_isFalse(cond))
+            FUGA_RAISE(FUGA->TypeError,
+                "if: expected condition to be boolean"
+            );
+    }
+    if (length & 1)
+        return Fuga_needOnce(Fuga_getI(args, length-1));
+    else
+        return FUGA->nil;
 }
 
 void* FugaPrelude_method(
@@ -393,3 +400,95 @@ void* FugaPrelude_def(
         FUGA_CHECK(Fuga_setDoc(owner, name, Fuga_getS(scope, "_doc"))); }
     return FUGA->nil;
 }
+
+
+void* FugaPrelude_help(
+    void* self,
+    void* args
+) {
+    FUGA_NEED(self);
+    args = Fuga_lazySlots(args);
+    FUGA_CHECK(args);
+    if (!Fuga_hasLength_(args, 1))
+        FUGA_RAISE(FUGA->TypeError, "doc: expected 1 argument");
+
+    void* arg   = Fuga_getI(args, 0);
+    void* code  = Fuga_lazyCode(arg);
+    void* scope = Fuga_lazyScope(arg);
+    FUGA_CHECK(code); FUGA_CHECK(scope);
+
+    void* recv;
+    void* name;
+    void* value;
+    bool  bare = false;
+    if (Fuga_isMsg(code)) {
+        recv = scope;
+        name = code;
+    } else if (Fuga_isExpr(code)) {
+        name = Fuga_getI(code, -1);
+        recv = Fuga_clone(FUGA->Expr);
+        FUGA_CHECK(Fuga_extend_(recv, code));
+        FUGA_CHECK(Fuga_delI(recv, -1));
+        recv = Fuga_eval(recv, scope, scope);
+    } else {
+        bare  = true;
+        value = Fuga_eval(code, scope, scope);
+    }
+    FUGA_NEED(name);
+    FUGA_NEED(recv);
+
+
+    void* doc = NULL;
+    if (!bare) {
+        FUGA_IF(Fuga_has(recv, name)) {
+            FUGA_IF(Fuga_hasDoc(recv, name)) {
+                doc = Fuga_getDoc(recv, name);
+            } else {
+                bare = true;
+            }
+            value = Fuga_get(recv, name);
+        } else {
+            printf("No such slot.\n");
+            return FUGA->nil;
+        }
+    }
+
+    FUGA_CHECK(Fuga_print(code));
+
+    if (doc) {
+        FUGA_NEED(doc);
+        if (!Fuga_isString(doc))
+            FUGA_CHECK(doc = Fuga_str(doc));
+        void* lines = FugaString_split_(doc, FUGA_STRING("\n"));
+        FUGA_NEED(lines);
+        FUGA_FOR(i, line, lines) {
+            printf("    ");
+            FugaString_print(line);
+        }
+    }
+
+    FUGA_NEED(value);
+    void* dir = Fuga_dir(value);
+    if (!Fuga_hasLength_(dir, 0))
+        printf("    Slots:\n");
+    FUGA_NEED(dir);
+    FUGA_FOR(i, slot, dir) {
+        void* doc = FUGA_STRING("");
+        FUGA_IF(Fuga_hasDoc(value, slot))
+            FUGA_CHECK(doc = Fuga_getDoc(value, slot));
+        FUGA_NEED(doc);
+        if (!Fuga_isString(doc)) doc = FUGA_STRING("");
+        doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);
+        FUGA_CHECK(doc);
+
+        void* line = FUGA_STRING("        ");
+        line = FugaString_cat_(line, FugaSymbol_toString(slot));
+        line = FugaString_cat_(line, FUGA_STRING("\t"));
+        line = FugaString_cat_(line, doc);
+        FUGA_CHECK(line);
+        FugaString_print(line);
+    }
+
+    return FUGA->nil;
+}
+
