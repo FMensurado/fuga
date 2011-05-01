@@ -47,6 +47,9 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
     Fuga_setS(FUGA->Prelude, "help",   FUGA_METHOD(FugaPrelude_help));
 
+    Fuga_setS(FUGA->Prelude, "is?",    FUGA_METHOD_2(FugaPrelude_is));
+    Fuga_setS(FUGA->Prelude, "isa?",   FUGA_METHOD_2(FugaPrelude_isa));
+
     FugaPrelude_defOp(FUGA->Prelude, "==");
     FugaPrelude_defOp(FUGA->Prelude, "!=");
     FugaPrelude_defOp(FUGA->Prelude, "<");
@@ -61,6 +64,16 @@ void FugaPrelude_init(
     FugaPrelude_defOp(FUGA->Prelude, "//");
     FugaPrelude_defOp(FUGA->Prelude, "%");
     FugaPrelude_defOp(FUGA->Prelude, "++");
+}
+
+void* FugaPrelude_is(void* self, void* a, void* b) {
+    FUGA_NEED(a); FUGA_NEED(b);
+    return FUGA_BOOL(Fuga_is_(a, b));
+}
+
+void* FugaPrelude_isa(void* self, void* a, void* b) {
+    FUGA_NEED(a); FUGA_NEED(b);
+    return FUGA_BOOL(Fuga_isa_(a, b));
 }
 
 void* FugaPrelude_equals(

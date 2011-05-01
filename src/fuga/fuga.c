@@ -121,6 +121,14 @@ void* Fuga_init(
     return self;
 }
 
+void* Fuga_protoM(void* self) {
+    FUGA_NEED(self);
+    void* result = Fuga_proto(self);
+    if (result)
+        return result;
+    FUGA_RAISE(FUGA->ValueError, "proto: Object has no proto");
+}
+
 
 void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
@@ -129,8 +137,16 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
     Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
-    Fuga_setS(FUGA->Object, "length", FUGA_METHOD_0(Fuga_length));
+    Fuga_setS(FUGA->Object, "hasName", FUGA_METHOD_1(Fuga_hasName));
+    Fuga_setS(FUGA->Object, "getName", FUGA_METHOD_1(Fuga_getName));
+    Fuga_setS(FUGA->Object, "hasDoc", FUGA_METHOD_1(Fuga_hasDoc));
+    Fuga_setS(FUGA->Object, "getDoc", FUGA_METHOD_1(Fuga_getDoc));
+    Fuga_setS(FUGA->Object, "setDoc", FUGA_METHOD_2(Fuga_setDoc));
     Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
+    Fuga_setS(FUGA->Object, "len",    FUGA_METHOD_0(Fuga_length));
+    Fuga_setS(FUGA->Object, "proto",  FUGA_METHOD_0(Fuga_protoM));
+    Fuga_setS(FUGA->Object, "slots",  FUGA_METHOD_0(Fuga_slots));
+    Fuga_setS(FUGA->Object, "dir",    FUGA_METHOD_0(Fuga_dir));
 
     // *cough* sorry. this is here, but this location doesn't make sense
     Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));

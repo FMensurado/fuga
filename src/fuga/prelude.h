@@ -14,5 +14,8 @@ void* FugaPrelude_do      (void* self, void* args);
 void* FugaPrelude_def     (void* self, void* args);
 void* FugaPrelude_help    (void* self, void* args);
 
+void* FugaPrelude_is  (void* self, void* a, void* b);
+void* FugaPrelude_isa (void* self, void* a, void* b);
+
 #endif
 
