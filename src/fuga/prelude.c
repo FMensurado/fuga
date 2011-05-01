@@ -48,6 +48,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "help",   FUGA_METHOD(FugaPrelude_help));
 
     FugaPrelude_defOp(FUGA->Prelude, "==");
+    FugaPrelude_defOp(FUGA->Prelude, "!=");
     FugaPrelude_defOp(FUGA->Prelude, "<");
     FugaPrelude_defOp(FUGA->Prelude, ">");
     FugaPrelude_defOp(FUGA->Prelude, "<=");

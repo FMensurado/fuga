@@ -308,7 +308,9 @@ void _FugaLexer_lexName(
 
     int i;
     bool digits = true;
-    for (i = 0; FugaChar_isName(self->code+i);
+    for (i = 0; FugaChar_isName(self->code+i)
+             || (i > 0 && (self->code[i] == '?' ||
+                           self->code[i] == '!'));
            i += FugaChar_size  (self->code+i))
         digits = digits && FugaChar_isDigit(self->code+i);
 
@@ -326,17 +328,12 @@ void _FugaLexer_lexOp(
     FugaLexer* self
 ) {
     int i=0;
-    bool error;
-    if (self->code[0] == '?' || self->code[0] == '!')
-        error = true;
     while (FugaChar_isOp(self->code+i))
         i += FugaChar_size(self->code+i);
     self->token->type = FUGA_TOKEN_OP;
     self->token->value = _FugaLexer_prefix_(self, i);
     if (self->code[0] == '(')
         self->token->type = FUGA_TOKEN_NAME;
-    if (error)
-        self->token->type = FUGA_TOKEN_ERROR;
 }
 
 void _FugaLexer_lexDoc(
@@ -612,8 +609,10 @@ TESTS(FugaLexer) {
     FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "_?!");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
-    FugaLexer_readCode_(self, "?");
-    FUGA_LEXER_TEST    (FUGA_TOKEN_ERROR);
+    FugaLexer_readCode_(self, "? !=");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_OP, "?");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_OP, "!=");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     FugaLexer_readCode_(self, "][");
     FUGA_LEXER_TEST    (FUGA_TOKEN_RBRACKET);

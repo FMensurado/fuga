@@ -15,7 +15,7 @@ bool FugaChar_isOp(
     case '~': case '`': case '@': case '$': case '%': case '^':
     case '&': case '*': case '-': case '+': case '=': case '|':
     case ';': case ':': case '<': case '>': case '.': case '?':
-    case '/': case '\'':
+    case '/': case '\'': case '!':
         return true;
 
     default:
@@ -27,7 +27,7 @@ bool FugaChar_isOp(
 bool FugaChar_isName(
     const char *c
 ) {
-    return *c == '_' || *c == '?' || *c == '!' || isalnum(*c);
+    return *c == '_' || isalnum(*c);
 }
 
 bool FugaChar_isDigit(
