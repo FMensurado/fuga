@@ -12,6 +12,7 @@ void* FugaPrelude_import  (void* self, void* args);
 void* FugaPrelude_match   (void* self, void* args);
 void* FugaPrelude_do      (void* self, void* args);
 void* FugaPrelude_def     (void* self, void* args);
+void* FugaPrelude_help    (void* self, void* args);
 
 #endif
 
