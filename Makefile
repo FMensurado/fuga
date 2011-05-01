@@ -1,7 +1,7 @@
 all: test main
 
 try: all
-	tools/try
+	./fuga
 
 test:
 	tools/test fuga

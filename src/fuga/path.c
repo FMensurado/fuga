@@ -152,17 +152,20 @@ void* FugaPath_FUGAPATH(
     void* self
 ) {
     const char* FUGAPATH = FUGA_PLATFORM_FUGAPATH;
-    if (!FUGAPATH)
-        return Fuga_clone(FUGA->Object);
-    void* path   = FUGA_STRING(FUGA_PLATFORM_FUGAPATH);
-    void* paths  = FugaString_split_(path,
-        FUGA_STRING(FUGA_PLATFORM_FUGAPATH_SEP)
-    );
     void* result = Fuga_clone(FUGA->Object);
+    if (!FUGAPATH) {
+        void* path = FugaPath_new(FUGA_STRING("lib"));
+        FUGA_CHECK(Fuga_append_(result, path));
+    } else {
+        void* path   = FUGA_STRING(FUGAPATH);
+        void* paths  = FugaString_split_(path,
+            FUGA_STRING(FUGA_PLATFORM_FUGAPATH_SEP)
+        );
 
-    FUGA_FOR(i, slot, paths) {
-        if (!FugaString_is_(slot, ""))
-            FUGA_CHECK(Fuga_append_(result, FugaPath_new(slot)));
+        FUGA_FOR(i, slot, paths) {
+            if (!FugaString_is_(slot, ""))
+                FUGA_CHECK(Fuga_append_(result, FugaPath_new(slot)));
+        }
     }
     return result;
 }
