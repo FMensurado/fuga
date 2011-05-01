@@ -5,9 +5,16 @@ const FugaType FugaMethod_type = {
     "Method"
 };
 
+void* _FugaMethod_str(void* self) {
+    FUGA_NEED(self);
+    return FUGA_STRING("method(...)");
+}
+
+
 void FugaMethod_init(void* self)
 {
-    Fuga_setS(FUGA->Method, "str", FUGA_STRING("method(...)"));
+    Fuga_setS(FUGA->Method, "_name", FUGA_STRING("Method"));
+    Fuga_setS(FUGA->Method, "str",   FUGA_METHOD_STR(_FugaMethod_str));
 }
 
 struct FugaMethod {
@@ -68,9 +75,23 @@ void* FugaMethodStr_call(void* _self, void* recv, void* args)
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 0))
         FUGA_RAISE(FUGA->TypeError, "str: expected no arguments");
-    if (Fuga_isTrue(Fuga_hasRawS(recv, "name")))
-        return Fuga_getRawS(recv, "name");
-    return self->method(recv);
+    if (Fuga_isTrue(Fuga_hasRawS(recv, "_name")))
+        return Fuga_getRawS(recv, "_name");
+    
+    FugaInt* depth = Fuga_getS(FUGA->String, "_depth");
+    if (Fuga_isInt(depth)) {
+        long depthI = FugaInt_value(depth);
+        if (depthI == 0)
+            return FUGA_STRING("...");
+        FUGA_CHECK(Fuga_setS(FUGA->String,"_depth", FUGA_INT(depthI-1)));
+    }
+
+    void* result = self->method(recv);
+
+    if (Fuga_isInt(depth)) {
+        FUGA_CHECK(Fuga_setS(FUGA->String, "_depth", depth));
+    }
+    return result;
 }
 
 void* FugaMethodStr_new_(void* self, void* (*method)(void*))

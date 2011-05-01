@@ -14,6 +14,8 @@ FugaLoader* FugaLoader_new(
     FUGA_CHECK(self);
     FugaLoader* loader = Fuga_clone(FUGA->Object);
 
+    Fuga_setS(loader, "_name", FUGA_STRING("Loader"));
+
     Fuga_setS(loader, "setPaths", FUGA_METHOD_1(FugaLoader_setPaths_));
     Fuga_setS(loader, "setLocal", FUGA_METHOD_1(FugaLoader_setLocal_));
     Fuga_setS(loader, "load",     FUGA_METHOD_1(FugaLoader_load_));

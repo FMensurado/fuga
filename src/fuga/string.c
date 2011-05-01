@@ -11,6 +11,9 @@ const FugaType FugaString_type = {
 
 void FugaString_init(void* self)
 {
+    Fuga_setS(FUGA->String, "_name",  FUGA_STRING("String"));
+    Fuga_setS(FUGA->String, "_depth", FUGA_INT(3));
+
     Fuga_setS(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
     Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1(FugaString_cat_));
     Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));

@@ -167,14 +167,25 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "proto",  FUGA_METHOD_0(Fuga_protoM));
     Fuga_setS(FUGA->Object, "clone",  FUGA_METHOD(Fuga_cloneM));
 
-    // *cough* sorry. this is here, but this location doesn't make sense
-    Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
+    Fuga_setS(FUGA->Object, "_name", FUGA_STRING("Object"));
+    Fuga_setS(FUGA->Number, "_name", FUGA_STRING("Number"));
+    Fuga_setS(FUGA->Expr,   "_name", FUGA_STRING("Expr"));
+    Fuga_setS(FUGA->nil,    "_name", FUGA_STRING("nil"));
 
+    Fuga_setS(FUGA->Exception,   "_name", FUGA_STRING("Exception"));
+    Fuga_setS(FUGA->TypeError,   "_name", FUGA_STRING("TypeError"));
+    Fuga_setS(FUGA->SyntaxError, "_name", FUGA_STRING("SyntaxError"));
+    Fuga_setS(FUGA->IOError,     "_name", FUGA_STRING("IOError"));
+    Fuga_setS(FUGA->ValueError,  "_name", FUGA_STRING("ValueError"));
+    Fuga_setS(FUGA->SyntaxUnfinished, "_name",
+        FUGA_STRING("SyntaxUnfinished"));
+    Fuga_setS(FUGA->MatchError, "_name", FUGA_STRING("MatchError"));
 }
 
 void Fuga_initBool(void* self) {
-    Fuga_setS(FUGA->True,  "name", FUGA_STRING("true"));
-    Fuga_setS(FUGA->False, "name", FUGA_STRING("false"));
+    Fuga_setS(FUGA->Bool,  "_name", FUGA_STRING("Bool"));
+    Fuga_setS(FUGA->True,  "_name", FUGA_STRING("true"));
+    Fuga_setS(FUGA->False, "_name", FUGA_STRING("false"));
 }
 
 #ifdef TESTING
@@ -681,7 +692,7 @@ void* Fuga_hasDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc) {
         return FUGA->True;
-    } else if (FUGA_HEADER(self)->proto) {
+    } else if ((!Fuga_isInt(name)) && (FUGA_HEADER(self)->proto)) {
         return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
     } else {
         return FUGA->False;
@@ -738,7 +749,7 @@ void* Fuga_getDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc)
         return slot->doc;
-    if (FUGA_HEADER(self)->proto)
+    if (!Fuga_isInt(name) && FUGA_HEADER(self)->proto)
         return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
     FUGA_RAISE(FUGA->SlotError,
         "getDoc: no slot with name"

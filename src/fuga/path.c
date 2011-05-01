@@ -10,6 +10,7 @@ void FugaPath_init(
     void* self
 ) {
     ALWAYS(self);
+    Fuga_setS(FUGA->Path, "_name",  FUGA_STRING("Path"));
 
     Fuga_setS(FUGA->Path, "str",  FUGA_METHOD_STR(FugaPath_str));
     Fuga_setS(FUGA->Path, "join", FUGA_METHOD_1  (FugaPath_join_));

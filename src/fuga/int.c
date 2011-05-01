@@ -3,19 +3,20 @@
 
 void FugaInt_init(void* self)
 {
-    Fuga_setS(FUGA->Int, "str", FUGA_METHOD_STR(FugaInt_str));
+    Fuga_setS(FUGA->Int, "_name", FUGA_STRING("Int"));
+    Fuga_setS(FUGA->Int, "str",   FUGA_METHOD_STR(FugaInt_str));
     Fuga_setS(FUGA->Int, "match", FUGA_METHOD_1(FugaInt_match_));
-    Fuga_setS(FUGA->Int, "+",   FUGA_METHOD(FugaInt_addMethod));
-    Fuga_setS(FUGA->Int, "-",   FUGA_METHOD(FugaInt_subMethod));
-    Fuga_setS(FUGA->Int, "*",   FUGA_METHOD_1(FugaInt_mul));
-    Fuga_setS(FUGA->Int, "//",  FUGA_METHOD_1(FugaInt_fdiv));
-    Fuga_setS(FUGA->Int, "%",   FUGA_METHOD_1(FugaInt_mod));
-    Fuga_setS(FUGA->Int, "==",  FUGA_METHOD_1(FugaInt_eq));
-    Fuga_setS(FUGA->Int, "!=",  FUGA_METHOD_1(FugaInt_neq));
-    Fuga_setS(FUGA->Int, "<",   FUGA_METHOD_1(FugaInt_lt));
-    Fuga_setS(FUGA->Int, ">",   FUGA_METHOD_1(FugaInt_gt));
-    Fuga_setS(FUGA->Int, "<=",  FUGA_METHOD_1(FugaInt_le));
-    Fuga_setS(FUGA->Int, ">=",  FUGA_METHOD_1(FugaInt_ge));
+    Fuga_setS(FUGA->Int, "+",     FUGA_METHOD(FugaInt_addMethod));
+    Fuga_setS(FUGA->Int, "-",     FUGA_METHOD(FugaInt_subMethod));
+    Fuga_setS(FUGA->Int, "*",     FUGA_METHOD_1(FugaInt_mul));
+    Fuga_setS(FUGA->Int, "//",    FUGA_METHOD_1(FugaInt_fdiv));
+    Fuga_setS(FUGA->Int, "%",     FUGA_METHOD_1(FugaInt_mod));
+    Fuga_setS(FUGA->Int, "==",    FUGA_METHOD_1(FugaInt_eq));
+    Fuga_setS(FUGA->Int, "!=",    FUGA_METHOD_1(FugaInt_neq));
+    Fuga_setS(FUGA->Int, "<",     FUGA_METHOD_1(FugaInt_lt));
+    Fuga_setS(FUGA->Int, ">",     FUGA_METHOD_1(FugaInt_gt));
+    Fuga_setS(FUGA->Int, "<=",    FUGA_METHOD_1(FugaInt_le));
+    Fuga_setS(FUGA->Int, ">=",    FUGA_METHOD_1(FugaInt_ge));
 }
 
 const FugaType FugaInt_type = {

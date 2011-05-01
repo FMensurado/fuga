@@ -38,7 +38,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "Path",        FUGA->Path);
     Fuga_setS(FUGA->Prelude, "Loader",      FugaLoader_new(self));
 
-    Fuga_setS(FUGA->Prelude, "name",   FUGA_STRING("Prelude"));
+    Fuga_setS(FUGA->Prelude, "_name",   FUGA_STRING("Prelude"));
     Fuga_setS(FUGA->Prelude, "=",      FUGA_METHOD(FugaPrelude_equals));
     Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
@@ -483,26 +483,48 @@ void* FugaPrelude_help(
         }
     }
 
-    FUGA_NEED(value);
-    void* dir = Fuga_dir(value);
-    if (!Fuga_hasLength_(dir, 0))
-        printf("    Slots:\n");
-    FUGA_NEED(dir);
-    FUGA_FOR(i, slot, dir) {
-        void* doc = FUGA_STRING("");
-        FUGA_IF(Fuga_hasDoc(value, slot))
-            FUGA_CHECK(doc = Fuga_getDoc(value, slot));
-        FUGA_NEED(doc);
-        if (!Fuga_isString(doc)) doc = FUGA_STRING("");
-        doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);
-        FUGA_CHECK(doc);
 
-        void* line = FUGA_STRING("        ");
-        line = FugaString_cat_(line, FugaSymbol_toString(slot));
-        line = FugaString_cat_(line, FUGA_STRING("\t"));
-        line = FugaString_cat_(line, doc);
-        FUGA_CHECK(line);
-        FugaString_print(line);
+    
+    void* slots = value;
+    printf("    Slots:\n");
+    while (slots) {
+        FUGA_NEED(slots);
+
+        long length = Fuga_length(slots);
+        for (long i = 0; i < length; i++) {
+            if (!Fuga_hasNameI(slots, i))
+                continue;
+            FugaSymbol* name = Fuga_getNameI(slots, i);
+            if (name->data[0] == '_')
+                continue;
+
+            void* doc = FUGA_STRING("");
+            FUGA_IF(Fuga_hasDocI(slots, i))
+                FUGA_CHECK(doc = Fuga_getDocI(slots, i));
+            FUGA_NEED(doc);
+            if (!Fuga_isString(doc)) doc = FUGA_STRING("");
+            doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);
+            FUGA_CHECK(doc);
+
+            void* line = FUGA_STRING("        ");
+            line = FugaString_cat_(line, FugaSymbol_toString(name));
+            line = FugaString_cat_(line, FUGA_STRING("\t"));
+            line = FugaString_cat_(line, doc);
+            FUGA_CHECK(line);
+            FugaString_print(line);
+        }
+        slots = Fuga_proto(slots);
+        if (!slots) break;
+        FUGA_IF(Fuga_hasRawS(slots, "_name")) {
+            FugaString* name = Fuga_getRawS(slots, "_name");
+            if (Fuga_isString(name)) {
+                printf("    Slots from %s:\n", name->data);
+            } else {
+                printf("    Slots from next proto:\n");
+            }
+        } else {
+            printf("    Slots from next proto:\n");
+        }
     }
 
     return FUGA->nil;
