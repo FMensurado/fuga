@@ -48,6 +48,7 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "do",     FUGA_METHOD(FugaPrelude_do));
     Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
     Fuga_setS(FUGA->Prelude, "help",   FUGA_METHOD(FugaPrelude_help));
+    Fuga_setS(FUGA->Prelude, "try",    FUGA_METHOD(FugaPrelude_try));
 
     Fuga_setS(FUGA->Prelude, "is?",    FUGA_METHOD_2(FugaPrelude_is));
     Fuga_setS(FUGA->Prelude, "isa?",   FUGA_METHOD_2(FugaPrelude_isa));
@@ -528,5 +529,35 @@ void* FugaPrelude_help(
     }
 
     return FUGA->nil;
+}
+
+
+void* FugaPrelude_try(void* self, void* args) {
+    FUGA_CHECK(self);
+    args = Fuga_lazySlots(args);
+    FUGA_CHECK(args);
+
+    long length = Fuga_length(args);
+    void* value = Fuga_need(Fuga_getI(args, 0));
+    if (Fuga_isRaised(value)) {
+        void* error = Fuga_catch(value);
+        for (int i = 1; i < length-1; i+=2) {
+            void* proto = Fuga_getI(args, i);
+            FUGA_NEED(proto);
+            if (Fuga_isa_(error, proto)) {
+                value = Fuga_getI(args, i+1);
+                void* scope = Fuga_clone(Fuga_lazyScope(value));
+                FUGA_CHECK(Fuga_setS(scope, "exception", error));
+                value = Fuga_eval(Fuga_lazyCode(value), scope, scope);
+                break;
+            }
+        }
+    }
+
+    if (!(length & 1)) {
+        void *finally = Fuga_getI(args, length-1);
+        FUGA_NEED(finally);
+    }
+    return value;
 }
 

@@ -40,8 +40,9 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->MatchError);
 }
 
-void Fuga_initObject (void* self);
-void Fuga_initBool   (void* self);
+void Fuga_initObject    (void* self);
+void Fuga_initBool      (void* self);
+void Fuga_initException (void* self);
 
 void FugaRoot_init(
     void *self
@@ -88,6 +89,7 @@ void FugaRoot_init(
 
     Fuga_initObject(FUGA->Prelude);
     Fuga_initBool(FUGA->Prelude);
+    Fuga_initException(FUGA->Prelude);
 
     void* Loader  = Fuga_getS(FUGA->Prelude, "Loader");
     void* Prelude = FugaLoader_load_(Loader, FUGA_STRING("prelude.fg"));
@@ -172,6 +174,30 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Expr,   "_name", FUGA_STRING("Expr"));
     Fuga_setS(FUGA->nil,    "_name", FUGA_STRING("nil"));
 
+}
+
+void Fuga_initBool(void* self) {
+    Fuga_setS(FUGA->Bool,  "_name", FUGA_STRING("Bool"));
+    Fuga_setS(FUGA->True,  "_name", FUGA_STRING("true"));
+    Fuga_setS(FUGA->False, "_name", FUGA_STRING("false"));
+}
+
+void* Fuga_raiseM(void* self, void* args) {
+    FUGA_CHECK(self);
+    FUGA_NEED(args);
+    void* exception = Fuga_clone(self);
+    if (Fuga_hasLength_(args, 0)) {
+    } else if (Fuga_hasLength_(args, 1)) {
+        FUGA_CHECK(Fuga_setS(exception, "msg", Fuga_getI(args, 0)));
+    } else {
+        FUGA_RAISE(FUGA->TypeError, "raise: expected 0 or 1 argument");
+    }
+    return Fuga_raise(exception);
+}
+
+void Fuga_initException(void* self) {
+    Fuga_setS(FUGA->Exception, "raise", FUGA_METHOD(Fuga_raiseM));
+
     Fuga_setS(FUGA->Exception,   "_name", FUGA_STRING("Exception"));
     Fuga_setS(FUGA->TypeError,   "_name", FUGA_STRING("TypeError"));
     Fuga_setS(FUGA->SyntaxError, "_name", FUGA_STRING("SyntaxError"));
@@ -180,12 +206,7 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->SyntaxUnfinished, "_name",
         FUGA_STRING("SyntaxUnfinished"));
     Fuga_setS(FUGA->MatchError, "_name", FUGA_STRING("MatchError"));
-}
-
-void Fuga_initBool(void* self) {
-    Fuga_setS(FUGA->Bool,  "_name", FUGA_STRING("Bool"));
-    Fuga_setS(FUGA->True,  "_name", FUGA_STRING("true"));
-    Fuga_setS(FUGA->False, "_name", FUGA_STRING("false"));
+    Fuga_setS(FUGA->SlotError,  "_name", FUGA_STRING("SlotError"));
 }
 
 #ifdef TESTING
