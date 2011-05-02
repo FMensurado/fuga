@@ -40,6 +40,7 @@ void FugaPrelude_init(
 
     Fuga_setS(FUGA->Prelude, "_name",   FUGA_STRING("Prelude"));
     Fuga_setS(FUGA->Prelude, "=",      FUGA_METHOD(FugaPrelude_equals));
+    Fuga_setS(FUGA->Prelude, ":=",     FUGA_METHOD(FugaPrelude_modify));
     Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
@@ -96,7 +97,6 @@ void* FugaPrelude_equals(
     if (!Fuga_hasLength_(code, 2))
         FUGA_RAISE(FUGA->TypeError, "=: expected 2 arguments");
 
-
     void* recv = scope;
     void* lhs  = Fuga_get(code, FUGA_INT(0));
     void* rhs  = Fuga_get(code, FUGA_INT(1));
@@ -127,6 +127,58 @@ void* FugaPrelude_equals(
     rhs = Fuga_eval(rhs, scope, scope);
     FUGA_CHECK(rhs);
     FUGA_CHECK(Fuga_set(recv, lhs, rhs));
+    FUGA_IF(Fuga_hasS(scope, "_doc"))
+        FUGA_CHECK(Fuga_setDoc(recv, lhs, Fuga_getS(scope, "_doc")));
+    return FUGA->nil;
+}
+
+void* FugaPrelude_modify(
+    void* self,
+    void* args
+) {
+    ALWAYS(self);
+    ALWAYS(args);
+    FUGA_NEED(self);
+    if (!Fuga_isLazy(args))
+        FUGA_RAISE(FUGA->TypeError, ":= : arguments must be a thunk");
+
+    void* code  = Fuga_lazyCode(args);
+    void* scope = Fuga_lazyScope(args);
+    FUGA_NEED(code); FUGA_NEED(scope);
+
+    if (!Fuga_hasLength_(code, 2))
+        FUGA_RAISE(FUGA->TypeError, ":= : expected 2 arguments");
+
+    void* recv = scope;
+    void* lhs  = Fuga_get(code, FUGA_INT(0));
+    void* rhs  = Fuga_get(code, FUGA_INT(1));
+    FUGA_NEED(lhs); FUGA_NEED(rhs);
+
+    if (Fuga_isMsg(lhs) || Fuga_isInt(lhs)) {
+        recv = Fuga_get(recv, FUGA_SYMBOL("_this"));
+    } else if (Fuga_isExpr(lhs)) {
+        FUGA_FOR(i, slot, lhs) {
+            if (i < length-1) {
+                recv = Fuga_get(recv, slot);
+                FUGA_CHECK(recv);
+            } else {
+                lhs = slot;
+                FUGA_CHECK(lhs);
+            }
+        }
+    }
+
+    if (!(Fuga_isMsg(lhs) || Fuga_isInt(lhs))) {
+        FUGA_RAISE(FUGA->TypeError,
+            ":= : left-hand side must be a msg or an int"
+        );
+    }
+
+    FUGA_NEED(recv);
+
+    rhs = Fuga_eval(rhs, scope, scope);
+    FUGA_CHECK(rhs);
+    FUGA_CHECK(Fuga_modify(recv, lhs, rhs));
     FUGA_IF(Fuga_hasS(scope, "_doc"))
         FUGA_CHECK(Fuga_setDoc(recv, lhs, Fuga_getS(scope, "_doc")));
     return FUGA->nil;

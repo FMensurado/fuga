@@ -147,6 +147,7 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1(Fuga_has));
     Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1(Fuga_get));
     Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
+    Fuga_setS(FUGA->Object, "modify", FUGA_METHOD_2(Fuga_modify));
     Fuga_setS(FUGA->Object, "del", FUGA_METHOD_1(Fuga_del));
     Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
@@ -1284,6 +1285,21 @@ TESTS(Fuga_set) {
     Fuga_quit(self);
 }
 #endif
+
+void* Fuga_modify(void* self, void* name, void* value) {
+    FUGA_NEED(self); FUGA_CHECK(value);
+    name = Fuga_toName(name, self);
+    FUGA_NEED(name);
+    FUGA_IF(Fuga_has(self, name)) {
+        FUGA_IF(Fuga_hasRaw(self, name)) {
+            return Fuga_set(self, name, value);
+        } else {
+            return Fuga_modify(Fuga_proto(self), name, value);
+        }
+    } else {
+        FUGA_RAISE(FUGA->SlotError, "modify: no such slot");
+    }
+}
 
 void* Fuga_del(void* self, void* name)
 {

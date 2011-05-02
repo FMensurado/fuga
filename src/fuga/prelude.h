@@ -5,6 +5,7 @@
 
 void  FugaPrelude_init    (void*);
 void* FugaPrelude_equals  (void* self, void* args);
+void* FugaPrelude_modify  (void* self, void* args);
 void* FugaPrelude_if      (void* self, void* args);
 void* FugaPrelude_method  (void* self, void* args);
 void* FugaPrelude_print   (void* self, void* args);
