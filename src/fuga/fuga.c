@@ -713,11 +713,17 @@ void* Fuga_hasDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc) {
         return FUGA->True;
-    } else if ((!Fuga_isInt(name)) && (FUGA_HEADER(self)->proto)) {
-        return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
-    } else {
-        return FUGA->False;
+    } else if (FUGA_HEADER(self)->proto) {
+        if (Fuga_isInt(name)) {
+            FUGA_IF(Fuga_hasName(self, name))
+                name = Fuga_getName(self, name); 
+            else
+                name = NULL;
+        }
+        if (name)
+            return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
     }
+    return FUGA->False;
 }
 
 /**
@@ -770,8 +776,16 @@ void* Fuga_getDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc)
         return slot->doc;
-    if (!Fuga_isInt(name) && FUGA_HEADER(self)->proto)
-        return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
+    if (Fuga_isInt(name) && FUGA_HEADER(self)->proto) {
+        if (Fuga_isInt(name)) {
+            FUGA_IF(Fuga_hasName(self, name))
+                name = Fuga_getName(self, name); 
+            else
+                name = NULL;
+        }
+        if (name)
+            return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
+    }
     FUGA_RAISE(FUGA->SlotError,
         "getDoc: no slot with name"
     );
@@ -1340,6 +1354,10 @@ void* Fuga_extend_(
     FUGA_NEED(self);    FUGA_NEED(other);
     FUGA_FOR(i, slot, other) {
         FUGA_CHECK(Fuga_append_(self, slot));
+        FUGA_IF(Fuga_hasDocI(other, i)) {
+            void* doc = Fuga_getDocI(other, i);
+            FUGA_CHECK(Fuga_setDocI(self, -1, doc));
+        }
     }
     return FUGA->nil;
 }
@@ -1351,9 +1369,13 @@ void* Fuga_update_(
     ALWAYS(self);       ALWAYS(other);
     FUGA_NEED(self);    FUGA_NEED(other);
     FUGA_FOR(i, slot, other) {
-        if (Fuga_isTrue(Fuga_hasNameI(other, i))) {
+        FUGA_IF(Fuga_hasNameI(other, i)) {
             void* name = Fuga_getNameI(other, i);
             FUGA_CHECK(Fuga_set(self, name, slot));
+            FUGA_IF(Fuga_hasDocI(other, i)) {
+                void* doc = Fuga_getDocI(other, i);
+                FUGA_CHECK(Fuga_setDoc(self, name, doc));
+            }
         }
     }
     return FUGA->nil;

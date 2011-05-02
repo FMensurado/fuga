@@ -10,9 +10,8 @@ lazy(~x) { x lazy }
 .(      ~x) { x scope get(x code) }
 .(recv, ~x) { recv    get(x code) }
 
-
 :: The last message receiver in a given scope.
-Msg  recv(scope) { scope }
+Msg recv(scope) { scope }
 
 :: The last message receiver in a given scope.
 Expr recv(scope) {
