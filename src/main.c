@@ -52,6 +52,7 @@ void* evalPrint(
         if (Fuga_hasDocI(block, i))
             Fuga_setS(self, "_doc", Fuga_getDocI(block, i));
         void* value  = Fuga_eval(slot, self, self);
+        Fuga_delS(self, "_doc");
         if (Fuga_isNil(value))
             continue;
         FUGA_CHECK(Fuga_print(value));
