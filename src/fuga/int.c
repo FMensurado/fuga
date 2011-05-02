@@ -169,6 +169,8 @@ void* FugaInt_fdiv(void* _self, void* _other)
     FUGA_NEED(self); FUGA_NEED(other);
     if (!Fuga_isInt(self) || !Fuga_isInt(other))
         FUGA_RAISE(FUGA->TypeError, "Int //: expected primitive ints");
+    if (FugaInt_value(other) == 0)
+        FUGA_RAISE(FUGA->ValueError, "Int //: Division by zero.");
     return FUGA_INT(FugaInt_value(self) / FugaInt_value(other));
 }
 
