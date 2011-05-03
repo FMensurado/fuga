@@ -296,8 +296,15 @@ void* FugaMethod_addPattern(void* self, void* args, void* body)
     FUGA_NEED(self);
     FUGA_NEED(args);
     FUGA_NEED(body);
-    FUGA_CHECK(Fuga_append_(Fuga_getS(self, "args"), args));
-    FUGA_CHECK(Fuga_append_(Fuga_getS(self, "body"), body));
-    return FUGA->nil;
+    FUGA_IF(Fuga_hasS(self, "args")) {
+        FUGA_IF(Fuga_hasS(self, "body")) {
+            FUGA_CHECK(Fuga_append_(Fuga_getS(self, "args"), args));
+            FUGA_CHECK(Fuga_append_(Fuga_getS(self, "body"), body));
+            return FUGA->nil;
+        }
+    }
+    FUGA_RAISE(FUGA->TypeError,
+        "def: Can't add pattern to built-in function."
+    );
 }
 

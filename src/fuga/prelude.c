@@ -454,7 +454,7 @@ void* FugaPrelude_def(
 
     void* method;
 
-    FUGA_IF(Fuga_has(owner, name)) {
+    FUGA_IF(Fuga_hasRaw(owner, name)) {
         method = Fuga_get(owner, name);
         if (Fuga_isMethod(method)) {
             // FIXME: make patterns be scope aware

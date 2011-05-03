@@ -133,6 +133,11 @@ void* Fuga_protoM(void* self) {
     FUGA_RAISE(FUGA->ValueError, "proto: Object has no proto");
 }
 
+void* Fuga_lengthM(void* self) {
+    FUGA_NEED(self);
+    return FUGA_INT(Fuga_length(self));
+}
+
 void* Fuga_cloneM(void* self, void* args) {
     FUGA_NEED(self);
     FUGA_NEED(args);
@@ -157,7 +162,7 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "getDoc", FUGA_METHOD_1(Fuga_getDoc));
     Fuga_setS(FUGA->Object, "setDoc", FUGA_METHOD_2(Fuga_setDoc));
     Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
-    Fuga_setS(FUGA->Object, "len",    FUGA_METHOD_0(Fuga_length));
+    Fuga_setS(FUGA->Object, "len",    FUGA_METHOD_0(Fuga_lengthM));
     Fuga_setS(FUGA->Object, "slots",  FUGA_METHOD_0(Fuga_slots));
     Fuga_setS(FUGA->Object, "dir",    FUGA_METHOD_0(Fuga_dir));
     Fuga_setS(FUGA->Object, "append", FUGA_METHOD_1(Fuga_append_));
@@ -777,7 +782,7 @@ void* Fuga_getDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc)
         return slot->doc;
-    if (Fuga_isInt(name) && FUGA_HEADER(self)->proto) {
+    if (FUGA_HEADER(self)->proto) {
         if (Fuga_isInt(name)) {
             FUGA_IF(Fuga_hasName(self, name))
                 name = Fuga_getName(self, name); 

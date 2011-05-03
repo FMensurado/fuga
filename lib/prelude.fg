@@ -30,6 +30,67 @@ Thunk recv { self code recv(self scope) }
 :: The last message.
 Thunk name { self code name }
 
+:: Get slot value from an index.
+Object at(index) {
+    if(isa?(index, Int), self get(index)
+       TypeError raise("at: expected index to be an integer"))
+}
+
+:: Iterator using "self at" and "self len".
+Object iter {
+    (_object = self
+     _index  = 0
+
+     iter  { self }
+
+     :: Are there any more values?
+     done? { self _index >= self _object len }
+
+     :: The current value.
+     value { self _object at(self _index) }
+
+     :: Advance iterator.
+     next  { self _index := [self _index + 1] })
+}
+
+_mapiter(iter, result, fn) {
+    if(iter done?, result
+       do(result append(fn(iter value))
+          iter next
+          _mapiter(iter, result, .fn)))
+}
+
+range(start, end) {
+    (len = [end - start]
+     at(n) { start + n })
+}
+
+range(start, end, step) {
+    (len = [end - start + [step-1] // step]
+     at(n) { start + [n * step] })
+}
+
+:: Get empty version of container.
+Object empty { () }
+
+:: Map using iter.
+:: With one argument, the argument is sent to all elements.
+:: With two, the first argument is bound to each element, which is
+:: usable in the second value. For example:
+:: 
+::     self map(*2)
+::     self map(x, x*2)
+Object map(~body) {
+    fn(item) { body code eval(item, body scope) }
+    _mapiter(self iter, self empty, .fn)
+}
+
+Object map(~nm, ~body) {
+    nscope = body scope clone
+    fn(x) { nscope set(nm code, x)
+            body code eval(nscope, nscope) }
+    _mapiter(self iter, self empty, .fn)
+}
 
 :: Add documentation to an existing slot.
 :: Example:
@@ -167,7 +228,7 @@ redoc(Object update)
 :: the same). Irreflexive evaluation (slots can't be referenced
 :: directly). Returns the evaluated value.
 :: 
-::     self eval(scope, receiver)
+::     self eval(receiver, scope)
 redoc(Object eval)
 
 :: Evaluate code object reflexively.
