@@ -11,6 +11,9 @@ const FugaType FugaString_type = {
 
 void FugaString_init(void* self)
 {
+    Fuga_setS(FUGA->String, "_name",  FUGA_STRING("String"));
+    Fuga_setS(FUGA->String, "_depth", FUGA_INT(5));
+
     Fuga_setS(FUGA->String, "str", FUGA_METHOD_STR (FugaString_str));
     Fuga_setS(FUGA->String, "++",  FUGA_METHOD_1(FugaString_cat_));
     Fuga_setS(FUGA->String, "match", FUGA_METHOD_1(FugaString_match_));
@@ -18,6 +21,10 @@ void FugaString_init(void* self)
     Fuga_setS(FUGA->String, "join",  FUGA_METHOD_1(FugaString_join_));
     Fuga_setS(FUGA->String, "lower", FUGA_METHOD_0(FugaString_lower));
     Fuga_setS(FUGA->String, "upper", FUGA_METHOD_0(FugaString_upper));
+
+    Fuga_setS(FUGA->String, "from",   FUGA_METHOD_1(FugaString_from_M));
+    Fuga_setS(FUGA->String, "to",     FUGA_METHOD_1(FugaString_to_M));
+    Fuga_setS(FUGA->String, "fromTo", FUGA_METHOD_2(FugaString_from_to_M));
 }
 
 FugaString* FugaString_new(void* self, const char* value)
@@ -204,6 +211,66 @@ TESTS(FugaString_from_to_) {
     Fuga_quit(self);
 }
 #endif
+
+FugaString* FugaString_to_(
+    FugaString* self,
+    long end
+) {
+    ALWAYS(self);
+    FUGA_CHECK(self);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String slice: expected string");
+    if (end <  0) end += self->length;
+    if (end <= 0) return FUGA_STRING("");
+    if (end >= self->length) return self;
+
+    const char *src = self->data;
+    long i = 0;
+    size_t size = 0;
+    for (; i < end; i++)
+        size += FugaChar_size(src + size);
+    
+    char buffer[size+1];
+    memcpy(buffer, src, size);
+    buffer[size] = 0;
+    return FUGA_STRING(buffer);
+}
+
+FugaString* FugaString_from_M(FugaString* self, FugaInt* from) {
+    FUGA_NEED(self); FUGA_NEED(from);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String from: expected string");
+    if (!Fuga_isInt(from))
+        FUGA_RAISE(FUGA->TypeError, "String from: expected int");
+    return FugaString_from_(self, FugaInt_value(from));
+}
+
+FugaString* FugaString_from_to_M(
+    FugaString* self,
+    FugaInt* from,
+    FugaInt* to
+) {
+    FUGA_NEED(self); FUGA_NEED(from); FUGA_NEED(to);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String fromTo: expected string");
+    if (!Fuga_isInt(from))
+        FUGA_RAISE(FUGA->TypeError, "String fromTo: expected int");
+    if (!Fuga_isInt(to))
+        FUGA_RAISE(FUGA->TypeError, "String fromTo: expected int");
+    return FugaString_from_to_(self,
+        FugaInt_value(from),
+        FugaInt_value(to)
+    );
+}
+
+FugaString* FugaString_to_M(FugaString* self, FugaInt* to) {
+    FUGA_NEED(self); FUGA_NEED(to);
+    if (!Fuga_isString(self))
+        FUGA_RAISE(FUGA->TypeError, "String to: expected string");
+    if (!Fuga_isInt(to))
+        FUGA_RAISE(FUGA->TypeError, "String to: expected int");
+    return FugaString_to_(self, FugaInt_value(to));
+}
 
 FugaString* FugaString_cat_(FugaString* self, FugaString* other)
 {

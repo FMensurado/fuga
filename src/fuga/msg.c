@@ -8,8 +8,10 @@ const FugaType FugaMsg_type = {
 
 void FugaMsg_init(void* self)
 {
+    Fuga_setS(FUGA->Msg, "_name", FUGA_STRING("Msg"));
     Fuga_setS(FUGA->Msg, "str",   FUGA_METHOD_STR(FugaMsg_str));
     Fuga_setS(FUGA->Msg, "match", FUGA_METHOD_1(FugaMsg_match_));
+    Fuga_setS(FUGA->Msg, "name",  FUGA_METHOD_0(FugaMsg_name));
 }
 
 bool FugaMsg_is_(FugaMsg* self, const char* value) {

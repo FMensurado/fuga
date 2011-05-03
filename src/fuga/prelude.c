@@ -34,10 +34,13 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "ValueError",  FUGA->ValueError);
     Fuga_setS(FUGA->Prelude, "TypeError",   FUGA->TypeError);
     Fuga_setS(FUGA->Prelude, "IOError",     FUGA->IOError);
+    Fuga_setS(FUGA->Prelude, "Thunk",       FUGA->Thunk);
+    Fuga_setS(FUGA->Prelude, "Path",        FUGA->Path);
     Fuga_setS(FUGA->Prelude, "Loader",      FugaLoader_new(self));
 
-    Fuga_setS(FUGA->Prelude, "name",   FUGA_STRING("Prelude"));
+    Fuga_setS(FUGA->Prelude, "_name",   FUGA_STRING("Prelude"));
     Fuga_setS(FUGA->Prelude, "=",      FUGA_METHOD(FugaPrelude_equals));
+    Fuga_setS(FUGA->Prelude, ":=",     FUGA_METHOD(FugaPrelude_modify));
     Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
@@ -46,8 +49,13 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "do",     FUGA_METHOD(FugaPrelude_do));
     Fuga_setS(FUGA->Prelude, "def",    FUGA_METHOD(FugaPrelude_def));
     Fuga_setS(FUGA->Prelude, "help",   FUGA_METHOD(FugaPrelude_help));
+    Fuga_setS(FUGA->Prelude, "try",    FUGA_METHOD(FugaPrelude_try));
+
+    Fuga_setS(FUGA->Prelude, "is?",    FUGA_METHOD_2(FugaPrelude_is));
+    Fuga_setS(FUGA->Prelude, "isa?",   FUGA_METHOD_2(FugaPrelude_isa));
 
     FugaPrelude_defOp(FUGA->Prelude, "==");
+    FugaPrelude_defOp(FUGA->Prelude, "!=");
     FugaPrelude_defOp(FUGA->Prelude, "<");
     FugaPrelude_defOp(FUGA->Prelude, ">");
     FugaPrelude_defOp(FUGA->Prelude, "<=");
@@ -60,6 +68,16 @@ void FugaPrelude_init(
     FugaPrelude_defOp(FUGA->Prelude, "//");
     FugaPrelude_defOp(FUGA->Prelude, "%");
     FugaPrelude_defOp(FUGA->Prelude, "++");
+}
+
+void* FugaPrelude_is(void* self, void* a, void* b) {
+    FUGA_NEED(a); FUGA_NEED(b);
+    return FUGA_BOOL(Fuga_is_(a, b));
+}
+
+void* FugaPrelude_isa(void* self, void* a, void* b) {
+    FUGA_NEED(a); FUGA_NEED(b);
+    return FUGA_BOOL(Fuga_isa_(a, b));
 }
 
 void* FugaPrelude_equals(
@@ -78,7 +96,6 @@ void* FugaPrelude_equals(
 
     if (!Fuga_hasLength_(code, 2))
         FUGA_RAISE(FUGA->TypeError, "=: expected 2 arguments");
-
 
     void* recv = scope;
     void* lhs  = Fuga_get(code, FUGA_INT(0));
@@ -110,6 +127,58 @@ void* FugaPrelude_equals(
     rhs = Fuga_eval(rhs, scope, scope);
     FUGA_CHECK(rhs);
     FUGA_CHECK(Fuga_set(recv, lhs, rhs));
+    FUGA_IF(Fuga_hasS(scope, "_doc"))
+        FUGA_CHECK(Fuga_setDoc(recv, lhs, Fuga_getS(scope, "_doc")));
+    return FUGA->nil;
+}
+
+void* FugaPrelude_modify(
+    void* self,
+    void* args
+) {
+    ALWAYS(self);
+    ALWAYS(args);
+    FUGA_NEED(self);
+    if (!Fuga_isLazy(args))
+        FUGA_RAISE(FUGA->TypeError, ":= : arguments must be a thunk");
+
+    void* code  = Fuga_lazyCode(args);
+    void* scope = Fuga_lazyScope(args);
+    FUGA_NEED(code); FUGA_NEED(scope);
+
+    if (!Fuga_hasLength_(code, 2))
+        FUGA_RAISE(FUGA->TypeError, ":= : expected 2 arguments");
+
+    void* recv = scope;
+    void* lhs  = Fuga_get(code, FUGA_INT(0));
+    void* rhs  = Fuga_get(code, FUGA_INT(1));
+    FUGA_NEED(lhs); FUGA_NEED(rhs);
+
+    if (Fuga_isMsg(lhs) || Fuga_isInt(lhs)) {
+        recv = Fuga_get(recv, FUGA_SYMBOL("_this"));
+    } else if (Fuga_isExpr(lhs)) {
+        FUGA_FOR(i, slot, lhs) {
+            if (i < length-1) {
+                recv = Fuga_get(recv, slot);
+                FUGA_CHECK(recv);
+            } else {
+                lhs = slot;
+                FUGA_CHECK(lhs);
+            }
+        }
+    }
+
+    if (!(Fuga_isMsg(lhs) || Fuga_isInt(lhs))) {
+        FUGA_RAISE(FUGA->TypeError,
+            ":= : left-hand side must be a msg or an int"
+        );
+    }
+
+    FUGA_NEED(recv);
+
+    rhs = Fuga_eval(rhs, scope, scope);
+    FUGA_CHECK(rhs);
+    FUGA_CHECK(Fuga_modify(recv, lhs, rhs));
     FUGA_IF(Fuga_hasS(scope, "_doc"))
         FUGA_CHECK(Fuga_setDoc(recv, lhs, Fuga_getS(scope, "_doc")));
     return FUGA->nil;
@@ -385,7 +454,7 @@ void* FugaPrelude_def(
 
     void* method;
 
-    FUGA_IF(Fuga_has(owner, name)) {
+    FUGA_IF(Fuga_hasRaw(owner, name)) {
         method = Fuga_get(owner, name);
         if (Fuga_isMethod(method)) {
             // FIXME: make patterns be scope aware
@@ -467,28 +536,80 @@ void* FugaPrelude_help(
         }
     }
 
-    FUGA_NEED(value);
-    void* dir = Fuga_dir(value);
-    if (!Fuga_hasLength_(dir, 0))
-        printf("    Slots:\n");
-    FUGA_NEED(dir);
-    FUGA_FOR(i, slot, dir) {
-        void* doc = FUGA_STRING("");
-        FUGA_IF(Fuga_hasDoc(value, slot))
-            FUGA_CHECK(doc = Fuga_getDoc(value, slot));
-        FUGA_NEED(doc);
-        if (!Fuga_isString(doc)) doc = FUGA_STRING("");
-        doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);
-        FUGA_CHECK(doc);
 
-        void* line = FUGA_STRING("        ");
-        line = FugaString_cat_(line, FugaSymbol_toString(slot));
-        line = FugaString_cat_(line, FUGA_STRING("\t"));
-        line = FugaString_cat_(line, doc);
-        FUGA_CHECK(line);
-        FugaString_print(line);
+    
+    void* slots = value;
+    printf("    Slots:\n");
+    while (slots) {
+        FUGA_NEED(slots);
+
+        long length = Fuga_length(slots);
+        for (long i = 0; i < length; i++) {
+            if (!Fuga_hasNameI(slots, i))
+                continue;
+            FugaSymbol* name = Fuga_getNameI(slots, i);
+            if (name->data[0] == '_')
+                continue;
+
+            void* doc = FUGA_STRING("");
+            FUGA_IF(Fuga_hasDocI(slots, i))
+                FUGA_CHECK(doc = Fuga_getDocI(slots, i));
+            FUGA_NEED(doc);
+            if (!Fuga_isString(doc)) doc = FUGA_STRING("");
+            doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);
+            FUGA_CHECK(doc);
+
+            void* line = FUGA_STRING("        ");
+            line = FugaString_cat_(line, FugaSymbol_toString(name));
+            line = FugaString_cat_(line, FUGA_STRING("\t\t"));
+            line = FugaString_cat_(line, doc);
+            FUGA_CHECK(line);
+            FugaString_print(line);
+        }
+        slots = Fuga_proto(slots);
+        if (!slots) break;
+        FUGA_IF(Fuga_hasRawS(slots, "_name")) {
+            FugaString* name = Fuga_getRawS(slots, "_name");
+            if (Fuga_isString(name)) {
+                printf("    Slots from %s:\n", name->data);
+            } else {
+                printf("    Slots from next proto:\n");
+            }
+        } else {
+            printf("    Slots from next proto:\n");
+        }
     }
 
     return FUGA->nil;
+}
+
+
+void* FugaPrelude_try(void* self, void* args) {
+    FUGA_CHECK(self);
+    args = Fuga_lazySlots(args);
+    FUGA_CHECK(args);
+
+    long length = Fuga_length(args);
+    void* value = Fuga_need(Fuga_getI(args, 0));
+    if (Fuga_isRaised(value)) {
+        void* error = Fuga_catch(value);
+        for (int i = 1; i < length-1; i+=2) {
+            void* proto = Fuga_getI(args, i);
+            FUGA_NEED(proto);
+            if (Fuga_isa_(error, proto)) {
+                value = Fuga_getI(args, i+1);
+                void* scope = Fuga_clone(Fuga_lazyScope(value));
+                FUGA_CHECK(Fuga_setS(scope, "exception", error));
+                value = Fuga_eval(Fuga_lazyCode(value), scope, scope);
+                break;
+            }
+        }
+    }
+
+    if (!(length & 1)) {
+        void *finally = Fuga_getI(args, length-1);
+        FUGA_NEED(finally);
+    }
+    return value;
 }
 

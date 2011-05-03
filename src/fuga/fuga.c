@@ -40,8 +40,9 @@ void FugaRoot_mark(
     Fuga_mark_(self, FUGA->MatchError);
 }
 
-void Fuga_initObject (void* self);
-void Fuga_initBool   (void* self);
+void Fuga_initObject    (void* self);
+void Fuga_initBool      (void* self);
+void Fuga_initException (void* self);
 
 void FugaRoot_init(
     void *self
@@ -88,12 +89,15 @@ void FugaRoot_init(
 
     Fuga_initObject(FUGA->Prelude);
     Fuga_initBool(FUGA->Prelude);
+    Fuga_initException(FUGA->Prelude);
 
     void* Loader  = Fuga_getS(FUGA->Prelude, "Loader");
     void* Prelude = FugaLoader_load_(Loader, FUGA_STRING("prelude.fg"));
     if (!Fuga_isRaised(Prelude)) {
         Fuga_delS(Prelude, "Loader");
         Fuga_update_(FUGA->Prelude, Prelude);
+    } else {
+        Fuga_printException(Prelude);
     }
 }
 
@@ -121,25 +125,94 @@ void* Fuga_init(
     return self;
 }
 
+void* Fuga_protoM(void* self) {
+    FUGA_NEED(self);
+    void* result = Fuga_proto(self);
+    if (result)
+        return result;
+    FUGA_RAISE(FUGA->ValueError, "proto: Object has no proto");
+}
+
+void* Fuga_lengthM(void* self) {
+    FUGA_NEED(self);
+    return FUGA_INT(Fuga_length(self));
+}
+
+void* Fuga_cloneM(void* self, void* args) {
+    FUGA_NEED(self);
+    FUGA_NEED(args);
+    void* result = Fuga_clone(self);
+    FUGA_CHECK(result);
+    FUGA_HEADER(result)->slots = FUGA_HEADER(args)->slots;
+    return result;
+}
 
 void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
     Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1(Fuga_has));
     Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1(Fuga_get));
     Fuga_setS(FUGA->Object, "set", FUGA_METHOD_2(Fuga_set));
+    Fuga_setS(FUGA->Object, "modify", FUGA_METHOD_2(Fuga_modify));
+    Fuga_setS(FUGA->Object, "del", FUGA_METHOD_1(Fuga_del));
     Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
-    Fuga_setS(FUGA->Object, "length", FUGA_METHOD_0(Fuga_length));
+    Fuga_setS(FUGA->Object, "hasName", FUGA_METHOD_1(Fuga_hasName));
+    Fuga_setS(FUGA->Object, "getName", FUGA_METHOD_1(Fuga_getName));
+    Fuga_setS(FUGA->Object, "hasDoc", FUGA_METHOD_1(Fuga_hasDoc));
+    Fuga_setS(FUGA->Object, "getDoc", FUGA_METHOD_1(Fuga_getDoc));
+    Fuga_setS(FUGA->Object, "setDoc", FUGA_METHOD_2(Fuga_setDoc));
     Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
+    Fuga_setS(FUGA->Object, "len",    FUGA_METHOD_0(Fuga_lengthM));
+    Fuga_setS(FUGA->Object, "slots",  FUGA_METHOD_0(Fuga_slots));
+    Fuga_setS(FUGA->Object, "dir",    FUGA_METHOD_0(Fuga_dir));
+    Fuga_setS(FUGA->Object, "append", FUGA_METHOD_1(Fuga_append_));
+    Fuga_setS(FUGA->Object, "extend", FUGA_METHOD_1(Fuga_extend_));
+    Fuga_setS(FUGA->Object, "update", FUGA_METHOD_1(Fuga_update_));
 
-    // *cough* sorry. this is here, but this location doesn't make sense
-    Fuga_set(FUGA->nil,   FUGA_SYMBOL("name"), FUGA_STRING("nil"));
+    Fuga_setS(FUGA->Object, "eval",   FUGA_METHOD_2(Fuga_eval));
+    Fuga_setS(FUGA->Object, "evalIn", FUGA_METHOD_1(Fuga_evalIn));
+
+    Fuga_setS(FUGA->Object, "proto",  FUGA_METHOD_0(Fuga_protoM));
+    Fuga_setS(FUGA->Object, "clone",  FUGA_METHOD(Fuga_cloneM));
+
+    Fuga_setS(FUGA->Object, "_name", FUGA_STRING("Object"));
+    Fuga_setS(FUGA->Number, "_name", FUGA_STRING("Number"));
+    Fuga_setS(FUGA->Expr,   "_name", FUGA_STRING("Expr"));
+    Fuga_setS(FUGA->nil,    "_name", FUGA_STRING("nil"));
 
 }
 
 void Fuga_initBool(void* self) {
-    Fuga_setS(FUGA->True,  "name", FUGA_STRING("true"));
-    Fuga_setS(FUGA->False, "name", FUGA_STRING("false"));
+    Fuga_setS(FUGA->Bool,  "_name", FUGA_STRING("Bool"));
+    Fuga_setS(FUGA->True,  "_name", FUGA_STRING("true"));
+    Fuga_setS(FUGA->False, "_name", FUGA_STRING("false"));
+}
+
+void* Fuga_raiseM(void* self, void* args) {
+    FUGA_CHECK(self);
+    FUGA_NEED(args);
+    void* exception = Fuga_clone(self);
+    if (Fuga_hasLength_(args, 0)) {
+    } else if (Fuga_hasLength_(args, 1)) {
+        FUGA_CHECK(Fuga_setS(exception, "msg", Fuga_getI(args, 0)));
+    } else {
+        FUGA_RAISE(FUGA->TypeError, "raise: expected 0 or 1 argument");
+    }
+    return Fuga_raise(exception);
+}
+
+void Fuga_initException(void* self) {
+    Fuga_setS(FUGA->Exception, "raise", FUGA_METHOD(Fuga_raiseM));
+
+    Fuga_setS(FUGA->Exception,   "_name", FUGA_STRING("Exception"));
+    Fuga_setS(FUGA->TypeError,   "_name", FUGA_STRING("TypeError"));
+    Fuga_setS(FUGA->SyntaxError, "_name", FUGA_STRING("SyntaxError"));
+    Fuga_setS(FUGA->IOError,     "_name", FUGA_STRING("IOError"));
+    Fuga_setS(FUGA->ValueError,  "_name", FUGA_STRING("ValueError"));
+    Fuga_setS(FUGA->SyntaxUnfinished, "_name",
+        FUGA_STRING("SyntaxUnfinished"));
+    Fuga_setS(FUGA->MatchError, "_name", FUGA_STRING("MatchError"));
+    Fuga_setS(FUGA->SlotError,  "_name", FUGA_STRING("SlotError"));
 }
 
 #ifdef TESTING
@@ -647,10 +720,16 @@ void* Fuga_hasDoc(void* self, void* name)
     if (slot && slot->doc) {
         return FUGA->True;
     } else if (FUGA_HEADER(self)->proto) {
-        return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
-    } else {
-        return FUGA->False;
+        if (Fuga_isInt(name)) {
+            FUGA_IF(Fuga_hasName(self, name))
+                name = Fuga_getName(self, name); 
+            else
+                name = NULL;
+        }
+        if (name)
+            return Fuga_hasDoc(FUGA_HEADER(self)->proto, name);
     }
+    return FUGA->False;
 }
 
 /**
@@ -703,8 +782,16 @@ void* Fuga_getDoc(void* self, void* name)
     FugaSlot* slot = Fuga_getSlot_(self, name);
     if (slot && slot->doc)
         return slot->doc;
-    if (FUGA_HEADER(self)->proto)
-        return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
+    if (FUGA_HEADER(self)->proto) {
+        if (Fuga_isInt(name)) {
+            FUGA_IF(Fuga_hasName(self, name))
+                name = Fuga_getName(self, name); 
+            else
+                name = NULL;
+        }
+        if (name)
+            return Fuga_getDoc(FUGA_HEADER(self)->proto, name);
+    }
     FUGA_RAISE(FUGA->SlotError,
         "getDoc: no slot with name"
     );
@@ -727,11 +814,14 @@ void* Fuga_setDoc(void* self, void* name, void* value)
     }
 
     FugaSlot* slot = Fuga_getSlot_(self, name);
-    if (!slot && slot->doc)
+    if (slot)
+        slot->doc = value;
+    else if (!Fuga_isInt(name) && Fuga_proto(self))
+        return Fuga_setDoc(Fuga_proto(self), name, value);
+    else 
         FUGA_RAISE(FUGA->SlotError,
             "setDoc: no slot with name"
         );
-    slot->doc = value;
     return FUGA->nil;
 }
 
@@ -1201,6 +1291,21 @@ TESTS(Fuga_set) {
 }
 #endif
 
+void* Fuga_modify(void* self, void* name, void* value) {
+    FUGA_NEED(self); FUGA_CHECK(value);
+    name = Fuga_toName(name, self);
+    FUGA_NEED(name);
+    FUGA_IF(Fuga_has(self, name)) {
+        FUGA_IF(Fuga_hasRaw(self, name)) {
+            return Fuga_set(self, name, value);
+        } else {
+            return Fuga_modify(Fuga_proto(self), name, value);
+        }
+    } else {
+        FUGA_RAISE(FUGA->SlotError, "modify: no such slot");
+    }
+}
+
 void* Fuga_del(void* self, void* name)
 {
     ALWAYS(self); ALWAYS(name);
@@ -1270,6 +1375,10 @@ void* Fuga_extend_(
     FUGA_NEED(self);    FUGA_NEED(other);
     FUGA_FOR(i, slot, other) {
         FUGA_CHECK(Fuga_append_(self, slot));
+        FUGA_IF(Fuga_hasDocI(other, i)) {
+            void* doc = Fuga_getDocI(other, i);
+            FUGA_CHECK(Fuga_setDocI(self, -1, doc));
+        }
     }
     return FUGA->nil;
 }
@@ -1281,9 +1390,13 @@ void* Fuga_update_(
     ALWAYS(self);       ALWAYS(other);
     FUGA_NEED(self);    FUGA_NEED(other);
     FUGA_FOR(i, slot, other) {
-        if (Fuga_isTrue(Fuga_hasNameI(other, i))) {
+        FUGA_IF(Fuga_hasNameI(other, i)) {
             void* name = Fuga_getNameI(other, i);
             FUGA_CHECK(Fuga_set(self, name, slot));
+            FUGA_IF(Fuga_hasDocI(other, i)) {
+                void* doc = Fuga_getDocI(other, i);
+                FUGA_CHECK(Fuga_setDoc(self, name, doc));
+            }
         }
     }
     return FUGA->nil;

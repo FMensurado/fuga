@@ -10,6 +10,7 @@ void FugaPath_init(
     void* self
 ) {
     ALWAYS(self);
+    Fuga_setS(FUGA->Path, "_name",  FUGA_STRING("Path"));
 
     Fuga_setS(FUGA->Path, "str",  FUGA_METHOD_STR(FugaPath_str));
     Fuga_setS(FUGA->Path, "join", FUGA_METHOD_1  (FugaPath_join_));
@@ -152,17 +153,20 @@ void* FugaPath_FUGAPATH(
     void* self
 ) {
     const char* FUGAPATH = FUGA_PLATFORM_FUGAPATH;
-    if (!FUGAPATH)
-        return Fuga_clone(FUGA->Object);
-    void* path   = FUGA_STRING(FUGA_PLATFORM_FUGAPATH);
-    void* paths  = FugaString_split_(path,
-        FUGA_STRING(FUGA_PLATFORM_FUGAPATH_SEP)
-    );
     void* result = Fuga_clone(FUGA->Object);
+    if (!FUGAPATH) {
+        void* path = FugaPath_new(FUGA_STRING("lib"));
+        FUGA_CHECK(Fuga_append_(result, path));
+    } else {
+        void* path   = FUGA_STRING(FUGAPATH);
+        void* paths  = FugaString_split_(path,
+            FUGA_STRING(FUGA_PLATFORM_FUGAPATH_SEP)
+        );
 
-    FUGA_FOR(i, slot, paths) {
-        if (!FugaString_is_(slot, ""))
-            FUGA_CHECK(Fuga_append_(result, FugaPath_new(slot)));
+        FUGA_FOR(i, slot, paths) {
+            if (!FugaString_is_(slot, ""))
+                FUGA_CHECK(Fuga_append_(result, FugaPath_new(slot)));
+        }
     }
     return result;
 }

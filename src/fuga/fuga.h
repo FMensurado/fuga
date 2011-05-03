@@ -607,6 +607,7 @@ void* Fuga_getName   (void* self, void* name);
 void* Fuga_getDoc    (void* self, void* name);
 void* Fuga_set       (void* self, void* name, void* value);
 void* Fuga_setDoc    (void* self, void* name, void* value);
+void* Fuga_modify    (void* self, void* name, void* value);
 void* Fuga_del       (void* self, void* name);
 
 void* Fuga_hasI      (void* self, long index);

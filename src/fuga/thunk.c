@@ -6,6 +6,7 @@ struct FugaThunk {
 };
 
 void FugaThunk_init(void* self) {
+    Fuga_setS(FUGA->Thunk, "_name", FUGA_STRING("Thunk"));
     Fuga_setS(FUGA->Thunk, "str", FUGA_METHOD_STR(FugaThunk_str));
     Fuga_setS(FUGA->Thunk, "eval", FUGA_METHOD(FugaThunk_evalMethod));
     Fuga_setS(FUGA->Thunk, "lazy", FUGA_METHOD_0(FugaThunk_lazy));
