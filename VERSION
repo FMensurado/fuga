@@ -1,4 +1,4 @@
-1.0a
+1.0b
 
 Fuga has three version numbers.
 
@@ -17,4 +17,9 @@ as attempts are made to improve the quality or completeness of the
 current release. The letter is also used for bugfixes. Note that this
 system is different from the 'alpha', 'beta', etc system. The letters
 don't really imply anything about the finishedness of a release.
+
+The Fuga language only has major/minor numbers. The revision letter is
+intended to specify the current interpreter or specification release. The
+language between letters is the same. This means that actual language
+changes must involve bumping the version number.
 
