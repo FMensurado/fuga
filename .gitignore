@@ -1,3 +1,5 @@
+bin/*.a
 bin/*.o
 bin/test/*.o
+include/*
 .test

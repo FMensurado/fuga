@@ -157,6 +157,8 @@ void* FugaPath_FUGAPATH(
     if (!FUGAPATH) {
         void* path = FugaPath_new(FUGA_STRING("lib"));
         FUGA_CHECK(Fuga_append_(result, path));
+		path = FugaPath_new(FUGA_STRING("/usr/include/fuga"));
+        FUGA_CHECK(Fuga_append_(result, path));
     } else {
         void* path   = FUGA_STRING(FUGAPATH);
         void* paths  = FugaString_split_(path,
