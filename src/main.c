@@ -70,7 +70,7 @@ void repl()
     Fuga_root(parser);
     Fuga_setS(self, "_this", self);
 
-    printf("Fuga 1.0a. Use \"quit\" to quit.\n");
+    printf("Fuga 1.0b. Use \"quit\" to quit.\n");
     while (1) {
         void* block = read(parser);
         if (!block) break;
