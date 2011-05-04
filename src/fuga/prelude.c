@@ -54,6 +54,10 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "is?",    FUGA_METHOD_2(FugaPrelude_is));
     Fuga_setS(FUGA->Prelude, "isa?",   FUGA_METHOD_2(FugaPrelude_isa));
 
+    Fuga_setS(FUGA->Prelude, "or",     FUGA_METHOD(FugaPrelude_orM));
+    Fuga_setS(FUGA->Prelude, "and",    FUGA_METHOD(FugaPrelude_andM));
+    Fuga_setS(FUGA->Prelude, "not",    FUGA_METHOD_1(FugaPrelude_notM));
+
     FugaPrelude_defOp(FUGA->Prelude, "==");
     FugaPrelude_defOp(FUGA->Prelude, "!=");
     FugaPrelude_defOp(FUGA->Prelude, "<");
@@ -256,6 +260,50 @@ void* FugaPrelude_if(
         return Fuga_needOnce(Fuga_getI(args, length-1));
     else
         return FUGA->nil;
+}
+
+void* FugaPrelude_orM(void* self, void* args) {
+	ALWAYS(self); ALWAYS(args);
+	FUGA_NEED(self);
+	args = Fuga_lazySlots(args);
+	FUGA_CHECK(args);
+
+	FUGA_FOR(i, arg, args) {
+		FUGA_NEED(arg);
+		if (Fuga_isTrue(arg))
+			return FUGA->True;
+		if (!Fuga_isFalse(arg))
+			FUGA_RAISE(FUGA->TypeError, "or: expected only booleans");
+	}
+
+	return FUGA->False;
+}
+
+void* FugaPrelude_andM    (void* self, void* args) {
+	ALWAYS(self); ALWAYS(args);
+	FUGA_NEED(self);
+	args = Fuga_lazySlots(args);
+	FUGA_CHECK(args);
+
+	FUGA_FOR(i, arg, args) {
+		FUGA_NEED(arg);
+		if (Fuga_isFalse(arg))
+			return FUGA->False;
+		if (!Fuga_isTrue(arg))
+			FUGA_RAISE(FUGA->TypeError, "and: expected only booleans");
+	}
+
+	return FUGA->True;
+}
+
+void* FugaPrelude_notM  (void* self, void* arg) {
+	ALWAYS(self); ALWAYS(arg);
+	FUGA_NEED(self); FUGA_NEED(arg);
+	if (Fuga_isFalse(arg))
+		return FUGA->True;
+	if (Fuga_isTrue(arg))
+		return FUGA->False;
+	FUGA_RAISE(FUGA->TypeError, "not: expected only a boolean");
 }
 
 void* FugaPrelude_method(
