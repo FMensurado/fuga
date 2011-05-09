@@ -480,7 +480,7 @@ void* FugaPrelude_def(
         name  = FugaMsg_name(signature);
         args  = FugaMsg_args(signature);
     } else if (Fuga_isExpr(signature)) {
-        void* lastmsg;
+        void* lastmsg = NULL;
         void* ownerexpr = Fuga_clone(FUGA->Expr);
         FUGA_FOR(i, slot, signature) {
             if (i < length-1)
@@ -551,12 +551,12 @@ void* FugaPrelude_help(
         bare  = true;
         value = Fuga_eval(code, scope, scope);
     }
-    FUGA_NEED(name);
-    FUGA_NEED(recv);
 
 
     void* doc = NULL;
     if (!bare) {
+        FUGA_NEED(name);
+        FUGA_NEED(recv);
         FUGA_IF(Fuga_has(recv, name)) {
             FUGA_IF(Fuga_hasDoc(recv, name)) {
                 doc = Fuga_getDoc(recv, name);
@@ -584,8 +584,6 @@ void* FugaPrelude_help(
         }
     }
 
-
-    
     void* slots = value;
     printf("    Slots:\n");
     while (slots) {
@@ -593,15 +591,15 @@ void* FugaPrelude_help(
 
         long length = Fuga_length(slots);
         for (long i = 0; i < length; i++) {
-            if (!Fuga_hasNameI(slots, i))
+            if (!Fuga_isTrue(Fuga_hasNameI(slots, i)))
                 continue;
             FugaSymbol* name = Fuga_getNameI(slots, i);
             if (name->data[0] == '_')
                 continue;
 
             void* doc = FUGA_STRING("");
-            FUGA_IF(Fuga_hasDocI(slots, i))
-                FUGA_CHECK(doc = Fuga_getDocI(slots, i));
+          { FUGA_IF(Fuga_hasDocI(slots, i))
+                FUGA_CHECK(doc = Fuga_getDocI(slots, i)); }
             FUGA_NEED(doc);
             if (!Fuga_isString(doc)) doc = FUGA_STRING("");
             doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);

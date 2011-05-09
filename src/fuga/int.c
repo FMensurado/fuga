@@ -1,11 +1,13 @@
 #include "test.h"
 #include "int.h"
+#include <stdio.h>
 
 void FugaInt_init(void* self)
 {
     Fuga_setS(FUGA->Int, "_name", FUGA_STRING("Int"));
     Fuga_setS(FUGA->Int, "str",   FUGA_METHOD_STR(FugaInt_str));
     Fuga_setS(FUGA->Int, "match", FUGA_METHOD_1(FugaInt_match_));
+    Fuga_setS(FUGA->Int, "input", FUGA_METHOD(FugaInt_input));
     Fuga_setS(FUGA->Int, "+",     FUGA_METHOD(FugaInt_addMethod));
     Fuga_setS(FUGA->Int, "-",     FUGA_METHOD(FugaInt_subMethod));
     Fuga_setS(FUGA->Int, "*",     FUGA_METHOD_1(FugaInt_mul));
@@ -251,3 +253,33 @@ void* FugaInt_ge(void* _self, void* _other)
     return FUGA_BOOL(FugaInt_value(self) >= FugaInt_value(other));
 }
 
+void* FugaInt_input(void* self, void* args) {
+	FUGA_NEED(self); FUGA_NEED(args);
+	long value;
+	if (Fuga_hasLength_(args, 0)) {
+		if(!scanf("%ld", &value))
+            FUGA_RAISE(FUGA->IOError,
+                "Int input: failed at reading int."
+            );
+		return FUGA_INT(value);
+	} else if (Fuga_hasLength_(args, 1)) {
+		void* arg = Fuga_getI(args, 0);
+		if (Fuga_isString(arg)) {
+			FugaString* str = arg;
+			printf("%s", str->data);
+		    if(!scanf("%ld", &value))
+                FUGA_RAISE(FUGA->IOError,
+                    "Int input: failed at reading int."
+                );
+			return FUGA_INT(value);
+		} else {
+			FUGA_RAISE(FUGA->TypeError,
+				"Int input: argument must be a string"
+			);
+		}
+	} else {
+		FUGA_RAISE(FUGA->TypeError,
+			"Int input: expected only 0 or 1 arguments"
+		);
+	}
+}

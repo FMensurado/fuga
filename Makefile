@@ -7,7 +7,7 @@ test:
 	tools/test fuga
 
 fugai:
-	tools/make --executable --test main && mv -f main fuga
+	tools/make --executable main && mv -f main fuga
 
 build: fugai
 	ar rcs bin/libfuga.a bin/fuga_*.o
