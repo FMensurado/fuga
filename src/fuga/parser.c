@@ -248,7 +248,15 @@ void* FugaParser_slot_(
         );
     }
 
-    FUGA_CHECK(Fuga_append_(block, FugaParser_expression(self)));
+    void* expr1 = FugaParser_expression(self);
+    FUGA_CHECK(expr1);
+    if (FugaParser_advance_(self, FUGA_TOKEN_COLON)) {
+        void* expr2 = FugaParser_expression(self);
+        FUGA_CHECK(Fuga_set(block, expr1, expr2));
+    } else {
+        FUGA_CHECK(Fuga_append_(block, expr1));
+    }
+
     if (doc) {
         FUGA_CHECK(Fuga_setDocI(block, -1, doc));
     }
@@ -402,16 +410,22 @@ TESTS(FugaParser) {
     FUGA_PARSER_TEST("(:: foo\n 10)",
            !Fuga_isRaised(self)
         &&  Fuga_hasLength_(self, 1)
-        &&  Fuga_hasDocI(self, 0)
+        &&  Fuga_isTrue(Fuga_hasDocI(self, 0))
         &&  FugaString_is_(Fuga_getDocI(self, 0), "foo\n")
         &&  FugaInt_is_(Fuga_getI(self, 0), 10));
     FUGA_PARSER_TEST("(:: foo  \n    ::bar\n 20)",
            !Fuga_isRaised(self)
         &&  Fuga_hasLength_(self, 1)
-        &&  Fuga_hasDocI(self, 0)
+        &&  Fuga_isTrue(Fuga_hasDocI(self, 0))
         &&  FugaString_is_(Fuga_getDocI(self, 0), "foo  \nbar\n")
         &&  FugaInt_is_(Fuga_getI(self, 0), 20));
 
+    FUGA_PARSER_TEST("(foo: 10)",
+           !Fuga_isRaised(self)
+        &&  Fuga_hasLength_(self, 1)
+        &&  Fuga_isTrue(Fuga_hasNameI(self, 0))
+        &&  FugaInt_is_(Fuga_getI(self,  0   ), 10)
+        &&  FugaInt_is_(Fuga_getS(self, "foo"), 10));
 
     Fuga_quit(self);
 }

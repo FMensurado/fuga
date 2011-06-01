@@ -383,8 +383,11 @@ void _FugaLexer_lexSymbol(
             self->token->type = FUGA_TOKEN_SYMBOL;
         else
             self->token->type = FUGA_TOKEN_ERROR;
-    } else {
+    } else if (FugaChar_isOp(self->code+1)) {
         _FugaLexer_lexOp(self);
+    } else {
+        _FugaLexer_consume_(self, 1);
+        self->token->type = FUGA_TOKEN_COLON;
     }
 }
 
@@ -664,6 +667,12 @@ TESTS(FugaLexer) {
     FugaLexer_readCode_(self, "10\\\n20");
     FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 10);
     FUGA_LEXER_TEST_INT(FUGA_TOKEN_INT, 20);
+    FUGA_LEXER_TEST    (FUGA_TOKEN_END);
+
+    FugaLexer_readCode_(self, "foo: bar");
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "foo");
+    FUGA_LEXER_TEST    (FUGA_TOKEN_COLON);
+    FUGA_LEXER_TEST_STR(FUGA_TOKEN_NAME, "bar");
     FUGA_LEXER_TEST    (FUGA_TOKEN_END);
 
     Fuga_quit(gc);

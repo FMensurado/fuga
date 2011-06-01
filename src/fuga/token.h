@@ -20,6 +20,7 @@ enum FugaTokenType {
     // more interesting tokens
     FUGA_TOKEN_INT,
     FUGA_TOKEN_STRING,
+    FUGA_TOKEN_COLON,
     FUGA_TOKEN_SYMBOL,
     FUGA_TOKEN_DOC,
     FUGA_TOKEN_NAME,
