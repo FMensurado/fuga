@@ -1,4 +1,8 @@
-:Hello
 print("Hello, world!")
-hello { print("Hello, world!") }
+
+hello: method(
+    print("Hello, world!")
+)
+
+hello
 

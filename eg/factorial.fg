@@ -1,13 +1,11 @@
-fact(n) {
-    if(n < 1
-        1
-        n * fact(n - 1)
-    )
-}
+fact: method(
+    (0): 1
+    (n): n * fact(n-1
+)
 
-line(n) {
-    print(n, fact(n))
-}
+line: method(
+    (n): print(n, fact(n)
+)
 
 print("Factorial:")
 line(0)
@@ -21,4 +19,3 @@ line(7)
 line(8)
 line(9)
 line(10)
-
