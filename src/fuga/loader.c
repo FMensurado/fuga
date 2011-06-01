@@ -94,7 +94,7 @@ FugaPath* _FugaLoader_importName(
     if (Fuga_isString(self))
         return FugaPath_new(FugaString_lower(self));
     if (Fuga_isExpr(self)) {
-        FugaPath* result;
+        FugaPath* result = NULL;
         FUGA_FOR(i, slot, self) {
             FugaPath* name = _FugaLoader_importName(slot);
             if (i == 0)

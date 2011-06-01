@@ -14,10 +14,12 @@ void* readAux(
     void* self = parser;
     char buffer[1024];
     fflush(stdout);
-    fgets(buffer, 1024, stdin);
-    if (feof(stdin)) {
-        printf("quit\n");
-        return NULL;
+    if (buffer != fgets(buffer, 1024, stdin)) {
+        if (feof(stdin)) {
+            printf("quit\n");
+            return NULL;
+        }
+        FUGA_RAISE(FUGA->IOError, "Error reading file.");
     }
     if (strcmp(buffer, "quit\n") == 0) {
         return NULL;

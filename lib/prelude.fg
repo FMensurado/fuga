@@ -16,7 +16,7 @@ Msg recv(scope) { scope }
 :: The last message receiver in a given scope.
 Expr recv(scope) {
     newExpr = Expr clone
-    newExpr extend(self)
+    newExpr extend!(self)
     newExpr del(-1)
     newExpr eval(scope, scope)
 }
@@ -41,7 +41,7 @@ Object iter {
     (_object = self
      _index  = 0
 
-     iter  { self }
+     iter  { self copy }
 
      :: Are there any more values?
      done? { self _index >= self _object len }
@@ -50,14 +50,7 @@ Object iter {
      value { self _object at(self _index) }
 
      :: Advance iterator.
-     next  { self _index := [self _index + 1] })
-}
-
-_mapiter(iter, result, fn) {
-    if(iter done?, result
-       do(result append(fn(iter value))
-          iter next
-          _mapiter(iter, result, .fn)))
+     next! { self _index := [self _index + 1] })
 }
 
 range(start, end) {
@@ -70,8 +63,16 @@ range(start, end, step) {
      at(n) { start + [n * step] })
 }
 
+
 :: Get empty version of container.
 Object empty { () }
+
+_mapiter(iter, result, fn) {
+    if(iter done?, result
+       do(result append(fn(iter value))
+          iter next!
+          _mapiter(iter, result, .fn)))
+}
 
 :: Map using iter.
 :: With one argument, the argument is sent to all elements.
@@ -87,7 +88,7 @@ Object map(~body) {
 
 Object map(~nm, ~body) {
     nscope = body scope clone
-    fn(x) { nscope set(nm code, x)
+    fn(x) { nscope set!(nm code, x)
             body code eval(nscope, nscope) }
     _mapiter(self iter, self empty, .fn)
 }
@@ -98,7 +99,7 @@ Object map(~nm, ~body) {
 ::     :: New documentation.
 ::     redoc(existing slot)
 redoc(~x) {
-    x recv setDoc(x name, x scope get(:_doc))
+    x recv setDoc!(x name, x scope get(:_doc))
 }
 
 #####################################################
@@ -130,9 +131,9 @@ redoc(Object get)
 :: Create slot or update slot value.
 :: Do not touch prototypes -- affect only the called object directly.
 :: 
-::     self set(name, value)
-::     self set(value, index)
-redoc(Object set)
+::     self set!(name, value)
+::     self set!(value, index)
+redoc(Object set!)
 
 :: Delete slot.
 ::
@@ -181,9 +182,9 @@ redoc(Object getDoc)
 :: Set or change the documentation for a particular slot. 
 :: Looks for the slot in prototypes.
 ::
-::     self setDoc(name, value)
-::     self setDoc(index, value)
-redoc(Object setDoc)
+::     self setDoc!(name, value)
+::     self setDoc!(index, value)
+redoc(Object setDoc!)
 
 :: Match pattern to value.
 :: Return a dictionary of captured names on success. Raise MatchError
@@ -210,18 +211,18 @@ redoc(Object dir)
 :: Add a slot to the object at the end.
 :: Creates a new slot with the new highest index.
 :: 
-::     self append(value)
-redoc(Object append)
+::     self append!(value)
+redoc(Object append!)
 
 :: Append all slots from the argument to self.
 ::
-::     self extend(other)
-redoc(Object extend)
+::     self extend!(other)
+redoc(Object extend!)
 
 :: Set all named slots from the argument to self.
 :: 
-::     self update(other)
-redoc(Object update)
+::     self update!(other)
+redoc(Object update!)
 
 :: Evaluate code object.
 :: Takes a lexical scope and a current message receiver (usually

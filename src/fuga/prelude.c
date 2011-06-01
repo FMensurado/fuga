@@ -54,6 +54,10 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "is?",    FUGA_METHOD_2(FugaPrelude_is));
     Fuga_setS(FUGA->Prelude, "isa?",   FUGA_METHOD_2(FugaPrelude_isa));
 
+    Fuga_setS(FUGA->Prelude, "or",     FUGA_METHOD(FugaPrelude_orM));
+    Fuga_setS(FUGA->Prelude, "and",    FUGA_METHOD(FugaPrelude_andM));
+    Fuga_setS(FUGA->Prelude, "not",    FUGA_METHOD_1(FugaPrelude_notM));
+
     FugaPrelude_defOp(FUGA->Prelude, "==");
     FugaPrelude_defOp(FUGA->Prelude, "!=");
     FugaPrelude_defOp(FUGA->Prelude, "<");
@@ -258,6 +262,50 @@ void* FugaPrelude_if(
         return FUGA->nil;
 }
 
+void* FugaPrelude_orM(void* self, void* args) {
+	ALWAYS(self); ALWAYS(args);
+	FUGA_NEED(self);
+	args = Fuga_lazySlots(args);
+	FUGA_CHECK(args);
+
+	FUGA_FOR(i, arg, args) {
+		FUGA_NEED(arg);
+		if (Fuga_isTrue(arg))
+			return FUGA->True;
+		if (!Fuga_isFalse(arg))
+			FUGA_RAISE(FUGA->TypeError, "or: expected only booleans");
+	}
+
+	return FUGA->False;
+}
+
+void* FugaPrelude_andM    (void* self, void* args) {
+	ALWAYS(self); ALWAYS(args);
+	FUGA_NEED(self);
+	args = Fuga_lazySlots(args);
+	FUGA_CHECK(args);
+
+	FUGA_FOR(i, arg, args) {
+		FUGA_NEED(arg);
+		if (Fuga_isFalse(arg))
+			return FUGA->False;
+		if (!Fuga_isTrue(arg))
+			FUGA_RAISE(FUGA->TypeError, "and: expected only booleans");
+	}
+
+	return FUGA->True;
+}
+
+void* FugaPrelude_notM  (void* self, void* arg) {
+	ALWAYS(self); ALWAYS(arg);
+	FUGA_NEED(self); FUGA_NEED(arg);
+	if (Fuga_isFalse(arg))
+		return FUGA->True;
+	if (Fuga_isTrue(arg))
+		return FUGA->False;
+	FUGA_RAISE(FUGA->TypeError, "not: expected only a boolean");
+}
+
 void* FugaPrelude_method(
     void* self,
     void* args
@@ -432,7 +480,7 @@ void* FugaPrelude_def(
         name  = FugaMsg_name(signature);
         args  = FugaMsg_args(signature);
     } else if (Fuga_isExpr(signature)) {
-        void* lastmsg;
+        void* lastmsg = NULL;
         void* ownerexpr = Fuga_clone(FUGA->Expr);
         FUGA_FOR(i, slot, signature) {
             if (i < length-1)
@@ -503,12 +551,12 @@ void* FugaPrelude_help(
         bare  = true;
         value = Fuga_eval(code, scope, scope);
     }
-    FUGA_NEED(name);
-    FUGA_NEED(recv);
 
 
     void* doc = NULL;
     if (!bare) {
+        FUGA_NEED(name);
+        FUGA_NEED(recv);
         FUGA_IF(Fuga_has(recv, name)) {
             FUGA_IF(Fuga_hasDoc(recv, name)) {
                 doc = Fuga_getDoc(recv, name);
@@ -536,8 +584,6 @@ void* FugaPrelude_help(
         }
     }
 
-
-    
     void* slots = value;
     printf("    Slots:\n");
     while (slots) {
@@ -545,15 +591,15 @@ void* FugaPrelude_help(
 
         long length = Fuga_length(slots);
         for (long i = 0; i < length; i++) {
-            if (!Fuga_hasNameI(slots, i))
+            if (!Fuga_isTrue(Fuga_hasNameI(slots, i)))
                 continue;
             FugaSymbol* name = Fuga_getNameI(slots, i);
             if (name->data[0] == '_')
                 continue;
 
             void* doc = FUGA_STRING("");
-            FUGA_IF(Fuga_hasDocI(slots, i))
-                FUGA_CHECK(doc = Fuga_getDocI(slots, i));
+          { FUGA_IF(Fuga_hasDocI(slots, i))
+                FUGA_CHECK(doc = Fuga_getDocI(slots, i)); }
             FUGA_NEED(doc);
             if (!Fuga_isString(doc)) doc = FUGA_STRING("");
             doc = Fuga_getI(FugaString_split_(doc, FUGA_STRING("\n")), 0);

@@ -623,6 +623,7 @@ void* Fuga_delI      (void* self, long index);
 void* Fuga_append_   (void* self, void* value);
 void* Fuga_update_   (void* self, void* value);
 void* Fuga_extend_   (void* self, void* value);
+void* Fuga_copy      (void* self);
 
 #define FUGA_FOR(i, slot, arg)                                      \
     FUGA_NEED(arg);                                                 \
