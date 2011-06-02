@@ -39,8 +39,8 @@ void FugaPrelude_init(
     Fuga_setS(FUGA->Prelude, "Loader",      FugaLoader_new(self));
 
     Fuga_setS(FUGA->Prelude, "_name",   FUGA_STRING("Prelude"));
-    Fuga_setS(FUGA->Prelude, "=",      FUGA_METHOD(FugaPrelude_equals));
-    Fuga_setS(FUGA->Prelude, ":=",     FUGA_METHOD(FugaPrelude_modify));
+    Fuga_setS(FUGA->Prelude, ":=",      FUGA_METHOD(FugaPrelude_set));
+    Fuga_setS(FUGA->Prelude, "=",     FUGA_METHOD(FugaPrelude_modify));
     Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
     Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
@@ -84,7 +84,7 @@ void* FugaPrelude_isa(void* self, void* a, void* b) {
     return FUGA_BOOL(Fuga_isa_(a, b));
 }
 
-void* FugaPrelude_equals(
+void* FugaPrelude_set(
     void* self,
     void* args
 ) {
@@ -191,7 +191,7 @@ void* FugaPrelude_modify(
 
 #ifdef TESTING
 #define FUGA_EQUALS_TEST(x,y,z)
-TESTS(FugaPrelude_equals) {
+TESTS(FugaPrelude_set) {
     void* self = Fuga_init();
 
     void* args;
@@ -207,14 +207,14 @@ TESTS(FugaPrelude_equals) {
     args = Fuga_clone(FUGA->Object);
     Fuga_append_(args, FUGA_INT(0));
     Fuga_append_(args, FUGA_INT(10));
-    result = FugaPrelude_equals(self, Fuga_lazy_(args, scope));
+    result = FugaPrelude_set(self, Fuga_lazy_(args, scope));
     TEST(Fuga_isNil(result));
     TEST(FugaInt_is_(Fuga_get(dest, FUGA_INT(0)), 10));
 
     args = Fuga_clone(FUGA->Object);
     Fuga_append_(args, FUGA_MSG("a"));
     Fuga_append_(args, FUGA_INT(20));
-    result = FugaPrelude_equals(self, Fuga_lazy_(args, scope));
+    result = FugaPrelude_set(self, Fuga_lazy_(args, scope));
     TEST(Fuga_isNil(result));
     TEST(FugaInt_is_(Fuga_get(dest, FUGA_INT(1)), 20));
     TEST(FugaInt_is_(Fuga_get(dest, FUGA_SYMBOL("a")), 20));
@@ -225,7 +225,7 @@ TESTS(FugaPrelude_equals) {
     args = Fuga_clone(FUGA->Object);
     Fuga_append_(args, lhs);
     Fuga_append_(args, FUGA_INT(30));
-    result = FugaPrelude_equals(self, Fuga_lazy_(args, scope));
+    result = FugaPrelude_set(self, Fuga_lazy_(args, scope));
     TEST(Fuga_isNil(result));
     TEST(FugaInt_is_(Fuga_get(foo, FUGA_INT(0)), 30));
     TEST(FugaInt_is_(Fuga_get(foo, FUGA_SYMBOL("a")), 30));
@@ -437,12 +437,7 @@ void* FugaPrelude_do(
     void* code  = Fuga_lazyCode(args);
     FUGA_CHECK(scope); FUGA_CHECK(code);
     scope = Fuga_clone(scope);
-    FUGA_CHECK(Fuga_setS(scope, "_this", scope));
-
-    void* result = FUGA->nil;
-    FUGA_FOR(i, slot, code)
-        FUGA_CHECK(result = Fuga_eval(slot, scope, scope));
-    return result;
+    return Fuga_evalIn(code, scope);
 }
 
 void* FugaPrelude_def(

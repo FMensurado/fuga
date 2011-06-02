@@ -15,7 +15,7 @@ Msg recv(scope) { scope }
 
 :: The last message receiver in a given scope.
 Expr recv(scope) {
-    newExpr = Expr clone
+    newExpr := Expr clone
     newExpr extend!(self)
     newExpr del(-1)
     newExpr eval(scope, scope)
@@ -38,8 +38,8 @@ Object at(index) {
 
 :: Iterator using "self at" and "self len".
 Object iter {
-    (_object = self
-     _index  = 0
+    (_object := self
+     _index  := 0
 
      iter  { self copy }
 
@@ -50,16 +50,16 @@ Object iter {
      value { self _object at(self _index) }
 
      :: Advance iterator.
-     next! { self _index := [self _index + 1] })
+     next! { self _index = [self _index + 1] })
 }
 
 range(start, end) {
-    (len = [end - start]
+    (len := [end - start]
      at(n) { start + n })
 }
 
 range(start, end, step) {
-    (len = [end - start + [step-1] // step]
+    (len := [end - start + [step-1] // step]
      at(n) { start + [n * step] })
 }
 
@@ -87,7 +87,7 @@ Object map(~body) {
 }
 
 Object map(~nm, ~body) {
-    nscope = body scope clone
+    nscope := body scope clone
     fn(x) { nscope set!(nm code, x)
             body code eval(nscope, nscope) }
     _mapiter(self iter, self empty, .fn)
