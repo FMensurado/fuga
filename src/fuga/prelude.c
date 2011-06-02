@@ -312,12 +312,21 @@ void* FugaPrelude_method(
 ) {
     void* scope = Fuga_lazyScope(args);
     void* code  = Fuga_lazyCode(args);
-    if (!Fuga_hasLength_(code, 2))
-        FUGA_RAISE(FUGA->TypeError, "method: expected 2 arguments");
-    void* formals = Fuga_get(code, FUGA_INT(0));
-    void* body    = Fuga_get(code, FUGA_INT(1));
+    void* method = FugaMethod_empty(scope);
+    FUGA_CHECK(scope); FUGA_CHECK(code); FUGA_CHECK(method);
+    
+    FUGA_FOR(i, body, code) {
+        void* args;
+        FUGA_IF(Fuga_hasNameI(code, i)) {
+            args = Fuga_getNameI(code, i);
+        } else {
+            args = Fuga_clone(FUGA->Object);
+        }
+        FUGA_CHECK(args);
+        FUGA_CHECK(FugaMethod_addPattern(method, args, body));
+    }
 
-    return FugaMethod_method(scope, formals, body);
+    return method;
 }
 
 
