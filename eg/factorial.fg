@@ -1,10 +1,10 @@
 fact: method(
     (0): 1
-    (n): n * fact(n-1
+    (n): n * fact(n-1)
 )
 
 line: method(
-    (n): print(n, fact(n)
+    (n): print(n, fact(n))
 )
 
 print("Factorial:")
