@@ -1740,7 +1740,7 @@ void* Fuga_strSlots(void* self)
             name = FugaSymbol_toString(name);
             FUGA_CHECK(name);
             result = FugaString_cat_(result, name);
-            result = FugaString_cat_(result, FUGA_STRING(" = "));
+            result = FugaString_cat_(result, FUGA_STRING(": "));
         }
         FUGA_CHECK(result);
         void* slot = Fuga_get(self, FUGA_INT(slotNum));
