@@ -642,6 +642,7 @@ void* Fuga_send (void* self, void* msg, void* args);
 void* Fuga_eval         (void* self, void* recv, void* scope);
 void* Fuga_evalSlots    (void* self, void* scope);
 void* Fuga_evalIn       (void* self, void* scope);
+void* Fuga_evalPrint    (void* self, void* scope);
 void* Fuga_evalExpr     (void* self, void* recv, void* scope);
 void* Fuga_evalModule   (void* self);
 void* Fuga_evalModule_  (void* self, const char* filename);

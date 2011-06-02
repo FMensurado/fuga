@@ -45,23 +45,6 @@ void* read(
     return readAux(self, FUGA_STRING(""));
 }
 
-void* evalPrint(
-    void* self,
-    void* block
-) {
-    FUGA_CHECK(block);
-    FUGA_FOR(i, slot, block) {
-        if (Fuga_hasDocI(block, i))
-            Fuga_setS(self, "_doc", Fuga_getDocI(block, i));
-        void* value  = Fuga_eval(slot, self, self);
-        Fuga_delS(self, "_doc");
-        if (Fuga_isNil(value))
-            continue;
-        FUGA_CHECK(Fuga_print(value));
-    }
-    return NULL;
-}
-
 void repl()
 {
     void* self = Fuga_init();
@@ -70,13 +53,12 @@ void repl()
     self = Fuga_clone(FUGA->Prelude);
     Fuga_root(self);
     Fuga_root(parser);
-    Fuga_setS(self, "_this", self);
 
     printf("Fuga 0.0b. Use \"quit\" to quit.\n");
     while (1) {
         void* block = read(parser);
         if (!block) break;
-        void* error = evalPrint(self, block);
+        void* error = Fuga_catch(Fuga_evalPrint(block, self));
         if (error) Fuga_printException(error);
         Fuga_collect(self);
     }

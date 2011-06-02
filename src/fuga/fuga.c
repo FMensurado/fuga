@@ -1527,16 +1527,26 @@ void* Fuga_evalSlots(void* self, void* scope)
     void* result = Fuga_clone(FUGA->Object);
     FUGA_CHECK(Fuga_setS(escope, "_this", result));
     FUGA_FOR(i, slot, self) { 
-        FUGA_IF(Fuga_hasDocI(self, i)) {
+        FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_name", name));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_name"));
+        }
+      { FUGA_IF(Fuga_hasDocI(self, i)) {
             void* doc = Fuga_getDocI(self, i);
             FUGA_CHECK(Fuga_setS(escope, "_doc", doc));
         } else {
             FUGA_CHECK(Fuga_delS(escope, "_doc"));
-        }
+        } }
         void* value = Fuga_eval(slot, escope, escope);
         FUGA_CHECK(value);
-        if (!Fuga_isNil(value))
+      { FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_set(result, name, value));
+        } else if (!Fuga_isNil(value)) {
             FUGA_CHECK(Fuga_append_(result, value));
+        } }
     }
     return result;
 }
@@ -1549,13 +1559,54 @@ void* Fuga_evalIn(void* self, void* scope)
     FUGA_CHECK(Fuga_setS(escope, "_this", scope));
     void* value = FUGA->nil;
     FUGA_FOR(i, slot, self) {
-        FUGA_IF(Fuga_hasDocI(self, i)) {
+        FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_name", name));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_name"));
+        }
+      { FUGA_IF(Fuga_hasDocI(self, i)) {
             void* doc = Fuga_getDocI(self, i);
             FUGA_CHECK(Fuga_setS(escope, "_doc", doc));
         } else {
             FUGA_CHECK(Fuga_delS(escope, "_doc"));
-        }
+        } }
         FUGA_CHECK(value = Fuga_eval(slot, escope, escope));
+      { FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_set(scope, name, value));
+        } }
+    }
+    return value;
+}
+
+void* Fuga_evalPrint(void* self, void* scope)
+{
+    ALWAYS(self); ALWAYS(scope);
+    FUGA_NEED(self); FUGA_NEED(scope);
+    void* escope = Fuga_clone(scope);
+    FUGA_CHECK(Fuga_setS(escope, "_this", scope));
+    void* value = FUGA->nil;
+    FUGA_FOR(i, slot, self) {
+        FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_name", name));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_name"));
+        }
+      { FUGA_IF(Fuga_hasDocI(self, i)) {
+            void* doc = Fuga_getDocI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_doc", doc));
+        } else {
+            FUGA_CHECK(Fuga_delS(escope, "_doc"));
+        } }
+        FUGA_CHECK(value = Fuga_eval(slot, escope, escope));
+      { FUGA_IF(Fuga_hasNameI(self, i)) {
+            void* name = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_set(scope, name, value));
+        } else if(!Fuga_isNil(value)) {
+            FUGA_CHECK(Fuga_print(value));
+        } }
     }
     return value;
 }
