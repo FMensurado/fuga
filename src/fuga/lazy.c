@@ -94,12 +94,24 @@ void* Fuga_lazySlots(void* _self)
 
     FUGA_FOR(i, slot, code) {
         FUGA_CHECK(slot);
+        void* nscope = NULL;
+        FUGA_IF(Fuga_hasNameI(code, i)) {
+            if (!nscope) nscope = Fuga_clone(scope);
+            void* name = Fuga_getNameI(code, i);
+            FUGA_CHECK(Fuga_setS(nscope, "_key", name));
+        }
+       {FUGA_IF(Fuga_hasDocI(code, i)) {
+            if (!nscope) nscope = Fuga_clone(scope);
+            void* doc = Fuga_getNameI(code, i);
+            FUGA_CHECK(Fuga_setS(nscope, "_doc", doc));
+        }}
+        if (!nscope) nscope = scope;
         if (FugaMsg_is_(slot, "~") && Fuga_hasLength_(slot, 1)) {
             slot = Fuga_getI(slot, 0);
-            FugaThunk* thunk = Fuga_eval(slot, scope, scope);
+            FugaThunk* thunk = Fuga_eval(slot, nscope, nscope);
             FUGA_CHECK(Fuga_append_(result, FugaThunk_lazy(thunk)));
         } else {
-            FUGA_CHECK(Fuga_append_(result, Fuga_lazy_(slot, scope)));
+            FUGA_CHECK(Fuga_append_(result, Fuga_lazy_(slot, nscope)));
         }
     }
 

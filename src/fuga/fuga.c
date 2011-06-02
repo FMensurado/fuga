@@ -149,16 +149,16 @@ void* Fuga_cloneM(void* self, void* args) {
 
 void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Object, "str", FUGA_METHOD_STR(Fuga_strSlots));
-    Fuga_setS(FUGA->Object, "has", FUGA_METHOD_1(Fuga_has));
+    Fuga_setS(FUGA->Object, "has?", FUGA_METHOD_1(Fuga_has));
     Fuga_setS(FUGA->Object, "get", FUGA_METHOD_1(Fuga_get));
     Fuga_setS(FUGA->Object, "set!", FUGA_METHOD_2(Fuga_set));
     Fuga_setS(FUGA->Object, "modify!", FUGA_METHOD_2(Fuga_modify));
     Fuga_setS(FUGA->Object, "del", FUGA_METHOD_1(Fuga_del));
-    Fuga_setS(FUGA->Object, "hasRaw", FUGA_METHOD_1(Fuga_hasRaw));
+    Fuga_setS(FUGA->Object, "hasRaw?", FUGA_METHOD_1(Fuga_hasRaw));
     Fuga_setS(FUGA->Object, "getRaw", FUGA_METHOD_1(Fuga_getRaw));
-    Fuga_setS(FUGA->Object, "hasName", FUGA_METHOD_1(Fuga_hasName));
+    Fuga_setS(FUGA->Object, "hasName?", FUGA_METHOD_1(Fuga_hasName));
     Fuga_setS(FUGA->Object, "getName", FUGA_METHOD_1(Fuga_getName));
-    Fuga_setS(FUGA->Object, "hasDoc", FUGA_METHOD_1(Fuga_hasDoc));
+    Fuga_setS(FUGA->Object, "hasDoc?", FUGA_METHOD_1(Fuga_hasDoc));
     Fuga_setS(FUGA->Object, "getDoc", FUGA_METHOD_1(Fuga_getDoc));
     Fuga_setS(FUGA->Object, "setDoc!", FUGA_METHOD_2(Fuga_setDoc));
     Fuga_setS(FUGA->Object, "match",  FUGA_METHOD_1(FugaObject_match_));
@@ -1530,10 +1530,10 @@ void* Fuga_evalSlots(void* self, void* scope)
     FUGA_CHECK(Fuga_setS(escope, "_this", result));
     FUGA_FOR(i, slot, self) { 
         FUGA_IF(Fuga_hasNameI(self, i)) {
-            void* name = Fuga_getNameI(self, i);
-            FUGA_CHECK(Fuga_setS(escope, "_name", name));
+            void* key = Fuga_getNameI(self, i);
+            FUGA_CHECK(Fuga_setS(escope, "_key", key));
         } else {
-            FUGA_CHECK(Fuga_delS(escope, "_name"));
+            FUGA_CHECK(Fuga_delS(escope, "_key"));
         }
       { FUGA_IF(Fuga_hasDocI(self, i)) {
             void* doc = Fuga_getDocI(self, i);
@@ -1808,9 +1808,9 @@ void* FugaObject_match_(void* self, void* attempt)
         FUGA_RAISE(FUGA->MatchError, "different lengths");
     void* result = Fuga_clone(FUGA->Object);
     FUGA_FOR(i, slot, self) {
-        void* resultSlot = Fuga_match_(slot, Fuga_getI(attempt, i));
-        FUGA_CHECK(resultSlot);
-        FUGA_CHECK(Fuga_update_(result, resultSlot));
+        void* resultSlots = Fuga_match_(slot, Fuga_getI(attempt, i));
+        FUGA_CHECK(resultSlots);
+        FUGA_CHECK(Fuga_update_(result, resultSlots));
     }
     return result;
 }

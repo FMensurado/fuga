@@ -73,11 +73,17 @@ bool FugaParser_advance_(
     return false;
 }
 
+#include <stdio.h>
+
 void* FugaParser_error_(
     FugaParser* self,
     const char* message
 ) {
-    FUGA_RAISE(FUGA->SyntaxError, message);
+    ALWAYS(self); ALWAYS(message);
+    size_t line = FugaLexer_peek(self->lexer)->line;
+    char msgbuff[1024];
+    sprintf(msgbuff, "(line %lu) %s", line, message);
+    FUGA_RAISE(FUGA->SyntaxError, msgbuff);
 }
 
 void* FugaParser_unfinished_(
@@ -121,7 +127,8 @@ void* FugaParser_msg(
 ) {
     FugaToken* token = FugaLexer_next(self->lexer);
     if (token->type != FUGA_TOKEN_NAME)
-        FUGA_RAISE(FUGA->SyntaxError, "expected msg");
+        return FugaParser_error_(self, "expected msg");
+
     FugaMsg* msg = FugaMsg_fromSymbol(FugaToken_symbol(token));
     FUGA_CHECK(msg);
 
@@ -173,7 +180,8 @@ void* FugaParser_root(
         return msg;
 
     default:
-        FUGA_RAISE(FUGA->SyntaxError,
+        return FugaParser_error_(
+            self,
             "expected [, (, NAME, INT, STRING, or SYMBOL"
         );
     }
@@ -251,6 +259,7 @@ void* FugaParser_slot_(
     void* expr1 = FugaParser_expression(self);
     FUGA_CHECK(expr1);
     if (FugaParser_advance_(self, FUGA_TOKEN_COLON)) {
+        while (FugaParser_advance_(self, FUGA_TOKEN_SEPARATOR));
         void* expr2 = FugaParser_expression(self);
         FUGA_CHECK(Fuga_set(block, expr1, expr2));
     } else {
@@ -282,7 +291,8 @@ void* FugaParser_block(
             break;
         
         if (needsep)
-            FUGA_RAISE(FUGA->SyntaxError,
+            return FugaParser_error_(
+                parser,
                 "expected separator between slots"
             );
 
