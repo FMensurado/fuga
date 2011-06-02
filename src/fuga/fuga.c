@@ -593,11 +593,9 @@ void* Fuga_toName(void* name, void* self)
     }
     if (Fuga_isString(name))
         return FugaString_toSymbol(name);
-    if (Fuga_isMsg(name))
+    if (Fuga_isMsg(name) && Fuga_hasLength_(name, 0)) 
        return FugaMsg_toSymbol(name);
-    FUGA_RAISE(FUGA->TypeError,
-        "toName: expected primitive int, symbol, string, or msg"
-    );
+    return name;
 }
 
 #ifdef TESTING
@@ -608,7 +606,7 @@ TESTS(Fuga_toName) {
     TEST(Fuga_isSymbol(Fuga_toName(FUGA_STRING("hello"), self)));
     TEST(Fuga_isRaised(Fuga_toName(FUGA_STRING(""), self)));
     TEST(Fuga_isSymbol(Fuga_toName(FUGA_MSG("hello"), self)));
-    TEST(Fuga_isRaised(Fuga_toName(FUGA->Int, self)));
+    TEST(Fuga_is_     (Fuga_toName(FUGA->Int, self), FUGA->Int));
     TEST(Fuga_isRaised(Fuga_toName(Fuga_raise(FUGA_INT(10)), self)));
     Fuga_quit(self);
 }
@@ -669,7 +667,7 @@ FugaSlot* Fuga_getSlot_(void* self, void* name)
             long index = FugaInt_value(name);
             return FugaSlots_getByIndex(FUGA_HEADER(self)->slots, index);
         } else {
-            return FugaSlots_getBySymbol(FUGA_HEADER(self)->slots, name);
+            return FugaSlots_getByName(FUGA_HEADER(self)->slots, name);
         }
     }
     return NULL;
@@ -844,7 +842,7 @@ void* Fuga_hasRaw(void* self, void* name)
             long index = FugaInt_value(name);
             return FUGA_BOOL(FugaSlots_hasByIndex(header->slots, index));
         } else {
-            return FUGA_BOOL(FugaSlots_hasBySymbol(header->slots, name));
+            return FUGA_BOOL(FugaSlots_hasByName(header->slots, name));
         }
     }
 
@@ -906,8 +904,8 @@ TESTS(Fuga_hasRaw) {
     TEST( Fuga_isFalse (Fuga_hasRaw(b, FUGA_MSG("c"))));
     TEST( Fuga_isFalse (Fuga_hasRaw(c, FUGA_MSG("c"))));
 
-    TEST( Fuga_isRaised(Fuga_hasRaw(a, a)));
-    TEST( Fuga_isRaised(Fuga_hasRaw(a, FUGA->Int)));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, a)));
+    TEST( Fuga_isFalse (Fuga_hasRaw(a, FUGA->Int)));
     TEST( Fuga_isRaised(Fuga_hasRaw(a, FUGA_STRING(""))));
     TEST( Fuga_isRaised(Fuga_hasRaw(Fuga_raise(a), FUGA_INT(10))));
     TEST( Fuga_isRaised(Fuga_hasRaw(a, Fuga_raise(FUGA_INT(10)))));
@@ -930,20 +928,16 @@ void* Fuga_has(void* self, void* name)
     ALWAYS(self); ALWAYS(name);
     FUGA_CHECK(self);
 
-    void* result = Fuga_hasRaw(self, name);
-    FUGA_CHECK(result);
-    if (Fuga_isTrue(result))
-        return result;
-    if (!Fuga_isFalse(result))
-        FUGA_RAISE(FUGA->TypeError,
-            "hasBy_: Expected boolean from hasRawBy_"
-        );
+    FUGA_IF(Fuga_hasRaw(self, name)) {
+        return FUGA->True;
+    } else {
+        name = Fuga_toName(name, self);
+        if (FUGA_HEADER(self)->proto && !Fuga_isInt(name))
+            return Fuga_has(FUGA_HEADER(self)->proto, name);
+        else
+            return FUGA->False;
+    }
 
-    name = Fuga_toName(name, self);
-    if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
-        return Fuga_has(FUGA_HEADER(self)->proto, name);
-
-    return FUGA->False;
 }
 
 #ifdef TESTING
@@ -1001,8 +995,8 @@ TESTS(Fuga_has) {
     TEST( Fuga_isFalse (Fuga_has(b, FUGA_MSG("c"))));
     TEST( Fuga_isFalse (Fuga_has(c, FUGA_MSG("c"))));
 
-    TEST( Fuga_isRaised(Fuga_has(a, a)));
-    TEST( Fuga_isRaised(Fuga_has(a, FUGA->Int)));
+    TEST( Fuga_isFalse (Fuga_has(a, a)));
+    TEST( Fuga_isFalse (Fuga_has(a, FUGA->Int)));
     TEST( Fuga_isRaised(Fuga_has(a, FUGA_STRING(""))));
     TEST( Fuga_isRaised(Fuga_has(Fuga_raise(a), FUGA_INT(10))));
     TEST( Fuga_isRaised(Fuga_has(a, Fuga_raise(FUGA_INT(10)))));
@@ -1124,7 +1118,7 @@ void* Fuga_get(void* self, void* name)
     if (slot)
         return slot->value;
 
-    if (FUGA_HEADER(self)->proto && Fuga_isSymbol(name))
+    if (FUGA_HEADER(self)->proto && !Fuga_isInt(name))
         return Fuga_get(FUGA_HEADER(self)->proto, name);
 
     // raise SlotError
@@ -1263,7 +1257,7 @@ void* Fuga_set(void* self, void* name, void* value)
             );
         FugaSlots_setByIndex(slots, index, slot);
     } else {
-        FugaSlots_setBySymbol(slots, name, slot);
+        FugaSlots_setByName(slots, name, slot);
     }
     
     return FUGA->nil;
@@ -1381,11 +1375,15 @@ void* Fuga_extend_(
     ALWAYS(self);       ALWAYS(other);
     FUGA_NEED(self);    FUGA_NEED(other);
     FUGA_FOR(i, slot, other) {
-        FUGA_CHECK(Fuga_append_(self, slot));
-        FUGA_IF(Fuga_hasDocI(other, i)) {
+        FUGA_IF(Fuga_hasNameI(other, i)) {
+            FUGA_CHECK(Fuga_set(self, Fuga_getNameI(other, i), slot));
+        } else {
+            FUGA_CHECK(Fuga_append_(self, slot));
+        }
+      { FUGA_IF(Fuga_hasDocI(other, i)) {
             void* doc = Fuga_getDocI(other, i);
             FUGA_CHECK(Fuga_setDocI(self, -1, doc));
-        }
+        } }
     }
     return FUGA->nil;
 }
@@ -1737,7 +1735,10 @@ void* Fuga_strSlots(void* self)
         void* fSlotNum = FUGA_INT(slotNum);
         if (Fuga_isTrue(Fuga_hasName(self, fSlotNum))) {
             void* name = Fuga_getName(self, fSlotNum);
-            name = FugaSymbol_toString(name);
+            if (Fuga_isSymbol(name))
+                name = FugaSymbol_toString(name);
+            else 
+                name = Fuga_str(name);
             FUGA_CHECK(name);
             result = FugaString_cat_(result, name);
             result = FugaString_cat_(result, FUGA_STRING(": "));

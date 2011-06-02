@@ -62,11 +62,11 @@ size_t FugaSlots_length(FugaSlots* slots);
 bool FugaSlots_hasByIndex(FugaSlots* slots, FugaIndex index);
 
 /**
-*** ### FugaSlots_hasBySymbol
+*** ### FugaSlots_hasByName
 ***
 *** Determine whether there is a slot with the give symbol.
 **/
-bool FugaSlots_hasBySymbol(FugaSlots* slots, void* symbol);
+bool FugaSlots_hasByName(FugaSlots* slots, void* symbol);
 
 /**
 *** ## Get
@@ -77,11 +77,11 @@ bool FugaSlots_hasBySymbol(FugaSlots* slots, void* symbol);
 FugaSlot* FugaSlots_getByIndex(FugaSlots* slots, FugaIndex index);
 
 /**
-*** ### FugaSlots_getBySymbol
+*** ### FugaSlots_getByName
 ***
 *** Get the slot associated with a given symbol.
 **/
-FugaSlot* FugaSlots_getBySymbol(FugaSlots* slots, void* name);
+FugaSlot* FugaSlots_getByName(FugaSlots* slots, void* name);
 
 void FugaSlots_append_(FugaSlots* slots, FugaSlot value);
 
@@ -94,14 +94,14 @@ void FugaSlots_append_(FugaSlots* slots, FugaSlot value);
 void FugaSlots_setByIndex(FugaSlots* slots, FugaIndex index, FugaSlot slot);
 
 /**
-*** ### FugaSlots_setBySymbol
+*** ### FugaSlots_setByName
 ***
 *** Set or update the slot associated with a given symbol.
 **/
-void FugaSlots_setBySymbol(FugaSlots* slots, void* name, FugaSlot slot);
+void FugaSlots_setByName(FugaSlots* slots, void* name, FugaSlot slot);
 
 void FugaSlots_delByIndex  (FugaSlots* slots, FugaIndex index);
-void FugaSlots_delBySymbol (FugaSlots* slots, void* name);
+void FugaSlots_delByName (FugaSlots* slots, void* name);
 
 #endif
 

@@ -63,11 +63,11 @@ bool FugaSlots_hasByIndex(FugaSlots* self, FugaIndex index) {
 }
 
 /**
-*** ### FugaSlots_hasBySymbol
+*** ### FugaSlots_hasByName
 ***
 *** Determine whether there is a slot with the give symbol.
 **/
-bool FugaSlots_hasBySymbol(FugaSlots* self, void* symbol) {
+bool FugaSlots_hasByName(FugaSlots* self, void* symbol) {
     ALWAYS(self);
     ALWAYS(symbol);
     for (FugaIndex i = 0; i < self->length; i++) {
@@ -93,11 +93,11 @@ FugaSlot* FugaSlots_getByIndex(FugaSlots* self, FugaIndex index) {
 }
 
 /**
-*** ### FugaSlots_getBySymbol
+*** ### FugaSlots_getByName
 ***
 *** Get the slot associated with a given symbol.
 **/
-FugaSlot* FugaSlots_getBySymbol(FugaSlots* self, void* symbol) {
+FugaSlot* FugaSlots_getByName(FugaSlots* self, void* symbol) {
     ALWAYS(self);
     ALWAYS(symbol);
     for (FugaIndex i = 0; i < self->length; i++) {
@@ -231,11 +231,11 @@ TESTS(FugaSlots_setByIndex) {
 #endif
 
 /**
-*** ### FugaSlots_setBySymbol
+*** ### FugaSlots_setByName
 ***
 *** Set or update the slot associated with a given symbol.
 **/
-void FugaSlots_setBySymbol(
+void FugaSlots_setByName(
     FugaSlots* self,
     void* name,
     FugaSlot slot
@@ -256,7 +256,7 @@ void FugaSlots_setBySymbol(
 }
 
 #ifdef TESTING
-TESTS(FugaSlots_setBySymbol) {
+TESTS(FugaSlots_setByName) {
     void* self = Fuga_init();
     void* name1 = FUGA_SYMBOL("hello");
     void* name2 = FUGA_SYMBOL("goodbye");
@@ -269,25 +269,25 @@ TESTS(FugaSlots_setBySymbol) {
     FugaSlots* slots = FugaSlots_new(self);
 
     TEST(FugaSlots_length(slots) == 0);
-    TEST(!FugaSlots_hasBySymbol(slots, name1));
-    TEST( FugaSlots_getBySymbol(slots, name1) == NULL)
-    FugaSlots_setBySymbol(slots, name1, slot1);
-    TEST(h = FugaSlots_hasBySymbol(slots, name1));
+    TEST(!FugaSlots_hasByName(slots, name1));
+    TEST( FugaSlots_getByName(slots, name1) == NULL)
+    FugaSlots_setByName(slots, name1, slot1);
+    TEST(h = FugaSlots_hasByName(slots, name1));
     if (h) {
-        TEST(FugaSlots_getBySymbol(slots, name1)->value == value1)
+        TEST(FugaSlots_getByName(slots, name1)->value == value1)
     }
 
     TEST(FugaSlots_length(slots) == 1);
-    TEST(!FugaSlots_hasBySymbol(slots, name2));
-    TEST( FugaSlots_getBySymbol(slots, name2) == NULL)
-    FugaSlots_setBySymbol(slots, name2, slot2);
-    TEST(h = FugaSlots_hasBySymbol(slots, name2));
+    TEST(!FugaSlots_hasByName(slots, name2));
+    TEST( FugaSlots_getByName(slots, name2) == NULL)
+    FugaSlots_setByName(slots, name2, slot2);
+    TEST(h = FugaSlots_hasByName(slots, name2));
     if (h) {
         TEST(FugaSlots_length(slots) == 2);
-        TEST(FugaSlots_getBySymbol(slots, name2)->value == value2)
+        TEST(FugaSlots_getByName(slots, name2)->value == value2)
         slot2.value = value1;
-        FugaSlots_setBySymbol(slots, name2, slot2);
-        TEST(FugaSlots_getBySymbol(slots, name2)->value == value1);
+        FugaSlots_setByName(slots, name2, slot2);
+        TEST(FugaSlots_getByName(slots, name2)->value == value1);
         TEST(FugaSlots_length(slots) == 2);
     }
 
@@ -319,12 +319,12 @@ void FugaSlots_delByIndex(
     }
 }
 
-void FugaSlots_delBySymbol(
+void FugaSlots_delByName(
     FugaSlots*  self,
     void* symbol
 ) {
     ALWAYS(self); ALWAYS(symbol);
-    FugaSlot* slot = FugaSlots_getBySymbol(self, symbol);
+    FugaSlot* slot = FugaSlots_getByName(self, symbol);
     if (slot) {
         FugaSlots_delByIndex(self, slot->index);
     }
