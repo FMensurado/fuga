@@ -1247,8 +1247,12 @@ void* Fuga_set(void* self, void* name, void* value)
     FugaSlot slot = {.name = name, .value = value, .doc = NULL};
 
     if (Fuga_isInt(name)) {
-        slot.name = NULL;
         long index = FugaInt_value(name);
+        if (Fuga_isTrue(Fuga_hasName(self, name))) {
+            slot.name = Fuga_getName(self, name);
+        } else {
+            slot.name = NULL;
+        }
         if (index > FugaSlots_length(slots))
             FUGA_RAISE(FUGA->ValueError,
                 "setBy_to_: index out of bounds (too large)"
