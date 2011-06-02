@@ -247,8 +247,6 @@ void* FugaMethodFuga_call(void* self, void* recv, void* args)
 
     FUGA_FOR(i, body, defn) {
         void* formals = Fuga_getNameI(defn, i);
-        if (Fuga_isSymbol(formals))
-            formals = FugaMsg_fromSymbol(formals);
         FUGA_CHECK(formals);
 
         void* match = Fuga_match_(formals, args);

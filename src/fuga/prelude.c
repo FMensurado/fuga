@@ -315,10 +315,22 @@ void* FugaPrelude_method(
     void* method = FugaMethod_empty(scope);
     FUGA_CHECK(scope); FUGA_CHECK(code); FUGA_CHECK(method);
     
+    bool oscope = true;
+
     FUGA_FOR(i, body, code) {
         void* args;
         FUGA_IF(Fuga_hasNameI(code, i)) {
             args = Fuga_getNameI(code, i);
+            if (Fuga_isSymbol(args)) {
+                if (oscope) {
+                    scope  = Fuga_clone(scope);
+                    oscope = false;
+                    FUGA_CHECK(Fuga_setS(method, "scope", scope));
+                }
+                body = Fuga_eval(body, scope, scope);
+                FUGA_CHECK(Fuga_set(scope, args, body));
+                continue;
+            }
         } else {
             args = Fuga_clone(FUGA->Object);
         }
