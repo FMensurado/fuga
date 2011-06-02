@@ -213,16 +213,6 @@ void* FugaParser_expression(
     void* part = FugaParser_part(self);
     FUGA_CHECK(part);
 
-    if (FugaParser_advance_(self, FUGA_TOKEN_LCURLY)) {
-        void* body = FugaParser_block(self);
-        FUGA_CHECK(body);
-        FUGA_PARSER_EXPECT_UNFINISHED(self, FUGA_TOKEN_RCURLY, "}");
-        void* method = FUGA_MSG("def");
-        FUGA_CHECK(Fuga_append_(method, part));
-        FUGA_CHECK(Fuga_extend_(method, body));
-        return method;
-    }
-
     while (FugaParser_check_(self, FUGA_TOKEN_OP)) {
         FugaToken *token = FugaLexer_next(self->lexer);
         void* msg = FugaMsg_fromSymbol(FugaToken_symbol(token));
@@ -286,7 +276,6 @@ void* FugaParser_block(
 
         token = FugaLexer_peek(parser->lexer);
         if ((token->type == FUGA_TOKEN_RPAREN) ||
-            (token->type == FUGA_TOKEN_RCURLY) ||
             (token->type == FUGA_TOKEN_END))
             break;
         
@@ -388,35 +377,6 @@ TESTS(FugaParser) {
         && Fuga_hasLength_(Fuga_getI(self, 1), 2));
     FUGA_PARSER_TEST("[10, 20]", Fuga_isRaised(self));
 
-    FUGA_PARSER_TEST("foo {}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 1)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        );
-    FUGA_PARSER_TEST("foo {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        &&  Fuga_isInt(Fuga_get(self, FUGA_INT(1)))
-        );
-    FUGA_PARSER_TEST("foo {10, :hi}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 3)
-        &&  Fuga_isMsg(Fuga_get(self, FUGA_INT(0)))
-        &&  Fuga_isInt(Fuga_get(self, FUGA_INT(1)))
-        &&  Fuga_isSymbol(Fuga_get(self, FUGA_INT(2)))
-        );
-    FUGA_PARSER_TEST("foo bar {10}",
-           !Fuga_isRaised(self)
-        &&  Fuga_isMsg(self)
-        &&  Fuga_hasLength_(self, 2)
-        &&  Fuga_isExpr(Fuga_getI(self, 0))
-        &&  Fuga_hasLength_(Fuga_getI(self, 0), 2)
-        &&  Fuga_isInt (Fuga_getI(self, 1))
-        );
     FUGA_PARSER_TEST("(:: foo\n 10)",
            !Fuga_isRaised(self)
         &&  Fuga_hasLength_(self, 1)
