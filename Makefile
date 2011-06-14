@@ -9,6 +9,12 @@ test:
 fugai:
 	tools/make --executable main && mv -f main fuga
 
+debug:
+	tools/make --test --executable main
+	mv main debug_fuga
+	gdb debug_fuga
+
+
 build: fugai
 	ar rcs bin/libfuga.a bin/fuga_*.o
 
