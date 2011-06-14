@@ -1,11 +1,6 @@
-fact: method(
-    (0): 1
-    (n): n * fact(n-1)
-)
-
-line: method(
-    (n): print(n, fact(n))
-)
+fact: fn((0): 1
+         (n): n * fact(n - 1))
+line: fn((n): print(n, fact(n)))
 
 print("Factorial:")
 line(0)

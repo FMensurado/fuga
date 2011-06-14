@@ -1,6 +1,6 @@
 print("Hello, world!")
 
-hello: method(
+hello: fn(
     print("Hello, world!")
 )
 

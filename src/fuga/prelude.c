@@ -40,9 +40,9 @@ void FugaPrelude_init(
 
     Fuga_setS(FUGA->Prelude, "_name",   FUGA_STRING("Prelude"));
     Fuga_setS(FUGA->Prelude, ":=",      FUGA_METHOD(FugaPrelude_set));
-    Fuga_setS(FUGA->Prelude, "=",     FUGA_METHOD(FugaPrelude_modify));
-    Fuga_setS(FUGA->Prelude, "if",     FUGA_METHOD(FugaPrelude_if));
-    Fuga_setS(FUGA->Prelude, "method", FUGA_METHOD(FugaPrelude_method));
+    Fuga_setS(FUGA->Prelude, "=",       FUGA_METHOD(FugaPrelude_modify));
+    Fuga_setS(FUGA->Prelude, "if",      FUGA_METHOD(FugaPrelude_if));
+    Fuga_setS(FUGA->Prelude, "fn",      FUGA_METHOD(FugaPrelude_method));
     Fuga_setS(FUGA->Prelude, "print",  FUGA_METHOD(FugaPrelude_print));
     Fuga_setS(FUGA->Prelude, "import", FUGA_METHOD(FugaPrelude_import));
     Fuga_setS(FUGA->Prelude, "match",  FUGA_METHOD(FugaPrelude_match));

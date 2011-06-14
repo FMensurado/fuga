@@ -1,22 +1,22 @@
 
 :: Evaluate lazily.
-lazy: method((~x): x lazy)
+lazy: fn((~x): x lazy)
 
 :: Prevent evaluation of code.
-"`":  method((~x): x code)
+"`":  fn((~x): x code)
 
 :: Get slot without activating it.
-:: Usually used to get a method without activating it.
-".": method(
+:: Usually used to get a function without activating it.
+".": fn(
     (~x): x scope get(x code)
     (recv, ~x): recv get(x code)
 )
 
 :: The last message receiver in a given scope.
-Msg lastRecv := method((scope): scope)
+Msg lastRecv := fn((scope): scope)
 
 :: The last message receiver in a given scope.
-Expr lastRecv := method((scope):
+Expr lastRecv := fn((scope):
     do(newExpr := Expr clone
        newExpr extend!(self)
        newExpr del(-1)
@@ -24,51 +24,51 @@ Expr lastRecv := method((scope):
 )
 
 :: The name of the last message.
-Msg lastName := method(self name)
+Msg lastName := fn(self name)
 
 :: The name of the last message.
-Expr lastName := method(self get(-1) lastName)
+Expr lastName := fn(self get(-1) lastName)
 
 :: The last message receiver.
-Thunk lastRecv := method(self code lastRecv(self scope))
+Thunk lastRecv := fn(self code lastRecv(self scope))
 
 :: The last message name.
-Thunk lastName := method(self code lastName)
+Thunk lastName := fn(self code lastName)
 
 :: Get slot value from an index.
-Object at := method((index):
+Object at := fn((index):
     if(isa?(index, Int), self get(index)
        TypeError raise("at: expected index to be an integer"))
 )
 
 :: Iterator using "self at" and "self len".
-Object iter := method(
+Object iter := fn(
     (_object: self
      _index: 0
-     iter: method(self copy)
+     iter: fn(self copy)
      
      :: Are there any more values?
-     done?: method(self _index >= self _object len)
+     done?: fn(self _index >= self _object len)
 
      :: The current value.
-     value: method(self _object at(self _index))
+     value: fn(self _object at(self _index))
 
      :: Advance iterator.
-     next!: method(self _index = [self _index + 1]))
+     next!: fn(self _index = [self _index + 1]))
 )
 
-range: method(
+range: fn(
     (start, end):
         (len: end - start
-         at: method((n): start + n ))
+         at: fn((n): start + n ))
     (start, end, step):
         (len: end - start + step - 1 // step
-         at: method((n): start + [n*step]))
+         at: fn((n): start + [n*step]))
 )
 
 
 :: Get empty version of container.
-Object empty := method(())
+Object empty := fn(())
 
 :: Map using iter.
 :: With one argument, the argument is sent to all elements.
@@ -77,35 +77,51 @@ Object empty := method(())
 :: 
 ::     self map(*2)
 ::     self map(x: x*2)
-Object map := method(
+Object map := fn(
+
+# ideal version?:
+#
+# Object map := fn((^fn):
+#     do(result := self empty
+#        iter   := self iter
+#        until(iter done?) do(
+#            result append(fn(iter value))
+#            iter next!
+#        )
+#        result)
+# )
+
     (~body):
         if(body scope has?(:_key)
            aux(self iter, self empty
-               method((x):
+               fn((x):
                   do(scope := body scope clone
                      scope set!(body scope _key, x)
                      body code eval(scope, scope))
                )
            )
            aux(self iter, self empty
-               method((x): body code eval(x, body scope)))
+               fn((x): body code eval(x, body scope)))
         )
 
-    aux: method((iter, result, fn):
+    aux: fn((iter, result, fn):
         if(iter done?
            result
-           do(result append!(fn(iter value))
+           do(result append!(x: fn(iter value))
               iter next!
               aux(iter, result, .fn)))
     )
 )
+
+nil nil? := true
+Object nil? := false
 
 :: Add documentation to an existing slot.
 :: Example:
 ::
 ::     :: New documentation.
 ::     redoc(existing slot)
-redoc: method((~x):
+redoc: fn((~x):
     x lastRecv setDoc!(x lastName, x scope get(:_doc))
 )
 
