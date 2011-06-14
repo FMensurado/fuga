@@ -3,6 +3,9 @@ all: test fugai build
 try: test fugai
 	./fuga
 
+doc: fugai Doxyfile
+	doxygen Doxyfile
+
 test:
 	tools/test fuga
 
@@ -11,8 +14,8 @@ fugai:
 
 debug:
 	tools/make --test --executable main
-	mv main debug_fuga
-	gdb debug_fuga
+	mv main .debug
+	gdb .debug
 
 
 build: fugai

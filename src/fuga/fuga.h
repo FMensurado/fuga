@@ -1,3 +1,7 @@
+/**
+ * \file fuga.h
+ * \brief Main Fuga header file.
+ */
 #ifndef FUGA_H
 #define FUGA_H
 
@@ -21,93 +25,187 @@ typedef struct FugaMsg    FugaMsg;
 #include "slots.h"
 #include "symbols.h"
 
+/**
+ * \brief Fuga environmental data.
+ *
+ * FugaRoot holds objects and data of global importance, such as
+ * garbage collection information, the global symbol table, and
+ * various global objects. Whenever "self" is a fuga object, FugaRoot
+ * can be accessed using the FUGA macro.
+ *
+ * \see FUGA
+ */
 struct FugaRoot {
     // GC info
-    FugaGCList white;
-    FugaGCList grey;
-    FugaGCList black;
-    FugaGCList roots;
+    FugaGCList roots; /**< Objects that aren't meant to be freed. */
+    FugaGCList black; /**< Objects that have been marked, and have marked
+                           all of their children, in the current pass. */
+    FugaGCList grey;  /**< Objects that have been marked, but have not
+                           yet marked their children, in the current
+                           pass. */
+    FugaGCList white; /**< Objects that have not been marked in this pass
+                           These may be freed at the end of the current
+                           pass if they are still not marked. */
 
     // symbols
-    FugaSymbols* symbols;
+    FugaSymbols* symbols; /**< Global symbol table. Ensures that all
+                               symbols that are equal have the same
+                               identity. */
 
     // basic objects
-    void* Object;
-    void* Prelude;
-    void* Number;
-    void* Int;
-    void* String;
-    void* Symbol;
-    void* Msg;
-    void* Method;
-    void* Expr;
-    void* nil;
-    void* Bool;
-    void* True;     // "true"  is reserved in C++ :-/
-    void* False;    // "false" is also reserved
-    void* Path;
-    void* Thunk;
+    void* Object;   /**< Base object for all fuga objects. */
+    void* Prelude;  /**< Base object for all fuga modules. */
+    void* Number;   /**< Base object for number types. */
+    void* Int;      /**< Base integer object. */
+    void* String;   /**< Base string object. */
+    void* Symbol;   /**< Base symbol object. */
+    void* Msg;      /**< Base message object. */
+    void* Method;   /**< Base method/function object. */
+    void* Expr;     /**< Base expression object. An expression is a
+                         sequence of messages (with an expression 'root'
+                         that may or may not be a message). */
+    void* nil;      /**< Value that represents no value. */
+    void* Bool;     /**< Base boolean value object. */
+    void* True;     /**< Boolean object that corresponds to "true". Known
+                         as "true" in Fuga code. */
+    void* False;    /**< Boolean object that corresponds to "false".
+                         Known as "false" in Fuga code. */
+    void* Thunk;    /**< Base first-class thunk object. */
+    void* Path;     /**< File path manipulation object. */
 
     // Exceptions
-    void* Exception;
-    void* TypeError;
-    void* SlotError;
-    void* IOError;
-    void* ValueError;
-    void* SyntaxError;
-    void* SyntaxUnfinished;
-    void* MatchError;
+    void* Exception;        /**< Base Exception object. */
+    void* SlotError;        /**< Exception raised when various slot
+                                 methods fail. Typically this happens
+                                 when a name does not exist. */
+    void* IOError;          /**< Exception raised when an IO operation
+                                 fails in some way. */
+    void* TypeError;        /**< Exception raised when an value is of an
+                                 unexpected or unacceptable type. */
+    void* ValueError;       /**< Exception raised when a value is of the
+                                 right type, but not in an acceptable
+                                 range. */
+    void* SyntaxError;      /**< Exception raised when code is badly
+                                 formed. */
+    void* SyntaxUnfinished; /**< Exception raised when code is
+                                 incomplete. For example, a parenthesis
+                                 was opened but it was not closed.
+                                 SyntaxUnfinished inherits from
+                                 SyntaxError. */
+    void* MatchError;       /**< Exception raised when a singular
+                                 pattern matching operation fails. That
+                                 is, when a "_match" method fails to
+                                 match. */
 };
 
+/**
+ * \brief Primitive type identifier.
+ *
+ * FugaType is used to identify the primitive type of a primitive Fuga
+ * object, such as an integer, a string, a symbol, etc. The data
+ * contained in the FugaType struct is secondary -- the important part
+ * of this struct is it's address in memory. This is what is used to
+ * distinguish a primitive integer from a primitive string or from a
+ * vanilla object.
+ * 
+ * To define your own primitive type in C, you must declare, at a global
+ * scope, an instance of FugaType (and you may declare it to be const).
+ * You must then use Fuga_type_ to set an object's primitive type, and
+ * you can use Fuga_type and Fuga_hasType_ to get or test an object's
+ * primitive type.
+ *
+ * \see Fuga_type
+ * \see Fuga_type_
+ * \see Fuga_hasType_
+ */
 struct FugaType {
-    const char* name;
+    const char* name; /**< Name of the primitive type. */
 };
 
+/**
+ * \brief Garbage collection data for a single object.
+ */
 struct FugaGCInfo {
-    FugaGCList  list;
-    void        (*mark) (void*);
-    void        (*free) (void*);
-    unsigned    pass;
-    bool        root;
+    FugaGCList  list;            /**< Next and prev elements of the
+                                      current list. The root of the list
+                                      is in FugaRoot. */
+    void        (*mark) (void*); /**< Mark function. Mark the object's
+                                      GCed dependencies. */
+    void        (*free) (void*); /**< Free function. Free the object's
+                                      non-GCed dependencies. */
+    unsigned    pass;            /**< Last garbage collection pass in
+                                      which the object was marked. */
+    bool        root;            /**< Is this object in FUGA->roots? */
 };
 
+/**
+ * \brief Data every fuga object must have.
+ * 
+ * All fuga objects have a FugaHeader. If "ptr" is a pointer to 
+ * a fuga object, its FugaHeader is located right before "ptr". So,
+ * its FugaHeader is located at "((FugaHeader*)ptr-1)". Rather than
+ * relying on this fact, use the FUGA_HEADER macro, if you need to
+ * access header data. Likewise, if "hdr" is a pointer to FugaHeader,
+ * the actual data is located at "((FugaHeader*)hdr+1)". Use the
+ * FUGA_DATA macro, rather than relying on that fact.
+ *
+ * \see FUGA_HEADER
+ * \see FUGA_DATA
+ */
 struct FugaHeader {
-    FugaGCInfo       gc;
-    FugaRoot*        root;
-    const FugaType*  type;
-    FugaSlots*       slots;
-    void*            proto;
+    FugaGCInfo       gc;    /**< Garbage collection data. */
+    FugaRoot*        root;  /**< Relevant Fuga environment. */
+    const FugaType*  type;  /**< Primitive type of object. */
+    FugaSlots*       slots; /**< Slots in object. */
+    void*            proto; /**< Prototype of object. */
 };
 
-
+/**
+ * \brief Get the FugaHeader of a fuga object.
+ * \param self A pointer to a fuga object.
+ * \return self's FugaHeader.
+ * \see FugaHeader
+ */
 #define FUGA_HEADER(self)   (((FugaHeader*)(self))-1)
+
+/**
+ * \brief Get the object pointer, given a FugaHeader.
+ * \param self A pointer to a FugaHeader
+ * \return self's FugaHeader
+ * \see FugaHeader
+ */
 #define FUGA_DATA(self)     ((void*)(((FugaHeader*)(self))+1))
+
+/**
+ * \brief The global FugaRoot/environment.
+ * \warning "self" must be a pointer to a fuga object.
+ * \see FugaRoot
+ */
 #define FUGA                (FUGA_HEADER(self)->root)
 
 /**
-*** ## Environment Management
-*** ### Fuga_init
-****
-*** Initialize the Fuga environment. This includes initializing built-in
-*** objects such as Object, Prelude, Int, Symbol, Path, Loader, etc.
-***
-*** - Params: none.
-*** - Return: the Prelude object.
-**/
+ * \brief Construct a Fuga environment.
+ *
+ * This includes initializing builtin objects such as Object, Prelude,
+ * Int, Symbol, Path, Loader, etc. See FugaRoot for such a list of global
+ * objects.
+ *
+ * \return The Prelude object.
+ * \see FugaRoot.
+ */
 void* Fuga_init(void);
 
 /**
-*** ### Fuga_quit
-***
-*** Destruct a Fuga environment. This implies freeing all objects in 
-*** the environment, by calling all the "onFree" callbacks (see
-*** `Fuga_onFree`), and deallocating all the memory.
-***
-*** - Params:
-***     - `void* self`: any object in the Fuga system.
-*** - Return: void.
-**/
-void  Fuga_quit(void*);
+ * \brief Destruct a Fuga environment.
+ *
+ * Frees all objects in the enironment, by calling all the "free"
+ * functions in the FugaGCInfo structure, and calling stdlib's free.
+ * 
+ * \param self Any object in the environment to be destroyed.
+ * \see FugaGCInfo
+ * \see Fuga_onMark_
+ */
+void Fuga_quit(void* self);
 
 /**
 *** ## Garbage Collection

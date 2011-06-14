@@ -1,5 +1,8 @@
 bin/*.a
+doc/*
 bin/*.o
 bin/test/*.o
 include/*
 .test
+.debug
+
