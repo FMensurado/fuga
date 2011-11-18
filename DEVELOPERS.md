@@ -56,78 +56,8 @@ Don't use tabs. Always indent using four spaces.
 
 ### Documentation
 
-Document, document! Heavily document! Documentation is to precede the
-code in question, and should take the form:
-
-    /**
-    *** documentation
-    *** goes
-    *** here
-    **/
-
-Documentation is to be in Markdown format, where headers are prefixed
-with `#` or `##`, small code snippets are enclosed in backquotes (\`),
-and large code snippets are set off and indented, as such:
-
-    /**
-    *** Here's some sample code:
-    ***
-    ***     int fact(x) {
-    ***         if (x < 1) return 1;
-    ***         return x * fact(x-1);
-    ***     }
-    ***
-    *** Isn't it pretty?
-    **/
-
-For a primer on Markdown syntax search for "Markdown" using your favorite
-search engine.
-
-Generally, one should document the interface to a module in its header
-file, and document the implementation in the source file(s). This way,
-a developer who wishes to use a module need only look in one place, and a
-developer who wishes to modify a module can quickly get to grips with the
-existing code, and can tell what can and can't be modified without
-repercussions.
-
-Here's an example of documentation of a function (note that this isn't a real 
-function in Fuga, so the function name doesn't follow any convention).
-
-In the header file:
-
-    /**
-    *** ### max
-    ***
-    *** Return the greater of two arguments.
-    ***
-    *** - Params:
-    ***     - `int a`: the first argument
-    ***     - `int b`: the second argument
-    *** - Return: `a` or `b`, whichever argument is greater.
-    *** - See also: `min`
-    **/
-    int max(int a, int b)
-
-In the source file:
-
-    /**
-    *** ### max
-    ***
-    *** We compare `a` with `b` and return whichever is greater.
-    **/
-    int max(int a, int b) {
-        if (a >= b)
-            return a;
-        return b;
-    }
-
-Granted, this source code documentation might be a bit overkill for this
-particular function, but it usually doesn't hurt to elaborate a bit on the
-techniques used and decisions made when implementing a function.
-
-In the future, there will be a tool to turn all of this documentation
-into Markdown / HTML. That's why the documentation has to be in Markdown
-format.
+Documentation used to be in Markdown format. Now it is slowly, very
+slowly being replaced with doxygen.
 
 ## Testing
 
