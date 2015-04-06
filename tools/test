@@ -129,8 +129,8 @@ def test_all():
         package = package[4:]
         if is_package(package):
             test_package(package)
-        elif is_module(package):
-            test_module(package)
+        else:
+            test_module(package[:-2])
 
 
 def print_usage():
