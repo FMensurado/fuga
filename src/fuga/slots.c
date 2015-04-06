@@ -310,7 +310,11 @@ void FugaSlots_delByIndex(
     FugaIndex index
 ) {
     ALWAYS(self);
-    if ((index >= 0) && (index < self->length)) {
+    /* GCC WARNS Tautological compare:
+     *   if ((index >= 0) && (index < self->length)) {
+     * TODO remove comment.
+     */
+    if ((index < self->length)) {
         for(FugaIndex i = index+1; i < self->length; i++) {
             self->slots[i-1] = self->slots[i];
             self->slots[i-1].index = i-1;

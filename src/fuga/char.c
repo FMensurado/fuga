@@ -1,6 +1,5 @@
 #include "char.h"
 #include "test.h"
-#include <ctype.h>
 
 size_t FugaChar_size(
     const char *c
@@ -27,13 +26,16 @@ bool FugaChar_isOp(
 bool FugaChar_isName(
     const char *c
 ) {
-    return *c == '_' || isalnum(*c);
+    return (*c == '_')
+        || (('a' <= *c) && (*c <= 'z'))
+        || (('A' <= *c) && (*c <= 'Z'))
+        || (('0' <= *c) && (*c <= '9'));
 }
 
 bool FugaChar_isDigit(
     const char* c
 ) {
-    return isdigit(*c);
+    return (('0' <= *c) && (*c <= '9'));
 }
 
 bool FugaChar_isSpecial(

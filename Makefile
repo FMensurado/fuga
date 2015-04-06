@@ -1,4 +1,4 @@
-all: test fugai build
+all: fugai test
 
 try: test fugai
 	./fuga
