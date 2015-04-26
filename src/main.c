@@ -1,5 +1,6 @@
 #include "fuga/fuga.h"
 #include "fuga/parser.h"
+#include "fuga/log.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -92,15 +93,20 @@ void runFile(
     void* error  = Fuga_catch(result);
     if (error)
         Fuga_printException(error);
+    Fuga_root(result);
+    Fuga_collect(self);
+    Fuga_quit(self);
 }
 
 int main(int argc, char** argv)
 {
+    FugaLog_init();
     if (argc == 2) {
         runFile(argv[1]);
     } else {
         repl();
     }
+    FugaLog_quit();
     return 0;
 }
 

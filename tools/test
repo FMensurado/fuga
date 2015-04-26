@@ -86,12 +86,15 @@ def run_testsuites(module, testsuites):
     testcode = open("src/.test.c", "w")
     testcode.write("""
 #include "fuga/test.h"
+#include "fuga/log.h"
 #include "%s.h"
 
 %s
 
 int main() {
+    FugaLog_init();
 %s
+    FugaLog_quit();
     return 0;
 }
 """ % (module, testsuites_decl, testsuites_run))

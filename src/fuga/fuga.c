@@ -6,6 +6,7 @@
 #include "path.h"
 #include "thunk.h"
 #include "loader.h"
+#include "log.h"
 
 #include <string.h>
 
@@ -180,8 +181,6 @@ void Fuga_initObject(void* self) {
     Fuga_setS(FUGA->Number, "_name", FUGA_STRING("Number"));
     Fuga_setS(FUGA->Expr,   "_name", FUGA_STRING("Expr"));
     Fuga_setS(FUGA->nil,    "_name", FUGA_STRING("nil"));
-
-
 }
 
 void Fuga_initBool(void* self) {
@@ -301,6 +300,7 @@ void* Fuga_clone_(
     header->gc.pass = FUGA_HEADER(header->root)->gc.pass;
     FugaGCList_init(&header->gc.list);
     FugaGCList_push_(&FUGA->grey, &header->gc.list);
+    FugaLog_log2("CLONE", proto, self);
     return self;
 }
 
@@ -366,6 +366,7 @@ void Fuga_mark_(
     if (!child) return;
     NEVER(Fuga_isRaised(self));
     NEVER(Fuga_isRaised(child));
+    FugaLog_log2("MARK", self, child);
     unsigned pass = FUGA_HEADER(FUGA)->gc.pass;
     FugaHeader* header = FUGA_HEADER(child);
     if (header->gc.pass != pass) {
@@ -388,22 +389,27 @@ void Fuga_collect(
     FugaGCList_append_(&FUGA->white, &FUGA->black);
     FugaGCList* iter = FUGA->roots.next;
     FugaHeader* header;
+    FugaLog_log0("STARTCOLLECT");
     while (iter != &FUGA->roots) {
         header = (FugaHeader*)iter;
         iter = iter->next;
+        FugaLog_log1("ROOT", FUGA_DATA(header));
         FugaHeader_mark(header);
     }
     while (!FugaGCList_empty(&FUGA->grey)) {
         iter = FugaGCList_pop(&FUGA->grey);
         header = (FugaHeader*)iter;
         FugaGCList_push_(&FUGA->black, iter);
+        FugaLog_log1("MARK", FUGA_DATA(header));
         FugaHeader_mark(header);
     }
     while (!FugaGCList_empty(&FUGA->white)) {
         iter = FugaGCList_pop(&FUGA->white);
         header = (FugaHeader*)iter;
+        FugaLog_log1("FREE", FUGA_DATA(header));
         FugaHeader_free(header);
     }
+    FugaLog_log0("ENDCOLLECT");
 }
 
 /**
@@ -1441,8 +1447,12 @@ void* Fuga_call(void* self, void* recv, void* args)
     FUGA_NEED(self);
     FUGA_CHECK(recv);
     FUGA_CHECK(args);
-    if (Fuga_isMethod(self))
-        return FugaMethod_call(self, recv, args);
+    if (Fuga_isMethod(self)) {
+        FugaLog_log3("CALLENTER", self, recv, args);
+        void* result = FugaMethod_call(self, recv, args);
+        FugaLog_log3("CALLEXIT", self, recv, args);
+        return result;
+    }
     FUGA_NEED(args);
     if (Fuga_length(args))
         FUGA_RAISE(FUGA->TypeError,

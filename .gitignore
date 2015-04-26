@@ -3,4 +3,4 @@ bin/*.o
 bin/test/*.o
 include/*
 .test
-fuga
+log.txt

@@ -2,6 +2,7 @@
 #include "slots.h"
 #include "test.h"
 #include "fuga.h"
+#include "log.h"
 
 /**
 *** # FugaSlots
@@ -180,6 +181,7 @@ void FugaSlots_setByIndex(
     ALWAYS(self);
     ALWAYS(slot.value);
     ALWAYS(index <= self->length);
+    FugaLog_log2("SETSLOT", self, slot.value);
 
     if (index == self->length) {
         FugaSlots_append_(self, slot); 
@@ -243,6 +245,7 @@ void FugaSlots_setBySymbol(
     ALWAYS(self);
     ALWAYS(slot.value);
     ALWAYS(name);
+    FugaLog_log3("SETSLOT", self, name, slot.value);
 
     for (FugaIndex i = 0; i < self->length; i++) {
         if (self->slots[i].name &&
@@ -314,6 +317,7 @@ void FugaSlots_delByIndex(
      *   if ((index >= 0) && (index < self->length)) {
      * TODO remove comment.
      */
+    FugaLog_log1("DELSLOT", self);
     if ((index < self->length)) {
         for(FugaIndex i = index+1; i < self->length; i++) {
             self->slots[i-1] = self->slots[i];
@@ -328,6 +332,7 @@ void FugaSlots_delBySymbol(
     void* symbol
 ) {
     ALWAYS(self); ALWAYS(symbol);
+    FugaLog_log2("DELSLOT", self, symbol);
     FugaSlot* slot = FugaSlots_getBySymbol(self, symbol);
     if (slot) {
         FugaSlots_delByIndex(self, slot->index);
