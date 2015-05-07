@@ -53,6 +53,15 @@ Object iter {
      next! { self _index := [self _index + 1] })
 }
 
+:: Get a basic range of integers.
+:: With one argument (n) returns (0,1,...,n-1)
+:: With two arguments (m,n) returns (m,m+1,...,n-1)
+:: With three arguments (m,n,k) returns (m,m+k,m+[2*k],...,_) where the
+:: last element is some m+[i*k] such that m+[i*k] < n.
+range(end) {
+  (len = end, at(n) { n } )
+}
+
 range(start, end) {
     (len = [end - start]
      at(n) { start + n })
@@ -69,7 +78,7 @@ Object empty { () }
 
 _mapiter(iter, result, fn) {
     if(iter done?, result
-       do(result append(fn(iter value))
+       do(result append!(fn(iter value))
           iter next!
           _mapiter(iter, result, .fn)))
 }
@@ -100,6 +109,12 @@ Object map(~nm, ~body) {
 ::     redoc(existing slot)
 redoc(~x) {
     x recv setDoc!(x name, x scope get(:_doc))
+}
+
+:: While loop. Repeat body while condition is met.
+while(~cond, ~body) {
+    if(cond eval,
+       do(body eval, while(~cond, ~body)))
 }
 
 #####################################################
