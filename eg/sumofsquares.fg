@@ -1,0 +1,22 @@
+
+sos1(x,y) {
+    [x * x] + [y * y]
+}
+
+sos2(x,y) {
+    x sq + y sq
+}
+
+Number sq { self * self }
+
+main {
+  print("sos1(10,20) == ", sos1(10,20))
+  print("sos1(20,30) == ", sos1(20,30))
+  print("sos1(30,40) == ", sos1(30,40))
+  print("sos2(10,20) == ", sos2(10,20))
+  print("sos2(20,30) == ", sos2(20,30))
+  print("sos2(30,40) == ", sos2(30,40))
+}
+
+main
+

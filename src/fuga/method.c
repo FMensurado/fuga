@@ -115,7 +115,7 @@ void* FugaMethod0_call(void* _self, void* recv, void* args)
     FugaMethod0* self = _self;
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 0))
-        FUGA_RAISE(FUGA->TypeError, "expected no arguments");
+        FUGA_RAISE(FUGA->TypeError, "call: expected no arguments");
     return self->method(recv);
 }
 
@@ -183,7 +183,7 @@ void* FugaMethod1_call(void* _self, void* recv, void* args)
     FugaMethod1* self = _self;
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 1))
-        FUGA_RAISE(FUGA->TypeError, "expected 1 argument");
+        FUGA_RAISE(FUGA->TypeError, "call: expected 1 argument");
     void* arg0 = Fuga_getI(args, 0);
     return self->method(recv, arg0);
 }
@@ -209,7 +209,7 @@ void* FugaMethod2_call(void* _self, void* recv, void* args)
     FugaMethod2* self = _self;
     FUGA_NEED(args);
     if (!Fuga_hasLength_(args, 2))
-        FUGA_RAISE(FUGA->TypeError, "expected 2 arguments");
+        FUGA_RAISE(FUGA->TypeError, "call: expected 2 arguments");
     void* arg0 = Fuga_getI(args, 0);
     void* arg1 = Fuga_getI(args, 1);
     return self->method(recv, arg0, arg1);

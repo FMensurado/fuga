@@ -1,0 +1,19 @@
+
+Object sum {
+    iter = self iter
+    result = 0
+    while(not(iter done?), do(
+        result := [result + iter value]
+        iter next!
+    ))
+    result
+}
+
+triangle(n) { range(n+1) sum }
+
+main {
+    print(range(50) map(i, triangle(i)))
+}
+
+main
+

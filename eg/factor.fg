@@ -1,0 +1,24 @@
+
+Int factors {
+    factors = ()
+    i = 1
+    while(i < self, do(
+        if([self % i] == 0, do(factors append!(i), true), false)
+        i := [i + 1]
+    ))
+    factors
+}
+
+main{
+    print("6  factors == ", 6  factors)
+    print("10 factors == ", 10 factors)
+    print("18 factors == ", 18 factors)
+    print("20 factors == ", 20 factors)
+    print("36 factors == ", 36 factors)
+    print("42 factors == ", 42 factors)
+    print("60 factors == ", 60 factors)
+    print("64 factors == ", 64 factors)
+}
+
+main
+
