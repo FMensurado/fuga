@@ -1,0 +1,29 @@
+
+collatz(n) {
+    Object clone(
+        iter { self }
+        value = n
+        done? { self value <= 1 }
+        next! {
+            self value := if(
+                self value % 2 == 0, self value // 2
+                self value * 3 + 1
+            )
+        }
+    )
+}
+
+Object list { self map(i,i) }
+
+main {
+    print("collatz(10) ==", collatz(10))
+    print("collatz(10) list ==", collatz(10) list)
+    print("collatz(17) list ==", collatz(17) list)
+    print("collatz(32) list ==", collatz(32) list)
+    print("collatz(53) list ==", collatz(53) list)
+    print("collatz(57) list ==", collatz(57) list)
+    print("collatz(63) list ==", collatz(63) list)
+}
+
+main
+

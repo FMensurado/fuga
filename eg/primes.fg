@@ -16,5 +16,5 @@ primes_upto(n) {
   result
 }
 
-print(primes_upto(60))
+print(primes_upto(30))
 
