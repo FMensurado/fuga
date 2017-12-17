@@ -22,7 +22,7 @@ loop = (
 :: Create a new kind of loop.
 :: The new loop works differently based on what slots are defined.
 :: The slots are
-::     dont? => Bool
+::     done? => Bool
 ::     next! => nil
 ::     build(env) => nil
 :: If any of these slots are defined, they are combined with the existing
@@ -56,34 +56,42 @@ loop for(~x, xs) {
     )
 }
 
-loop enum(~i) => self enum(~i, 0)
-loop enum(~i, start) =>
+loop enum(~i) { self enum(~i, 0) }
+loop enum(~i, start) {
     self new(
         x = var(start)
-        next! => x := x + 1
-        build(env) => env set(i code, x)
+        next! { x := x + 1 }
+        build(env) { env set(i code, x) }
     )
-loop enum(~i, start, end) =>
+}
+loop enum(~i, start, end) {
     self new(
         x = var(start)
-        done? => x >= end
-        next! => x := x + 1
-        build(env) => env set(i code, x)
+        done? { x >= end }
+        next! { x := x + 1 }
+        build(env) { env set(i code, x) }
     )
+}
 
 # Loop Execution
 
-loop do(~body..) =>
-    if( self done?
+loop do(~body..) {
+    loopself = self
+    if( loopself done?
         void
         try(do(~body.., throw(:continue))
-            break(value) -> value
-            continue -> self next! ; self do(~body..)) )
+            break(value) { value }
+            continue { loopself next!
+                       loopself do(~body..) })
+}
 
-loop collect(~body..) =>
-    do( xs = var(list)
-        self do(
-            x = body value
-            xs := xs <+ x
-        ) else (xs) )
+loop collect(~body..) {
+    xs = var(list)
+    self do(
+        x = do(~body)
+        xs := xs <+ x
+    ) else (
+        xs
+    )
+}
 
