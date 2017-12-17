@@ -48,14 +48,13 @@ void FugaGCList_init (FugaGCList* list);
 
 /**
 *** ## Adding Items
-*** ### FugaGCList_push_Front
+*** ### FugaGCList_push_
 ***
 *** Place an item at the start of the list.
 ***
 *** - Parameters:
 ***     - `FugaGCList* list`: pointer to the dummy of the list.
 ***     - `FugaGCList* item`: the item to be placed at the start.
-*** - See also: `FugaGCList_push_Back`
 **/
 void FugaGCList_push_(FugaGCList* list, FugaGCList* item);
 
@@ -69,12 +68,11 @@ void FugaGCList_push_(FugaGCList* list, FugaGCList* item);
 *** - Parameters:
 ***     - `FugaGCList* item`: The item to unlink.
 *** - Returns: void
-*** - See also: `FugaGCList_popFront`, `FugaGCList_popBack`
 **/
 void FugaGCList_unlink(FugaGCList* item);
 
 /**
-*** ### FugaGCList_popFront
+*** ### FugaGCList_pop
 ***
 *** Remove the first item from the list, returning it. Note that the returned
 *** item's `next` and `prev` remain unchanged, so they are both wrong 
@@ -83,13 +81,13 @@ void FugaGCList_unlink(FugaGCList* item);
 *** - Parameters:
 ***     - `FugaGCList* list`: The list from which to remove the first item.
 *** - Returns: a pointer to the removed item with `next` and `prev` unchanged.
-*** - See Also: `FugaGCList_popBack`, `FugaGCList_unlink`
+*** - See Also: `FugaGCList_pop`, `FugaGCList_unlink`
 **/
 FugaGCList* FugaGCList_pop(FugaGCList* list);
 
 /**
 *** ## Appending
-*** ### FugaGCList_append_Front
+*** ### FugaGCList_append_
 ***
 *** Concatenate the `src` list with the `dest` list (in that order), putting
 *** the result in `dest`, and leaving the `src` list empty.
@@ -99,7 +97,6 @@ FugaGCList* FugaGCList_pop(FugaGCList* list);
 ***     concatenated at the beginning.
 ***     - `FugaGCList* src`: The source list, which ends up empty.
 *** - Returns: void
-*** - See Also: `FugaGCList_append_Back`
 **/
 void FugaGCList_append_(FugaGCList* dest, FugaGCList* src);
 
